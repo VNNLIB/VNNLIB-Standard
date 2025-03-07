@@ -1,0 +1,21 @@
+TName. TensorName ::= String;
+
+TDim.  Dimension ::= WholeNumber;
+TDims. Dimension ::= Dimension "," Dimension;
+
+TSub.  Subscript ::= WholeNumber;
+TMSub. Subscript ::= Subscript "-" Subscript;
+
+TElem. Element ::= TensorName "_" Subscript;
+ElemT. ElementType ::= String;
+
+
+Com.  Command ::= Definition | Constraint;
+Coms. Command ::= Command "\n" Command;
+
+Def.  Defintion ::= "(" "declare-fun" ElementDefinition ")";
+EDef. ElementDefinition ::= Element () ElementType;
+
+COps. ComparitiveOperator ::= ">" | "<" | ">=" | "<=" | "!=" | "==";
+Conn. Connectives ::= "and" | "or" | "not";
+
