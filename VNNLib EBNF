@@ -1,0 +1,43 @@
+EXAMPLES
+
+(declare-fun X_0 () Real)	
+
+EXAMPLE 1: (assert (<= X_0 eps_o)) is (X_0 <= eps_1)
+
+EXAMPLE 2: (assert (<= (- FC6_0 FC6_1) 0.0) is (FC6_0 - FC6_1) <= 0.0
+
+EXAMPLE 3:
+        (assert (or
+            (and (>= Y_0 {output_bounds[0, 1]}))
+            (and (<= Y_0 {output_bounds[0, 0]}))
+        ))
+
+
+possible comparators: <=, >=, <, >, ==, !=
+possible connectives: and, or
+possible arithmetic: +, -, *
+
+BASE EBNF:
+
+<connective> ::= "and" | "or" | "not"
+<comparator> ::= "<=" | ">=" | "<" | ">" | "==" | "!="
+<arithmetic> ::= "+" | "-" | "*"
+
+<char> ::= [a-z]
+<digit> ::= [0-9]
+
+<variable> ::= <char>+
+<parameter> ::= <digit>+ "." <digit>+ ("e" "-"? <digit>+)?
+
+<operator> ::= (<connective> | <comparator> | <arithmetic>)
+
+<arithmetic_formula> ::= "(" <arithmetic> "(" <variable> | <parameter> | <arithmetic_formula> ")" ")"
+<comparator_formula> ::= "(" <comparator> "(" <variable> | <parameter> | <arithmetic_formula> ")" ")"
+<connective_formula> ::= "(" <connective> "(" <comparator_formula" | <connective_formula> ")"
+
+<formula> ::= (<arithmetic_formula> | <comparator_formula> | <connective_formula>)
+
+<assertion> ::= "(" "assert " <formula> ")"
+<declaration> ::= "(" "declare-fun " <variable> "()" "Real" ")"
+
+<specification> ::= (<assertion> | <declaration>) "\n" <specification>
