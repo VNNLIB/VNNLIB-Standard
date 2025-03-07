@@ -33,7 +33,7 @@ BASE EBNF:
 
 <arithmetic_formula> ::= "(" <arithmetic> "(" <variable> | <parameter> | <arithmetic_formula> ")" ")"
 <comparator_formula> ::= "(" <comparator> "(" <variable> | <parameter> | <arithmetic_formula> ")" ")"
-<connective_formula> ::= "(" <connective> "(" <comparator_formula" | <connective_formula> ")"
+<connective_formula> ::= "(" <connective> "(" <comparator_formula> | <connective_formula> ")"
 
 <formula> ::= (<arithmetic_formula> | <comparator_formula> | <connective_formula>)
 
