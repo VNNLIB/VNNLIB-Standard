@@ -1,0 +1,37 @@
+Com1.  Command ::= Declaration;
+Com2.  Command ::= Constraint;
+Specs1. Command ::= Declaration "\n" Command;
+Specs2. Command ::= Constraint "\n" Command;
+
+Less.  ComparitiveOperator  ::= "<" ;
+Greater.  ComparitiveOperator  ::= ">" ;
+LessEq.  ComparitiveOperator  ::= "<=" ;
+GreaterEq.  ComparitiveOperator  ::= ">=" ;
+Eq. ComparitiveOperator  ::= "==" ;
+NotEq. ComparitiveOperator  ::= "!=" ;
+
+Plus.  ArithmeticOperator  ::= "+" ;
+Minus. ArithmeticOperator  ::= "-" ;
+
+And. BooleanOperator ::= "and";
+Or. BooleanOperator ::= "or";
+Not. BooleanOperator ::= "not";
+
+Num. NumberConstant ::= Double;
+
+TName. TensorName ::= Char;
+TSub.  Subscript ::= Integer;
+TSubs. Subscript ::= Subscript "-" Integer;
+TElem. Element ::= TensorName "_" Subscript;
+ElemT. ElementType ::= "Real";
+
+Def1. ElementDeclaration ::= "declare-fun" Element "()" ElementType;
+Def2. ElementDeclaration ::= "declare-const" Element ElementType;
+Def.  Declaration ::= "(" ElementDeclaration ")";
+
+-- connective formula placeholder as ComparitiveFormula is not implemented here
+-- ConForm1. ConnectiveFormula ::= BooleanOperator "(" ComparitiveFormula ")";
+ConForm2. ConnectiveFormula ::= BooleanOperator "(" ConnectiveFormula ")";
+
+-- Con1. Constraint ::= "(" "assert" "(" ComparitiveFormula ")" ")";
+Con2. Constraint ::= "(" "assert" "(" ConnectiveFormula ")" ")";
