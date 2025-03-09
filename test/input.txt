@@ -1,0 +1,11 @@
+(assert (and (>= Y_0 FC6_1) (and (>= Y_0 FC6_1) (<= Y_0 FC6_1))))
+
+(declare-fun X_0 () Real)
+
+(assert (<= X_0 eps_0))
+
+(declare-fun Y_0-1-2 () Real)
+
+(assert (<= (- FC6_0 FC6_1) 0.0))
+
+
