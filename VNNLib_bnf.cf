@@ -53,4 +53,4 @@ CommDef. Command ::= Definition ;
 CommCon. Command ::= Constraint ;
 Coms. Command ::= Command "\n" Command ;
 
-entrypoints ConnectiveFormula;
+entrypoints Command;
