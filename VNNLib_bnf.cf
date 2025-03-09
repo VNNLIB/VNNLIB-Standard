@@ -1,30 +1,52 @@
-TName. TensorName ::= String;
+token TensorElement letter+ ('_' digit+ ('-' digit+)*)? ;
 
-TDim.  Dimension ::= WholeNumber;
-TDims. Dimension ::= Dimension "," Dimension;
+TElem. Element ::= TensorElement ;
 
-TSub.  Subscript ::= WholeNumber;
-TMSub. Subscript ::= Subscript "-" Subscript;
+DParam. Parameter ::= Double ;
+IParam. Parameter ::= Integer ;
 
-TElem. Element ::= TensorName "_" Subscript;
-ElemT. ElementType ::= String;
+GreaterThan. ComparitiveOperator ::= ">" ;
+LessThan. ComparitiveOperator ::= "<" ;
+GreaterEqual. ComparitiveOperator ::= ">=" ;
+LessEqual. ComparitiveOperator ::= "<=" ;
+NotEqual. ComparitiveOperator ::= "!=" ;
+Equal. ComparitiveOperator ::= "==" ;
 
-Param. Parameter ::= Double | Integer;
+And. Connective ::= "and" ;
+Or. Connective ::= "or" ;
+Not. Connective ::= "not" ;
 
-COps. ComparitiveOperator ::= ">" | "<" | ">=" | "<=" | "!=" | "==";
-Conn. Connective ::= "and" | "or" | "not";
-AOps. ArithmeticOperator ::= "+" | "-" | "*";
+Plus. ArithmeticOperator ::= "+" ;
+Minus. ArithmeticOperator ::= "-" ;
+Multiply. ArithmeticOperator ::= "*" ;
 
-AForm. ArithmeticFormula ::= "(" ArithmeticOperator "(" Element | Parameter | ArithmeticFormula ")" ")";
-CompForm. ComparativeFormula ::= "(" ComparitiveOperator "(" Element | Parameter | ArithmeticFormula ")" ")";
-ConnForm. ConnectiveFormula ::= "(" Connective "(" (ComparativeFormula | ConnectiveFormula) ")" ")";
+ElemInput. Input ::= Element ;
+ParamInput. Input ::= Parameter ;
 
-Form. Formula ::= (ArithmeticFormula | ComparativeFormula | ConnectiveFormula);
+AFormBase. ArithmeticFormula ::= "(" ArithmeticOperator Input Input ")" ;
+AForm1. ArithmeticFormula ::= "(" ArithmeticOperator ArithmeticFormula Input ")" ;
+AForm2. ArithmeticFormula ::= "(" ArithmeticOperator Input ArithmeticFormula ")" ;
 
-Def.  Definition ::= "(" "declare-fun" ElementDefinition ")";
-EDef. ElementDefinition ::= Element "()" ElementType;
+CompFormBase. ComparativeFormula ::= "(" ComparitiveOperator Input Input ")" ;
+CompForm1. ComparativeFormula ::= "(" ComparitiveOperator ArithmeticFormula Input ")" ;
+CompForm2. ComparativeFormula ::= "(" ComparitiveOperator Input ArithmeticFormula ")" ;
 
-Con. Constraint ::= "(" "assert" Formula ")";
+ConnFormBase. ConnectiveFormula ::= "(" Connective ComparativeFormula ComparativeFormula ")" ;
+ConnForm1. ConnectiveFormula ::= "(" Connective ConnectiveFormula ComparativeFormula ")" ;
+ConnForm2. ConnectiveFormula ::= "(" Connective ComparativeFormula ConnectiveFormula ")" ;
 
-ComBase. Command ::= Definition | Constraint
-Coms. Command ::= Command "\n" Command;
+Form1. Formula ::= ArithmeticFormula ;
+Form2. Formula ::= ComparativeFormula ;
+Form3. Formula ::= ConnectiveFormula ;
+
+EType. ElementType ::= "Real" ;
+Edef. ElementDefinition ::= Element "()" ElementType ;
+Def. Definition ::= "(" "declare-fun" ElementDefinition ")";
+
+Con. Constraint ::= "(" "assert" Formula ")" ;
+
+CommDef. Command ::= Definition ;
+CommCon. Command ::= Constraint ;
+Coms. Command ::= Command "\n" Command ;
+
+entrypoints ArithmeticFormula;
