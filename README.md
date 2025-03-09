@@ -17,4 +17,4 @@ $ bnfc -d -m VNNLib_bnf.cf  &&  make
 $ echo "$(cat test/test1.vnnlib)" | VNNLibBnf/Test
 ```
 
-**NOTE: the TensorName is a character, and must be enclosed by `''`. This is NOT in the VNNLib spec and must be fixed.**
+**NOTE: there must be a space(` `) between the `TensorName` and `Subscript` for an element eg `X _0` instead of `X_0`. This is NOT in the VNNLib spec and must be fixed.**
