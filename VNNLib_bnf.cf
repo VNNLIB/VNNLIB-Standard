@@ -1,4 +1,4 @@
-token TensorElement letter+digit* ('_' digit+ ('-' digit+)*)? ;
+token TensorElement letter+ digit* ('_' digit+ ('-' digit+)*)? ;
 
 TElem. Element ::= TensorElement ;
 
