@@ -1,4 +1,4 @@
-token TensorElement letter+ ('_' digit+ ('-' digit+)*)? ;
+token TensorElement letter+digit* ('_' digit+ ('-' digit+)*)? ;
 
 TElem. Element ::= TensorElement ;
 
@@ -49,4 +49,4 @@ CommDef. Command ::= Definition ;
 CommCon. Command ::= Constraint ;
 Coms. Command ::= Command "\n" Command ;
 
-entrypoints ArithmeticFormula;
+entrypoints ComparativeFormula;
