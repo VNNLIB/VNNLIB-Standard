@@ -1,37 +1,20 @@
-Com1.  Command ::= Declaration;
-Com2.  Command ::= Constraint;
-Specs1. Command ::= Declaration "\n" Command;
-Specs2. Command ::= Constraint "\n" Command;
+entrypoints Command;
 
-Less.  ComparitiveOperator  ::= "<" ;
-Greater.  ComparitiveOperator  ::= ">" ;
-LessEq.  ComparitiveOperator  ::= "<=" ;
-GreaterEq.  ComparitiveOperator  ::= ">=" ;
-Eq. ComparitiveOperator  ::= "==" ;
-NotEq. ComparitiveOperator  ::= "!=" ;
+token PString (letter (letter | digit)*);
 
-Plus.  ArithmeticOperator  ::= "+" ;
-Minus. ArithmeticOperator  ::= "-" ;
+rules ComparitiveOperator ::= "<" | ">" | "<=" | ">=" | "==" | "!=" ;
+rules ArithmeticOperator  ::= "+" | "-" ;
+rules BooleanOperator ::= "and" | "or" | "not";
 
-And. BooleanOperator ::= "and";
-Or. BooleanOperator ::= "or";
-Not. BooleanOperator ::= "not";
-
-Num. NumberConstant ::= Double;
-
-TName. TensorName ::= Char;
-TSub.  Subscript ::= Integer;
-TSubs. Subscript ::= Subscript "-" Integer;
+TName. TensorName ::= PString;
+rules  Subscript ::= Integer | Subscript "-" Integer;
 TElem. Element ::= TensorName "_" Subscript;
 ElemT. ElementType ::= "Real";
 
-Def1. ElementDeclaration ::= "declare-fun" Element "()" ElementType;
-Def2. ElementDeclaration ::= "declare-const" Element ElementType;
+rules ElementDeclaration ::= "declare-fun" Element "()" ElementType | "declare-const" Element ElementType;
 Def.  Declaration ::= "(" ElementDeclaration ")";
 
--- connective formula placeholder as ComparitiveFormula is not implemented here
--- ConForm1. ConnectiveFormula ::= BooleanOperator "(" ComparitiveFormula ")";
-ConForm2. ConnectiveFormula ::= BooleanOperator "(" ConnectiveFormula ")";
+rules ConnectiveFormula ::= BooleanOperator "(" ConnectiveFormula ")";
+rules Constraint ::= "(" "assert" "(" ConnectiveFormula ")" ")";
 
--- Con1. Constraint ::= "(" "assert" "(" ComparitiveFormula ")" ")";
-Con2. Constraint ::= "(" "assert" "(" ConnectiveFormula ")" ")";
+rules  Command ::= Declaration | Constraint | Declaration "\n" Command | Constraint "\n" Command;
