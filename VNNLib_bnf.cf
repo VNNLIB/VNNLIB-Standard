@@ -1,0 +1,30 @@
+TName. TensorName ::= String;
+
+TDim.  Dimension ::= WholeNumber;
+TDims. Dimension ::= Dimension "," Dimension;
+
+TSub.  Subscript ::= WholeNumber;
+TMSub. Subscript ::= Subscript "-" Subscript;
+
+TElem. Element ::= TensorName "_" Subscript;
+ElemT. ElementType ::= String;
+
+Param. Parameter ::= Double | Integer;
+
+COps. ComparitiveOperator ::= ">" | "<" | ">=" | "<=" | "!=" | "==";
+Conn. Connective ::= "and" | "or" | "not";
+AOps. ArithmeticOperator ::= "+" | "-" | "*";
+
+AForm. ArithmeticFormula ::= "(" ArithmeticOperator "(" Element | Parameter | ArithmeticFormula ")" ")";
+CompForm. ComparativeFormula ::= "(" ComparitiveOperator "(" Element | Parameter | ArithmeticFormula ")" ")";
+ConnForm. ConnectiveFormula ::= "(" Connective "(" (ComparativeFormula | ConnectiveFormula) ")" ")";
+
+Form. Formula ::= (ArithmeticFormula | ComparativeFormula | ConnectiveFormula);
+
+Def.  Definition ::= "(" "declare-fun" ElementDefinition ")";
+EDef. ElementDefinition ::= Element "()" ElementType;
+
+Con. Constraint ::= "(" "assert" Formula ")";
+
+ComBase. Command ::= Definition | Constraint
+Coms. Command ::= Command "\n" Command;
