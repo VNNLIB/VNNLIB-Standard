@@ -36,10 +36,11 @@ CompForm2. ComparativeFormula ::= "(" ComparativeOperator Input ArithmeticFormul
 CompForm3. ComparativeFormula ::= "(" ComparativeOperator ArithmeticFormula ArithmeticFormula ")" ;
 
 ConnFormBase. ConnectiveFormula ::= "(" Connective ComparativeFormula ")" ;
-ConnForm1. ConnectiveFormula ::= "(" Connective ConnectiveFormula ComparativeFormula ")" ;
-ConnForm2. ConnectiveFormula ::= "(" Connective ComparativeFormula ConnectiveFormula ")" ;
-ConnForm3. ConnectiveFormula ::= "(" Connective ComparativeFormula ComparativeFormula ")" ;
-ConnForm4. ConnectiveFormula ::= "(" Connective ConnectiveFormula ConnectiveFormula ")" ;
+BoolForm1. BooleanFormula ::= ConnectiveFormula;
+BoolForm2. BooleanFormula ::= ComparativeFormula;
+BoolForm3. BooleanFormula ::= BooleanFormula ConnectiveFormula;
+BoolForm4. BooleanFormula ::= BooleanFormula ComparativeFormula;
+ConnForm. ConnectiveFormula ::= "(" Connective BooleanFormula ")" ;
 
 Form1. Formula ::= ArithmeticFormula ;
 Form2. Formula ::= ComparativeFormula ;
