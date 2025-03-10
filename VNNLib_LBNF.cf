@@ -35,7 +35,7 @@ CompForm1. ComparativeFormula ::= "(" ComparativeOperator ArithmeticFormula Inpu
 CompForm2. ComparativeFormula ::= "(" ComparativeOperator Input ArithmeticFormula ")" ;
 CompForm3. ComparativeFormula ::= "(" ComparativeOperator ArithmeticFormula ArithmeticFormula ")" ;
 
-ConnFormBase. ConnectiveFormula ::= "(" Connective ComparativeFormula ComparativeFormula ")" ;
+ConnFormBase. ConnectiveFormula ::= "(" Connective ComparativeFormula ")" ;
 ConnForm1. ConnectiveFormula ::= "(" Connective ConnectiveFormula ComparativeFormula ")" ;
 ConnForm2. ConnectiveFormula ::= "(" Connective ComparativeFormula ConnectiveFormula ")" ;
 ConnForm3. ConnectiveFormula ::= "(" Connective ComparativeFormula ComparativeFormula ")" ;
@@ -53,7 +53,8 @@ Con. Constraint ::= "(" "assert" Formula ")" ;
 
 CommDef. Command ::= Definition ;
 CommCon. Command ::= Constraint ;
-Coms. Command ::= Command "\n" Command ;
+Specs1. Command ::= Command "\n" Definition;
+Specs2. Command ::= Command "\n" Constraint;
 
 comment ";" ;
 
