@@ -1,3 +1,5 @@
+token SDouble '-'? digit+ '.' digit+ ('e' '-'? digit+)? ;
+token SInt '-' ?digit+ ;
 token TensorElement letter+ digit* ('_' digit+ ('-' digit+)*)? ;
 
 TElem. Element ::= TensorElement ;
