@@ -45,7 +45,10 @@ Form3. Formula ::= ConnectiveFormula ;
 
 EType. ElementType ::= "Real" ;
 Edef. ElementDefinition ::= Element "()" ElementType ;
-Def. Definition ::= "(" "declare-fun" ElementDefinition ")" ;
+
+CDec. Declare ::= "declare-const" ;
+FDec. Declare ::= "declare-fun" ;
+Dec. Definition ::= "(" Declare ElementDefinition ")" ;
 
 Con. Constraint ::= "(" "assert" Formula ")" ;
 
