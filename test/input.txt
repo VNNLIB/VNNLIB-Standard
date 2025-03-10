@@ -35,4 +35,13 @@
 ; Unsafe if COC >= 1500. Output scaling is 373.94992 with a bias of 7.518884: (1500 - 7.518884) / 373.94992 = 3.991125
 (assert (>= Y_0 3.991125645861615))
 
+(assert (or
+    (and (<= Y_1 Y_0))
+    (and (<= Y_2 Y_0))
+    (and (<= Y_3 Y_0))
+    (and (<= Y_4 Y_0))
+))
 
+(assert (or 
+	(and (<= Y_1 Y_0)(<= Y_2 Y_0)(<= Y_3 Y_0)(<= Y_4 Y_6)(<= Y_5 Y_6)(<= Y_7 Y_6))
+))
