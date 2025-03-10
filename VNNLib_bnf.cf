@@ -46,11 +46,8 @@ Form2. Formula ::= ComparativeFormula ;
 Form3. Formula ::= ConnectiveFormula ;
 
 EType. ElementType ::= "Real" ;
-Edef. ElementDefinition ::= Element "()" ElementType ;
-
-CDec. Declare ::= "declare-const" ;
-FDec. Declare ::= "declare-fun" ;
-Dec. Definition ::= "(" Declare ElementDefinition ")" ;
+CDef. Definition ::= "(" "declare-const" Element ElementType ")" ;
+FDef. Definition ::= "(" "declare-fun" Element "()" ElementType ")" ;
 
 Con. Constraint ::= "(" "assert" Formula ")" ;
 
