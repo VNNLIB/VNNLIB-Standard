@@ -1,0 +1,60 @@
+token SDouble '-'? digit+ '.' digit+ ('e' '-'? digit+)? ;
+token SInt '-'? digit+ ;
+token TensorElement letter+ digit* ('_' digit+ ('-' digit+)*)? ;
+
+TElem. Element ::= TensorElement ;
+
+DParam. Parameter ::= SDouble ;
+IParam. Parameter ::= SInt ;
+
+GreaterThan. ComparativeOperator ::= ">" ;
+LessThan. ComparativeOperator ::= "<" ;
+GreaterEqual. ComparativeOperator ::= ">=" ;
+LessEqual. ComparativeOperator ::= "<=" ;
+NotEqual. ComparativeOperator ::= "!=" ;
+Equal. ComparativeOperator ::= "==" ;
+
+And. Connective ::= "and" ;
+Or. Connective ::= "or" ;
+Not. Connective ::= "not" ;
+
+Plus. ArithmeticOperator ::= "+" ;
+Minus. ArithmeticOperator ::= "-" ;
+Multiply. ArithmeticOperator ::= "*" ;
+
+ElemInput. Input ::= Element ;
+ParamInput. Input ::= Parameter ;
+
+AFormBase. ArithmeticFormula ::= "(" ArithmeticOperator Input Input ")" ;
+AForm1. ArithmeticFormula ::= "(" ArithmeticOperator ArithmeticFormula Input ")" ;
+AForm2. ArithmeticFormula ::= "(" ArithmeticOperator Input ArithmeticFormula ")" ;
+AForm3. ArithmeticFormula ::= "(" ArithmeticOperator ArithmeticFormula ArithmeticFormula ")" ;
+
+CompFormBase. ComparativeFormula ::= "(" ComparativeOperator Input Input ")" ;
+CompForm1. ComparativeFormula ::= "(" ComparativeOperator ArithmeticFormula Input ")" ;
+CompForm2. ComparativeFormula ::= "(" ComparativeOperator Input ArithmeticFormula ")" ;
+CompForm3. ComparativeFormula ::= "(" ComparativeOperator ArithmeticFormula ArithmeticFormula ")" ;
+
+ConnFormBase. ConnectiveFormula ::= "(" Connective ComparativeFormula ComparativeFormula ")" ;
+ConnForm1. ConnectiveFormula ::= "(" Connective ConnectiveFormula ComparativeFormula ")" ;
+ConnForm2. ConnectiveFormula ::= "(" Connective ComparativeFormula ConnectiveFormula ")" ;
+ConnForm3. ConnectiveFormula ::= "(" Connective ComparativeFormula ComparativeFormula ")" ;
+ConnForm4. ConnectiveFormula ::= "(" Connective ConnectiveFormula ConnectiveFormula ")" ;
+
+Form1. Formula ::= ArithmeticFormula ;
+Form2. Formula ::= ComparativeFormula ;
+Form3. Formula ::= ConnectiveFormula ;
+
+EType. ElementType ::= "Real" ;
+CDef. Definition ::= "(" "declare-const" Element ElementType ")" ;
+FDef. Definition ::= "(" "declare-fun" Element "()" ElementType ")" ;
+
+Con. Constraint ::= "(" "assert" Formula ")" ;
+
+CommDef. Command ::= Definition ;
+CommCon. Command ::= Constraint ;
+Coms. Command ::= Command "\n" Command ;
+
+comment ";" ;
+
+entrypoints Command;
