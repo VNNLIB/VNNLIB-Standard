@@ -6,6 +6,12 @@ Contributors: Allen Anthony, Ann Roy <br>
 Project: Enhancing VNNLib Spec
 
 ## Testing Instructions
+A build and test bash script has been provided for building & testing the generated parser for the grammar file which run the test on all the files in `test/`.  
+If the `test.sh` does not allow execution, add permissions accordingly:
+```bash
+$ chmod +x test.sh
+```
+
 1. Build the parser
 ```bash
 $ bnfc -d -m VNNLib_bnf.cf  &&  make
@@ -14,7 +20,5 @@ $ bnfc -d -m VNNLib_bnf.cf  &&  make
    - the test files must be in the `/tests` folder
    - the examples are taken from the [VNNLIB Benchmarks Repo](https://github.com/VNNLIB/Benchmarks/) or lines of valid commands
 ```bash
-$ echo "$(cat test/test1.vnnlib)" | VNNLibBnf/Test
+$ VNNLibBnf/Test <test-file-path>
 ```
-
-**NOTE: there must be a space(` `) between the `TensorName` and `Subscript` for an element eg `X _0` instead of `X_0`. This is NOT in the VNNLib spec and must be fixed.**
