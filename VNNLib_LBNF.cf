@@ -24,11 +24,11 @@ Multiply. ArithmeticOperator ::= "*" ;
 
 ElemInput. Input ::= Element ;
 ParamInput. Input ::= Parameter ;
+ArithInput. Input ::= ArithmeticFormula ;
 
-AFormBase. ArithmeticFormula ::= "(" ArithmeticOperator Input Input ")" ;
-AForm1. ArithmeticFormula ::= "(" ArithmeticOperator ArithmeticFormula Input ")" ;
-AForm2. ArithmeticFormula ::= "(" ArithmeticOperator Input ArithmeticFormula ")" ;
-AForm3. ArithmeticFormula ::= "(" ArithmeticOperator ArithmeticFormula ArithmeticFormula ")" ;
+NumSeq1. ArithmeticFormulaInputs ::= Input Input ;
+NumSeq2. ArithmeticFormulaInputs ::= ArithmeticFormulaInput Input ;
+AForm3. ArithmeticFormula ::= "(" ArithmeticOperator ArithmeticFormulaInput ")" ;
 
 CompFormBase. ComparativeFormula ::= "(" ComparativeOperator Input Input ")" ;
 CompForm1. ComparativeFormula ::= "(" ComparativeOperator ArithmeticFormula Input ")" ;
