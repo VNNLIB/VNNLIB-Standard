@@ -26,19 +26,15 @@ ElemInput. Input ::= Element ;
 ParamInput. Input ::= Parameter ;
 ArithInput. Input ::= ArithmeticFormula ;
 
-NumSeq1. ArithmeticFormulaInputs ::= Input Input ;
-NumSeq2. ArithmeticFormulaInputs ::= ArithmeticFormulaInput Input ;
-AForm3. ArithmeticFormula ::= "(" ArithmeticOperator ArithmeticFormulaInput ")" ;
+AFormIn1. ArithmeticFormulaInputs ::= Input Input ;
+AFormIn2. ArithmeticFormulaInputs ::= ArithmeticFormulaInputs Input ;
+AForm3. ArithmeticFormula ::= "(" ArithmeticOperator ArithmeticFormulaInputs ")" ;
 
-CompFormBase. ComparativeFormula ::= "(" ComparativeOperator Input Input ")" ;
-CompForm1. ComparativeFormula ::= "(" ComparativeOperator ArithmeticFormula Input ")" ;
-CompForm2. ComparativeFormula ::= "(" ComparativeOperator Input ArithmeticFormula ")" ;
-CompForm3. ComparativeFormula ::= "(" ComparativeOperator ArithmeticFormula ArithmeticFormula ")" ;
+CompForm. ComparativeFormula ::= "(" ComparativeOperator Input Input ")" ;
 
 BoolForm1. BooleanFormula ::= ConnectiveFormula ;
 BoolForm2. BooleanFormula ::= ComparativeFormula ;
-BoolForm3. BooleanFormula ::= BooleanFormula ConnectiveFormula ;
-BoolForm4. BooleanFormula ::= BooleanFormula ComparativeFormula ;
+BoolForm3. BooleanFormula ::= BooleanFormula BooleanFormula ;
 ConnForm. ConnectiveFormula ::= "(" Connective BooleanFormula ")" ;
 
 Form1. Formula ::= ArithmeticFormula ;
@@ -54,7 +50,7 @@ Con. Constraint ::= "(" "assert" Formula ")" ;
 
 CommDef. Command ::= Definition ;
 CommCon. Command ::= Constraint ;
-Coms. Command ::= Command "\n" Command ;
+Coms. Command ::= Command Command ;
 
 comment ";" ;
 
