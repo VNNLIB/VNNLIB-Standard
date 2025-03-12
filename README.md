@@ -14,11 +14,11 @@ $ chmod +x test.sh
 
 1. Build the parser
 ```bash
-$ bnfc -d -m VNNLib_bnf.cf  &&  make
+$ bnfc -d -m VNNLib_LBNF.cf  &&  make
 ```
 2. Test the parser
    - the test files must be in the `/tests` folder
    - the examples are taken from the [VNNLIB Benchmarks Repo](https://github.com/VNNLIB/Benchmarks/) or lines of valid commands
 ```bash
-$ VNNLibBnf/Test <test-file-path>
+$ VNNLibLBNF/Test <test-file-path>
 ```
