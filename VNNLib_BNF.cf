@@ -1,20 +1,31 @@
 entrypoints Command;
 
-token PString (letter (letter | digit)*);
-
-rules ComparitiveOperator ::= "<" | ">" | "<=" | ">=" | "==" | "!=" ;
-rules ArithmeticOperator  ::= "+" | "-" ;
-rules BooleanOperator ::= "and" | "or" | "not";
-
-TName. TensorName ::= PString;
-rules  Subscript ::= Integer | Subscript "-" Integer;
-TElem. Element ::= TensorName "_" Subscript;
+token Element letter+ digit* ('_' digit+ ('-' digit+)*)? ;
 ElemT. ElementType ::= "Real";
 
-rules ElementDeclaration ::= "declare-fun" Element "()" ElementType | "declare-const" Element ElementType;
-Def.  Declaration ::= "(" ElementDeclaration ")";
+rules Definition ::= "(" "declare-const" Element ElementType ")" | "(" "declare-fun" Element "()" ElementType ")" ;
 
-rules ConnectiveFormula ::= BooleanOperator "(" ConnectiveFormula ")";
-rules Constraint ::= "(" "assert" "(" ConnectiveFormula ")" ")";
+rules Parameter ::= Integer | "-" Integer | Double | "-" Double;
 
-rules  Command ::= Declaration | Constraint | Declaration "\n" Command | Constraint "\n" Command;
+rules ComparativeOperator ::= "<" | ">" | "<=" | ">=" | "==" | "!=" ;
+rules ArithmeticOperator  ::= "+" | "-" | "*";
+rules Connective ::= "and" | "or" | "not";
+
+rules Input ::= Element | Parameter;
+AFormInBase. ArithmeticFormulaInputs ::= Input Input;
+AFormInRecc. ArithmeticFormulaInputs ::= ArithmeticFormulaInputs Input;
+AFormBase. ArithmeticFormula ::= "(" ArithmeticOperator ArithmeticFormulaInputs ")";
+InpArith. Input ::= ArithmeticFormula;
+
+CompForm. ComparativeFormula ::= "(" ComparativeOperator Input Input ")" ;
+
+rules BooleanFormula ::= ConnectiveFormula | ComparativeFormula | BooleanFormula ComparativeFormula | BooleanFormula ConnectiveFormula ;
+
+ConnForm. ConnectiveFormula ::= "(" Connective BooleanFormula ")" ;
+
+rules Formula ::= ArithmeticFormula | ComparativeFormula | ConnectiveFormula | Formula "\n" ArithmeticFormula | Formula "\n" ComparativeFormula | Formula "\n" ConnectiveFormula ;
+Con. Constraint ::= "(" "assert" Formula ")" ;
+
+rules Command ::= Definition | Constraint | Command Constraint | Command Definition ;
+
+comment ";" ;
