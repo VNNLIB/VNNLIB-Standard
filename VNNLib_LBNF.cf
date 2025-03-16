@@ -1,57 +1,74 @@
+-- This is the LBNF grammar for the VNNLib language
+
+-- The regular expression for a signed double or integer
 token SDouble '-'? digit+ '.' digit+ ('e' '-'? digit+)? ;
 token SInt '-'? digit+ ;
+
+-- The regular expression for an element of a tensor variable
 token TensorElement letter+ digit* ('_' digit+ ('-' digit+)*)? ;
 
-TElem. Element ::= TensorElement ;
+TensorElem. Element ::= TensorElement ;
 
-DParam. Parameter ::= SDouble ;
-IParam. Parameter ::= SInt ;
+-- A parameter is a scalar variable that may be an integer or a double
+DoubleParam. Parameter ::= SDouble ;
+IntParam. Parameter ::= SInt ;
 
-GreaterThan. ComparativeOperator ::= ">" ;
-LessThan. ComparativeOperator ::= "<" ;
-GreaterEqual. ComparativeOperator ::= ">=" ;
-LessEqual. ComparativeOperator ::= "<=" ;
-NotEqual. ComparativeOperator ::= "!=" ;
-Equal. ComparativeOperator ::= "==" ;
-
-And. Connective ::= "and" ;
-Or. Connective ::= "or" ;
-Not. Connective ::= "not" ;
-
-Plus. ArithmeticOperator ::= "+" ;
-Minus. ArithmeticOperator ::= "-" ;
-Multiply. ArithmeticOperator ::= "*" ;
-
-ElemInput. Input ::= Element ;
+-- An Input is a numeric value that may be a paramater, a tensor element, 
+-- or the result of an arithmetic formula
+TElemInput. Input ::= Element ;
 ParamInput. Input ::= Parameter ;
 ArithInput. Input ::= ArithmeticFormula ;
 
-AFormIn1. ArithmeticFormulaInputs ::= Input Input ;
-AFormIn2. ArithmeticFormulaInputs ::= ArithmeticFormulaInputs Input ;
-AForm3. ArithmeticFormula ::= "(" ArithmeticOperator ArithmeticFormulaInputs ")" ;
+-- A comparative operator is a binary operator that compares two inputs
+GreaterThan. ComparativeOperation ::= ">" Input Input ;
+LessThan. ComparativeOperation ::= "<" Input Input ;
+GreaterEqual. ComparativeOperation ::= ">=" Input Input ;
+LessEqual. ComparativeOperation ::= "<=" Input Input ;
+NotEqual. ComparativeOperation ::= "!=" Input Input;
+Equal. ComparativeOperation ::= "==" Input Input ;
 
-CompForm. ComparativeFormula ::= "(" ComparativeOperator Input Input ")" ;
+-- An arithmetic operator is an n-ary operator that performs an arithmetic operation on n inputs
+ArithFormulaInputBase. ArithmeticInputs ::= Input Input ;
+ArithFormulaInput. ArithmeticInputs ::= ArithmeticInputs Input ;
 
-BoolForm1. BooleanFormula ::= ConnectiveFormula ;
-BoolForm2. BooleanFormula ::= ComparativeFormula ;
-BoolForm3. BooleanFormula ::= BooleanFormula BooleanFormula ;
-ConnForm. ConnectiveFormula ::= "(" Connective BooleanFormula ")" ;
+Plus. ArithmeticOperation ::= "+" ArithmeticInputs ;
+Minus. ArithmeticOperation ::= "-" ArithmeticInputs ;
+Multiply. ArithmeticOperation ::= "*" ArithmeticInputs ;
 
-Form1. Formula ::= ArithmeticFormula ;
-Form2. Formula ::= ComparativeFormula ;
-Form3. Formula ::= ConnectiveFormula ;
-Form4. Formula ::= Formula "\n" Formula ;
+-- A connective operator is an n-ary operator that combines at least two boolean formulas
+ConnBool. Boolean ::= ConnectiveFormula ;
+CompBool. Boolean ::= ComparativeFormula ;
+ConnFormInputsBase. ConnectiveInputs ::= Boolean ;
+ConnFormInputs. ConnectiveInputs ::= ConnectiveInputs Boolean ;
 
+And. ConnectiveOperation ::= "and" ConnectiveInputs ;
+Or. ConnectiveOperation ::= "or" ConnectiveInputs ;
+
+-- Arithmetic, comparative, and connective formulas are bounded by parentheses
+ArithForm. ArithmeticFormula ::= "(" ArithmeticOperation")" ;
+CompForm. ComparativeFormula ::= "(" ComparativeOperation ")" ;
+ConnForm. ConnectiveFormula ::= "(" ConnectiveOperation ")" ;
+
+-- A property is a constraint that must be satisfied by the model. 
+-- It is an assertion of an arithmetic, comparative, or connective formula
+PropArithmetic. Property ::= "(" "assert" ArithmeticFormula ")" ;
+PropComparative. Property ::= "(" "assert" ComparativeFormula ")" ;
+PropConnective. Property ::= "(" "assert" ConnectiveFormula ")" ;
+
+-- A tensor element is a scalar variable of type Real
+-- TODO: Add support for other types
 EType. ElementType ::= "Real" ;
-CDef. Definition ::= "(" "declare-const" Element ElementType ")" ;
-FDef. Definition ::= "(" "declare-fun" Element "()" ElementType ")" ;
 
-Con. Constraint ::= "(" "assert" Formula ")" ;
+-- A definition is a declaration of a constant variable or a function variable
+ConstDef. Definition ::= "(" "declare-const" Element ElementType ")" ;
+FunDef. Definition ::= "(" "declare-fun" Element "()" ElementType ")" ;
 
+-- A command consists of one or more definitions or properties
 CommDef. Command ::= Definition ;
-CommCon. Command ::= Constraint ;
+CommCon. Command ::= Property ;
 Coms. Command ::= Command Command ;
 
+-- A line may be commented out by starting with a semicolon
 comment ";" ;
 
 entrypoints Command;
