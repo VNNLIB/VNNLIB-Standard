@@ -38,7 +38,7 @@ Multiply. ArithmeticOperation ::= "*" ArithmeticInputs ;
 -- A connective operator is an n-ary operator that combines at least two boolean formulas
 ConnBool. Boolean ::= ConnectiveFormula ;
 CompBool. Boolean ::= ComparativeFormula ;
-ConnFormInputsBase. ConnectiveInputs ::= Boolean ;
+ConnFormInputsBase. ConnectiveInputs ::= Boolean Boolean ;
 ConnFormInputs. ConnectiveInputs ::= ConnectiveInputs Boolean ;
 
 And. ConnectiveOperation ::= "and" ConnectiveInputs ;
