@@ -55,6 +55,9 @@ PropArithmetic. Property ::= "(" "assert" ArithmeticFormula ")" ;
 PropComparative. Property ::= "(" "assert" ComparativeFormula ")" ;
 PropConnective. Property ::= "(" "assert" ConnectiveFormula ")" ;
 
+PropsBase. Properties ::= Property ;
+Props. Properties ::= Properties Property ;
+
 -- A tensor element is a scalar variable of type Real
 -- TODO: Add support for other types
 EType. ElementType ::= "Real" ;
@@ -63,12 +66,13 @@ EType. ElementType ::= "Real" ;
 ConstDef. Definition ::= "(" "declare-const" Element ElementType ")" ;
 FunDef. Definition ::= "(" "declare-fun" Element "()" ElementType ")" ;
 
--- A command consists of one or more definitions or properties
-CommDef. Command ::= Definition ;
-CommCon. Command ::= Property ;
-Coms. Command ::= Command Command ;
+DefsBase. Definitions ::= Definition ;
+Defs. Definitions ::= Definitions Definition ;
+
+-- A command consists a series of definitions followed by a series of properties
+Comm. Command ::= Definitions Properties ;
 
 -- A line may be commented out by starting with a semicolon
 comment ";" ;
 
-entrypoints Command;
+entrypoints Command ;
