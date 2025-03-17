@@ -1,0 +1,28 @@
+name: Build-and-Test-VNNLib-benchMarks
+
+on: 
+    workflow_dispatch:
+    # pull_request:
+
+jobs:
+  buildAndTest:
+    runs-on: ubuntu-latest
+    steps:
+        - uses: actions/checkout@v4
+
+        - name: installing bnfc and dependencies
+          run: cabal update && cabal install alex && cabal install happy && cabal install BNFC
+
+        - name: Build the parser
+          run: bnfc -d -m VNNLib_LBNF.cf && make
+        
+        - name: Get the VNNLib benchmarks
+          working-directory: test
+          run: wget https://github.com/VNNLIB/Benchmarks/archive/main.zip 
+        
+        - name: Extract all .vnnlib files
+          working-directory: test
+          run: unzip -j -n main.zip "*.vnnlib"
+        
+        - name: Test the parser
+          run: chmod +x test.sh && ./test.sh
