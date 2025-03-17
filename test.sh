@@ -1,18 +1,14 @@
 # !/bin/bash
-echo -n "Enter Grammar File: " 
-read Filename
 
-bnfc -d -m $Filename &&  make
-
-Parser=${Filename//"_"/}
-Parser=${Parser//".cf"/}
+testtime="$(date +'%Y-%m-%d-%s')"
 
 for f in test/*.vnnlib ;
 do 
-  output=$("$Parser"/Test "$f" 2>&1)
+  output=$(VNNLibLBNF/Test "$f" 2>&1)
   if (( $? )); then
-  echo >&2 "error $?: \"$output\""
-  break
+    echo >&2 "error $?: \"$output\""
+    echo "$f" >> test/"$testtime"_error-files.txt
+    # break
   else
     echo "make success: $f"
   fi
