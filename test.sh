@@ -1,13 +1,10 @@
 # !/bin/bash
-
-testtime="$(date +'%Y-%m-%d-%s')"
-
 for f in test/*.vnnlib ;
 do 
   output=$(VNNLibLBNF/Test "$f" 2>&1)
   if (( $? )); then
     echo >&2 "error $?: \"$output\""
-    echo "$f" >> test/"$testtime"_error-files.txt
+    echo "$f" >> test/error-files.txt
     # break
   else
     echo "make success: $f"
