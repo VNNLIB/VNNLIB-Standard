@@ -1,9 +1,11 @@
-# GENG5511
+# EVNNLIB
 
-A collaborative/shared repo for this project.
-
+A project to define and extend the grammar of the current VNNLIB specifications.  
 Contributors: Allen Anthony, Ann Roy <br>
-Project: Enhancing VNNLib Spec
+
+## Set up
+This project uses the BNFC package to build and test the parser.  
+The set-up instructions can be found in the official documentation linked [here](https://hackage.haskell.org/package/BNFC-2.9.5).
 
 ## Testing Instructions
 A build and test bash script has been provided for building & testing the generated parser for the grammar file which run the test on all the files in `test/`.  
