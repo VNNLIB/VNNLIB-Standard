@@ -2,7 +2,7 @@ name: Build-and-Test-VNNLib-benchMarks
 
 on: 
     workflow_dispatch:
-    pull_request:
+    # pull_request:
 
 jobs:
   buildAndTest:
@@ -11,7 +11,7 @@ jobs:
         - uses: actions/checkout@v4
 
         - name: installing bnfc and dependencies
-          run: cabal install alex && cabal install happy && cabal install BNFC
+          run: cabal update && cabal install alex && cabal install happy && cabal install BNFC
 
         - name: Build the parser
           run: bnfc -d -m VNNLib_LBNF.cf && make
