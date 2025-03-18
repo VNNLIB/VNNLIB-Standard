@@ -6,7 +6,13 @@ token SInt '-' digit+ ;
 token Int digit+ ;
 
 -- The regular expression for an element of a tensor variable
-token TensorElement letter+ digit* ('_' digit+ ('-' digit+)*)? ;
+token TensorElement letter+ digit* '_' digit+ ('-' digit+)* ;
+
+-- The regular expression for a tensor variable
+token TensorVariable letter+ digit* ;
+
+-- The regular expression for the shape of a tensor
+token TensorShape '[' digit+ (',' digit+)* ']' ;
 
 -- A parameter is a scalar variable that may be a signed integer or a double
 DoubleParam. Parameter ::= SDouble ;
@@ -55,22 +61,33 @@ PropArithmetic. Property ::= "(" "assert" ArithmeticFormula ")" ;
 PropComparative. Property ::= "(" "assert" ComparativeFormula ")" ;
 PropConnective. Property ::= "(" "assert" ConnectiveFormula ")" ;
 
-PropsBase. Properties ::= Property ;
-Props. Properties ::= Properties Property ;
+MultiplePropBase. MultipleProperty ::= Property ;
+MultipleProp. MultipleProperty ::= MultipleProperty Property ;
 
 -- A tensor element is a scalar variable of type Real
 -- TODO: Add support for other types
 EType. ElementType ::= "Real" ;
 
 -- A definition is a declaration of a constant variable or a function variable
-ConstDef. Definition ::= "(" "declare-const" TensorElement ElementType ")" ;
-FunDef. Definition ::= "(" "declare-fun" TensorElement "()" ElementType ")" ;
 
-DefsBase. Definitions ::= Definition ;
-Defs. Definitions ::= Definitions Definition ;
+-- A definition can be used to declare a tensor variable using the shape of the tensor
+ExpandedDefConst. ExpandedDefinition ::= "(" "declare-const" TensorElement ElementType ")" ;
+ExpandedDefInput. ExpandedDefinition ::= "(" "declare-input" TensorElement ElementType ")" ;
+ExpandedDefOutput. ExpandedDefinition ::= "(" "declare-output" TensorElement ElementType ")" ;
+
+-- A legacy definition used for compatibility with the original VNNLib format
+ExpandedDefFun. ExpandedDefinition ::= "(" "declare-fun" TensorElement "()" ElementType ")" ;
+
+DefConst. Definition ::= "(" "declare-const" TensorVariable TensorShape ElementType ")" ;
+DefInput. Definition ::= "(" "declare-input" TensorVariable TensorShape ElementType ")" ;
+DefOutput. Definition ::= "(" "declare-output" TensorVariable TensorShape ElementType ")" ;
+Def. Definition ::= ExpandedDefinition ;
+
+MultipleDefBase. MultipleDefinition ::= Definition ;
+MultipleDef. MultipleDefinition ::= MultipleDefinition Definition ;
 
 -- A command consists a series of definitions followed by a series of properties
-Comm. Command ::= Definitions Properties ;
+Comm. Command ::= MultipleDefinition MultipleProperty ;
 
 -- A line may be commented out by starting with a semicolon
 comment ";" ;
