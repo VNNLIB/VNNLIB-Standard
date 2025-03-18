@@ -1,0 +1,33 @@
+; ACAS Xu & ACAS Yu property 1 (dummy)
+
+(declare-const ACASXu X_0 Real)
+(declare-const ACASXu X_1 Real)
+(declare-const ACASXu X_2 Real)
+(declare-const ACASXu X_3 Real)
+(declare-const ACASXu X_4 Real)
+
+(declare-const ACASYu X_0 Real)
+(declare-const ACASYu X_1 Real)
+(declare-const ACASYu X_2 Real)
+(declare-const ACASYu X_3 Real)
+(declare-const ACASYu X_4 Real)
+
+(declare-const ACASXu Y_0 Real)
+(declare-const ACASXu Y_1 Real)
+(declare-const ACASXu Y_2 Real)
+(declare-const ACASXu Y_3 Real)
+(declare-const ACASXu Y_4 Real)
+
+; Unscaled Input 3: (1145, 1200)
+(assert (<= ACASXu X_3 ACASYu X_0))
+(assert (>= ACASYu X_0 ACASXu X_3))
+
+; Unscaled Input 4: (0, 60)
+(assert (<= ACASXu X_4 -0.45))
+(assert (>= ACASXu X_4 -0.5))
+(assert (<= ACASYu X_4 -0.45))
+(assert (>= ACASYu X_4 -0.5))
+
+; Unsafe if COC >= 1500. Output scaling is 373.94992 with a bias of 7.518884: (1500 - 7.518884) / 373.94992 = 3.991125
+(assert (>= ACASXu Y_0 3.991125645861615))
+(assert (>= ACASYu Y_0 ACASXu Y_1))

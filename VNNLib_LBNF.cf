@@ -5,6 +5,9 @@ token SDouble '-'? digit+ '.' digit+ ('e' '-'? digit+)? ;
 token SInt '-' digit+ ;
 token Int digit+ ;
 
+-- The regular expression for a network's name
+token Network letter+ digit* ;
+
 -- The regular expression for an element of a tensor variable
 token TensorElement letter+ digit* '_' digit+ ('-' digit+)* ;
 
