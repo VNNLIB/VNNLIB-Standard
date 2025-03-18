@@ -2,20 +2,20 @@
 
 -- The regular expression for a signed double or integer
 token SDouble '-'? digit+ '.' digit+ ('e' '-'? digit+)? ;
-token SInt '-'? digit+ ;
+token SInt '-' digit+ ;
+token Int digit+ ;
 
 -- The regular expression for an element of a tensor variable
 token TensorElement letter+ digit* ('_' digit+ ('-' digit+)*)? ;
 
-TensorElem. Element ::= TensorElement ;
-
--- A parameter is a scalar variable that may be an integer or a double
+-- A parameter is a scalar variable that may be a signed integer or a double
 DoubleParam. Parameter ::= SDouble ;
-IntParam. Parameter ::= SInt ;
+SIntParam. Parameter ::= SInt ;
+IntParam. Parameter ::= Int ;
 
 -- An Input is a numeric value that may be a paramater, a tensor element, 
 -- or the result of an arithmetic formula
-TElemInput. Input ::= Element ;
+TElemInput. Input ::= TensorElement ;
 ParamInput. Input ::= Parameter ;
 ArithInput. Input ::= ArithmeticFormula ;
 
@@ -63,8 +63,8 @@ Props. Properties ::= Properties Property ;
 EType. ElementType ::= "Real" ;
 
 -- A definition is a declaration of a constant variable or a function variable
-ConstDef. Definition ::= "(" "declare-const" Element ElementType ")" ;
-FunDef. Definition ::= "(" "declare-fun" Element "()" ElementType ")" ;
+ConstDef. Definition ::= "(" "declare-const" TensorElement ElementType ")" ;
+FunDef. Definition ::= "(" "declare-fun" TensorElement "()" ElementType ")" ;
 
 DefsBase. Definitions ::= Definition ;
 Defs. Definitions ::= Definitions Definition ;
