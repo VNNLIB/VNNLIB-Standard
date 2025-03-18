@@ -45,6 +45,10 @@ Multiply. ArithmeticOperation ::= "*" ArithmeticInputs ;
 ConnBool. Boolean ::= ConnectiveFormula ;
 CompBool. Boolean ::= ComparativeFormula ;
 ConnFormInputsBase. ConnectiveInputs ::= Boolean Boolean ;
+
+-- A legacy connective operator used for compatibility with the original VNNLib format
+ConnFormInputsBaseLegacy. ConnectiveInputs ::= Boolean ;
+
 ConnFormInputs. ConnectiveInputs ::= ConnectiveInputs Boolean ;
 
 And. ConnectiveOperation ::= "and" ConnectiveInputs ;
