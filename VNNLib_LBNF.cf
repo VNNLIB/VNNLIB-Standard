@@ -40,6 +40,7 @@ Equal. ComparativeOperation ::= "==" Input Input ;
 ArithFormulaInputBase. ArithmeticInputs ::= Input Input ;
 ArithFormulaInput. ArithmeticInputs ::= ArithmeticInputs Input ;
 
+Negate. ArithmeticOperation ::= "-" Input ;
 Plus. ArithmeticOperation ::= "+" ArithmeticInputs ;
 Minus. ArithmeticOperation ::= "-" ArithmeticInputs ;
 Multiply. ArithmeticOperation ::= "*" ArithmeticInputs ;
