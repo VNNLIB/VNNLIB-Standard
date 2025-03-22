@@ -73,19 +73,10 @@ MultipleProp. MultipleProperty ::= MultipleProperty Property ;
 EType. ElementType ::= "Real" ;
 
 -- A definition is a declaration of a constant variable or a function variable
-
 -- A definition can be used to declare a tensor variable using the shape of the tensor
-ExpandedDefConst. ExpandedDefinition ::= "(" "declare-const" TensorElement ElementType ")" ;
-ExpandedDefInput. ExpandedDefinition ::= "(" "declare-input" TensorElement ElementType ")" ;
-ExpandedDefOutput. ExpandedDefinition ::= "(" "declare-output" TensorElement ElementType ")" ;
-
--- A legacy definition used for compatibility with the original VNNLib format
-ExpandedDefFun. ExpandedDefinition ::= "(" "declare-fun" TensorElement "()" ElementType ")" ;
-
 DefConst. Definition ::= "(" "declare-const" TensorVariable TensorShape ElementType ")" ;
 DefInput. Definition ::= "(" "declare-input" TensorVariable TensorShape ElementType ")" ;
 DefOutput. Definition ::= "(" "declare-output" TensorVariable TensorShape ElementType ")" ;
-Def. Definition ::= ExpandedDefinition ;
 
 MultipleDefBase. MultipleDefinition ::= Definition ;
 MultipleDef. MultipleDefinition ::= MultipleDefinition Definition ;
