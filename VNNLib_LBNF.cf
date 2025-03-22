@@ -5,14 +5,11 @@ token SDouble '-'? digit+ '.' digit+ ('e' '-'? digit+)? ;
 token SInt '-' digit+ ;
 token Int digit+ ;
 
--- The regular expression for a network's name
-token Network letter+ digit* ;
-
 -- The regular expression for an element of a tensor variable
 token TensorElement letter+ digit* '_' digit+ ('-' digit+)* ;
 
 -- The regular expression for a tensor variable
-token TensorVariable letter+ digit* ;
+token VariableName letter+ digit* ;
 
 -- The regular expression for the shape of a tensor
 token TensorShape '[' digit+ (',' digit+)* ']' ;
@@ -48,7 +45,7 @@ Multiply. ArithmeticOperation ::= "*" ArithmeticInputs ;
 -- A connective operator is an n-ary operator that combines at least two boolean formulas
 ConnBool. Boolean ::= ConnectiveFormula ;
 CompBool. Boolean ::= ComparativeFormula ;
-ConnFormInputsBase. ConnectiveInputs ::= Boolean Boolean;
+ConnFormInputsBase. ConnectiveInputs ::= Boolean Boolean ;
 ConnFormInputs. ConnectiveInputs ::= ConnectiveInputs Boolean ;
 
 And. ConnectiveOperation ::= "and" ConnectiveInputs ;
@@ -72,25 +69,22 @@ MultipleProp. MultipleProperty ::= MultipleProperty Property ;
 -- TODO: Add support for other types
 EType. ElementType ::= "Real" ;
 
--- A definition can be used to declare a tensor variable using the shape of the tensor
-DefConst. Definition ::= "(" "declare-const" TensorVariable TensorShape ElementType ")" ;
-DefInput. Definition ::= "(" "declare-input" TensorVariable TensorShape ElementType ")" ;
-DefOutput. Definition ::= "(" "declare-output" TensorVariable TensorShape ElementType ")" ;
+-- A tensor definition is a declaration of a tensor variable with a shape and an element type
+DefConst. Definition ::= "(" "declare-const" VariableName TensorShape ElementType ")" ;
+DefInput. Definition ::= "(" "declare-input" VariableName TensorShape ElementType ")" ;
+DefOutput. Definition ::= "(" "declare-output" VariableName TensorShape ElementType ")" ;
 
--- A network can have multiple nested "base" definitions
-DefBase. Definitions ::= Definition ;
-DefsMult. Definitions ::= Definitions Definition ;
-ExtDefsNet. Definition ::= "(" "declare-network" Network "("  Definitions ")" ")" ;
-
-
--- Multiple definitions
 MultipleDefBase. MultipleDefinition ::= Definition ;
 MultipleDef. MultipleDefinition ::= MultipleDefinition Definition ;
 
+DefNetwork. Network ::= "(" "declare-network" VariableName "("  MultipleDefinition ")" ")" ;
+MultipleNetworkBase. MultipleNetwork ::= Network ;
+MultipleNetwork. MultipleNetwork ::= MultipleNetwork Network ;
 
 -- A command consists a series of definitions followed by a series of properties
-Comm. Command ::= MultipleDefinition MultipleProperty ;
-
+Comm1. Command ::= MultipleNetwork MultipleDefinition MultipleProperty ;
+Comm2. Command ::= MultipleNetwork MultipleProperty ;
+Comm3. Command ::= MultipleDefinition MultipleProperty ;
 
 -- A line may be commented out by starting with a semicolon
 comment ";" ;
