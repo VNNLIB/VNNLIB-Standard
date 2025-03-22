@@ -2,20 +2,26 @@
 
 -- The regular expression for a signed double or integer
 token SDouble '-'? digit+ '.' digit+ ('e' '-'? digit+)? ;
-token SInt '-'? digit+ ;
+token SInt '-' digit+ ;
+token Int digit+ ;
 
 -- The regular expression for an element of a tensor variable
-token TensorElement letter+ digit* ('_' digit+ ('-' digit+)*)? ;
+token TensorElement letter+ digit* '_' digit+ ('-' digit+)* ;
 
-TensorElem. Element ::= TensorElement ;
+-- The regular expression for a tensor variable
+token VariableName letter+ digit* ;
 
--- A parameter is a scalar variable that may be an integer or a double
+-- The regular expression for the shape of a tensor
+token TensorShape '[' digit+ (',' digit+)* ']' ;
+
+-- A parameter is a scalar variable that may be a signed integer or a double
 DoubleParam. Parameter ::= SDouble ;
-IntParam. Parameter ::= SInt ;
+SIntParam. Parameter ::= SInt ;
+IntParam. Parameter ::= Int ;
 
 -- An Input is a numeric value that may be a paramater, a tensor element, 
 -- or the result of an arithmetic formula
-TElemInput. Input ::= Element ;
+TElemInput. Input ::= TensorElement ;
 ParamInput. Input ::= Parameter ;
 ArithInput. Input ::= ArithmeticFormula ;
 
@@ -31,6 +37,7 @@ Equal. ComparativeOperation ::= "==" Input Input ;
 ArithFormulaInputBase. ArithmeticInputs ::= Input Input ;
 ArithFormulaInput. ArithmeticInputs ::= ArithmeticInputs Input ;
 
+Negate. ArithmeticOperation ::= "-" Input ;
 Plus. ArithmeticOperation ::= "+" ArithmeticInputs ;
 Minus. ArithmeticOperation ::= "-" ArithmeticInputs ;
 Multiply. ArithmeticOperation ::= "*" ArithmeticInputs ;
@@ -55,22 +62,29 @@ PropArithmetic. Property ::= "(" "assert" ArithmeticFormula ")" ;
 PropComparative. Property ::= "(" "assert" ComparativeFormula ")" ;
 PropConnective. Property ::= "(" "assert" ConnectiveFormula ")" ;
 
-PropsBase. Properties ::= Property ;
-Props. Properties ::= Properties Property ;
+MultiplePropBase. MultipleProperty ::= Property ;
+MultipleProp. MultipleProperty ::= MultipleProperty Property ;
 
 -- A tensor element is a scalar variable of type Real
 -- TODO: Add support for other types
 EType. ElementType ::= "Real" ;
 
--- A definition is a declaration of a constant variable or a function variable
-ConstDef. Definition ::= "(" "declare-const" Element ElementType ")" ;
-FunDef. Definition ::= "(" "declare-fun" Element "()" ElementType ")" ;
+-- A tensor definition is a declaration of a tensor variable with a shape and an element type
+DefConst. Definition ::= "(" "declare-const" VariableName TensorShape ElementType ")" ;
+DefInput. Definition ::= "(" "declare-input" VariableName TensorShape ElementType ")" ;
+DefOutput. Definition ::= "(" "declare-output" VariableName TensorShape ElementType ")" ;
 
-DefsBase. Definitions ::= Definition ;
-Defs. Definitions ::= Definitions Definition ;
+MultipleDefBase. MultipleDefinition ::= Definition ;
+MultipleDef. MultipleDefinition ::= MultipleDefinition Definition ;
+
+DefNetwork. Network ::= "(" "declare-network" VariableName "("  MultipleDefinition ")" ")" ;
+MultipleNetworkBase. MultipleNetwork ::= Network ;
+MultipleNetwork. MultipleNetwork ::= MultipleNetwork Network ;
 
 -- A command consists a series of definitions followed by a series of properties
-Comm. Command ::= Definitions Properties ;
+Comm1. Command ::= MultipleNetwork MultipleDefinition MultipleProperty ;
+Comm2. Command ::= MultipleNetwork MultipleProperty ;
+Comm3. Command ::= MultipleDefinition MultipleProperty ;
 
 -- A line may be commented out by starting with a semicolon
 comment ";" ;
