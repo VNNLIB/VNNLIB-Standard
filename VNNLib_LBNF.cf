@@ -72,7 +72,7 @@ MultipleProp. MultipleProperty ::= MultipleProperty Property ;
 -- TODO: Add support for other types
 EType. ElementType ::= "Real" ;
 
--- A definition is a declaration of a constant variable or a function variable
+-- A definition can be used to declare a tensor variable using the shape of the tensor
 DefConst. Definition ::= "(" "declare-const" TensorVariable TensorShape ElementType ")" ;
 DefInput. Definition ::= "(" "declare-input" TensorVariable TensorShape ElementType ")" ;
 DefOutput. Definition ::= "(" "declare-output" TensorVariable TensorShape ElementType ")" ;
