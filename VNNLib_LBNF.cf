@@ -12,7 +12,7 @@ token TensorElement letter+ digit* '_' digit+ ('-' digit+)* ;
 token VariableName letter+ digit* ;
 
 -- The regular expression for the shape of a tensor
-token TensorShape '[' digit+ (',' digit+)* ']' ;
+token TensorShape '[' digit+ ((' ')* ',' (' ')* digit+)* ']' ;
 
 -- A parameter is a scalar variable that may be a signed integer or a double
 DoubleParam. Parameter ::= SDouble ;
@@ -74,6 +74,16 @@ DefConst. Definition ::= "(" "declare-const" VariableName TensorShape ElementTyp
 DefInput. Definition ::= "(" "declare-input" VariableName TensorShape ElementType ")" ;
 DefOutput. Definition ::= "(" "declare-output" VariableName TensorShape ElementType ")" ;
 
+-- A tensor definition may be used to refer to a set of intermediate nodes in the network.
+-- We consider intermediate nodes as an intermediate output from the network
+LayerNoPositive. LayerNumber ::= Int ;
+LayerNoNegative. LayerNumber ::= SInt ;
+LayerDef. Definition ::= "(" "declare-output" VariableName TensorShape ElementType "layer" ":" LayerNumber ")" ;
+
+-- A tensor definition may be used to refer to an ONNX node in the network.
+-- We consider ONNX nodes as an intermediate output from the network
+ONNXNodeDef. Definition ::= "(" "declare-output" VariableName TensorShape ElementType "onnx-node" ":" String ")" ;
+
 MultipleDefBase. MultipleDefinition ::= Definition ;
 MultipleDef. MultipleDefinition ::= MultipleDefinition Definition ;
 
@@ -81,7 +91,7 @@ DefNetwork. Network ::= "(" "declare-network" VariableName "("  MultipleDefiniti
 MultipleNetworkBase. MultipleNetwork ::= Network ;
 MultipleNetwork. MultipleNetwork ::= MultipleNetwork Network ;
 
--- A command consists a series of definitions followed by a series of properties
+-- A command consists a series of networks, followed by a series of definitions followed by a series of properties
 Comm1. Command ::= MultipleNetwork MultipleDefinition MultipleProperty ;
 Comm2. Command ::= MultipleNetwork MultipleProperty ;
 Comm3. Command ::= MultipleDefinition MultipleProperty ;
