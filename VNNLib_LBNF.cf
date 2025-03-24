@@ -22,6 +22,7 @@ IntParam. Parameter ::= Int ;
 -- An Input is a numeric value that may be a paramater, a tensor element, 
 -- or the result of an arithmetic formula
 TElemInput. Input ::= TensorElement ;
+VarElemInput. Input ::= VariableName "." TensorElement ;
 ParamInput. Input ::= Parameter ;
 ArithInput. Input ::= ArithmeticFormula ;
 
