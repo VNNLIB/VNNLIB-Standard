@@ -91,12 +91,10 @@ DefNetwork. Network ::= "(" "declare-network" VariableName MultipleDefinition ")
 MultipleNetworkBase. MultipleNetwork ::= Network ;
 MultipleNetwork. MultipleNetwork ::= MultipleNetwork Network ;
 
--- A command consists a series of networks, followed by a series of definitions followed by a series of properties
-Comm1. Command ::= MultipleNetwork MultipleDefinition MultipleProperty ;
-Comm2. Command ::= MultipleNetwork MultipleProperty ;
-Comm3. Command ::= MultipleDefinition MultipleProperty ;
+-- A query consists a series of networks, followed by a series of definitions followed by a series of properties
+Query. Query ::= MultipleNetwork MultipleProperty ;
 
 -- A line may be commented out by starting with a semicolon
 comment ";" ;
 
-entrypoints Command ;
+entrypoints Query ;
