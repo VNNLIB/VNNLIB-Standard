@@ -87,7 +87,7 @@ DefOnnxNode. Definition ::= "(" "declare-output" VariableName TensorShape Elemen
 MultipleDefBase. MultipleDefinition ::= Definition ;
 MultipleDef. MultipleDefinition ::= MultipleDefinition Definition ;
 
-DefNetwork. Network ::= "(" "declare-network" VariableName "("  MultipleDefinition ")" ")" ;
+DefNetwork. Network ::= "(" "declare-network" VariableName MultipleDefinition ")" ;
 MultipleNetworkBase. MultipleNetwork ::= Network ;
 MultipleNetwork. MultipleNetwork ::= MultipleNetwork Network ;
 
