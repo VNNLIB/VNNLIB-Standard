@@ -25,6 +25,7 @@ IntParam. Parameter ::= Int ;
 TElemInput. Input ::= TensorElement ;
 ParamInput. Input ::= Parameter ;
 ArithInput. Input ::= ArithmeticFormula ;
+separator nonempty Input "" ;
 
 -- A comparative operator is a binary operator that compares two inputs
 GreaterThan. ComparativeOperation ::= ">" Input Input ;
@@ -35,22 +36,18 @@ NotEqual. ComparativeOperation ::= "!=" Input Input;
 Equal. ComparativeOperation ::= "==" Input Input ;
 
 -- An arithmetic operator is an n-ary operator that performs an arithmetic operation on n inputs
-ArithFormulaInputBase. ArithmeticInputs ::= Input Input ;
-ArithFormulaInput. ArithmeticInputs ::= ArithmeticInputs Input ;
-
 Negate. ArithmeticOperation ::= "-" Input ;
-Plus. ArithmeticOperation ::= "+" ArithmeticInputs ;
-Minus. ArithmeticOperation ::= "-" ArithmeticInputs ;
-Multiply. ArithmeticOperation ::= "*" ArithmeticInputs ;
+Plus. ArithmeticOperation ::= "+" Input [Input] ;
+Minus. ArithmeticOperation ::= "-" Input [Input] ;
+Multiply. ArithmeticOperation ::= "*" Input [Input] ;
 
 -- A connective operator is an n-ary operator that combines at least two boolean formulas
 ConnBool. Boolean ::= ConnectiveFormula ;
 CompBool. Boolean ::= ComparativeFormula ;
-ConnFormInputsBase. ConnectiveInputs ::= Boolean Boolean ;
-ConnFormInputs. ConnectiveInputs ::= ConnectiveInputs Boolean ;
+separator nonempty Boolean "" ;
 
-And. ConnectiveOperation ::= "and" ConnectiveInputs ;
-Or. ConnectiveOperation ::= "or" ConnectiveInputs ;
+And. ConnectiveOperation ::= "and" Boolean [Boolean] ;
+Or. ConnectiveOperation ::= "or" Boolean [Boolean] ;
 
 -- Arithmetic, comparative, and connective formulas are bounded by parentheses
 ArithForm. ArithmeticFormula ::= "(" ArithmeticOperation")" ;
@@ -66,7 +63,7 @@ separator nonempty Property "" ;
 
 -- A tensor element is a scalar variable of type Real
 -- TODO: Add support for other types
-EType. ElementType ::= "Real" ;
+ElementType. ElementType ::= "Real" ;
 
 -- A tensor definition is a declaration of a tensor variable with a shape and an element type
 DefInput. Definition ::= "(" "declare-input" VariableName ElementType [Int] ")" ;
