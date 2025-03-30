@@ -18,9 +18,19 @@ $ chmod +x test.sh
 ```bash
 $ bnfc -d -m VNNLib_LBNF.cf  &&  make
 ```
+
+**Note: to build the parser to C files, use the following command instead**
+```bash
+$ bnfc --c -m -o VNNLibLBNF VNNLib_LBNF.cf  &&  make -C VNNLibLBNF
+```
+
 2. Test the parser
    - the test files must be in the `/tests` folder
    - the examples are taken from the [VNNLIB Benchmarks Repo](https://github.com/VNNLIB/Benchmarks/) or lines of valid commands
 ```bash
 $ VNNLibLBNF/Test <test-file-path>
+```
+**Note: if the C command was used, run the following command instead**
+```bash
+$ VNNLibLBNF/TestVNNLib_LBNF <test-file-path>
 ```

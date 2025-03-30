@@ -92,13 +92,13 @@ DefOutput. Definition ::= "(" "declare-output" VariableName ElementType [Int] ")
 separator nonempty Definition "" ;
 
 DefNetwork. Network ::= "(" "declare-network" VariableName [Definition] ")" ;
-NetworkListBase. NetworkList ::= Network ;
-NetworkList. NetworkList ::= NetworkList Network ;
+NetworksListBase. NetworkList ::= Network ;
+NetworksList. NetworkList ::= NetworkList Network ;
 
--- A query consists a series of networks, followed by a series of definitions followed by a series of properties
-Query. Query ::= NetworkList [Property] ;
+-- A query is a specification that consists a series of networks, followed by a series of definitions followed by a series of properties
+Query. Specification ::= NetworkList [Property] ;
 
 -- A line may be commented out by starting with a semicolon
 comment ";" ;
 
-entrypoints Query ;
+entrypoints Specification ;
