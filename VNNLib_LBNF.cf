@@ -61,42 +61,26 @@ ConnForm. ConnectiveFormula ::= "(" ConnectiveOperation ")" ;
 PropArithmetic. Property ::= "(" "assert" ArithmeticFormula ")" ;
 PropComparative. Property ::= "(" "assert" ComparativeFormula ")" ;
 PropConnective. Property ::= "(" "assert" ConnectiveFormula ")" ;
-
-MultiplePropBase. MultipleProperty ::= Property ;
-MultipleProp. MultipleProperty ::= MultipleProperty Property ;
+separator nonempty Property "" ;
 
 -- A tensor element is a scalar variable of type Real
 -- TODO: Add support for other types
 EType. ElementType ::= "Real" ;
 
 -- A tensor definition is a declaration of a tensor variable with a shape and an element type
-DefConst. Definition ::= "(" "declare-const" VariableName TensorShape ElementType ")" ;
 DefInput. Definition ::= "(" "declare-input" VariableName TensorShape ElementType ")" ;
+DefOnnxNode. Definition ::= "(" "declare-node" VariableName TensorShape ElementType "onnx-node" ":" String ")" ;
 DefOutput. Definition ::= "(" "declare-output" VariableName TensorShape ElementType ")" ;
+separator nonempty Definition "" ;
 
--- A tensor definition may be used to refer to a set of intermediate nodes in the network.
--- We consider intermediate nodes as an intermediate output from the network
-PosLayerNumber. LayerNumber ::= Int ;
-NegLayerNumber. LayerNumber ::= SInt ;
-DefLayer. Definition ::= "(" "declare-output" VariableName TensorShape ElementType "layer" ":" LayerNumber ")" ;
+DefNetwork. Network ::= "(" "declare-network" VariableName [Definition] ")" ;
+NetworkListBase. NetworkList ::= Network ;
+NetworkList. NetworkList ::= NetworkList Network ;
 
--- A tensor definition may be used to refer to an ONNX node in the network.
--- We consider ONNX nodes as an intermediate output from the network
-DefOnnxNode. Definition ::= "(" "declare-output" VariableName TensorShape ElementType "onnx-node" ":" String ")" ;
-
-MultipleDefBase. MultipleDefinition ::= Definition ;
-MultipleDef. MultipleDefinition ::= MultipleDefinition Definition ;
-
-DefNetwork. Network ::= "(" "declare-network" VariableName "("  MultipleDefinition ")" ")" ;
-MultipleNetworkBase. MultipleNetwork ::= Network ;
-MultipleNetwork. MultipleNetwork ::= MultipleNetwork Network ;
-
--- A command consists a series of networks, followed by a series of definitions followed by a series of properties
-Comm1. Command ::= MultipleNetwork MultipleDefinition MultipleProperty ;
-Comm2. Command ::= MultipleNetwork MultipleProperty ;
-Comm3. Command ::= MultipleDefinition MultipleProperty ;
+-- A query consists a series of networks, followed by a series of definitions followed by a series of properties
+Query. Query ::= NetworkList [Property] ;
 
 -- A line may be commented out by starting with a semicolon
 comment ";" ;
 
-entrypoints Command ;
+entrypoints Query ;

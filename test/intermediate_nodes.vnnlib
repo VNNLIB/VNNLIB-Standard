@@ -1,13 +1,8 @@
 (declare-network acc 
-	(
-		(declare-input X [3] Real)
-		(declare-output Y [1, 2] Real layer:10)
-		(declare-output Y [1, 2] Real onnx-node:"onnx")
-	)
+	(declare-input X [3] Real)
+	(declare-node N [1, 2] Real onnx-node:"onnx")
+	(declare-output Y [3] Real)
 )
-
-(declare-input X [3] Real)
-(declare-output Y [1] Real)
 
 (assert (<= (* -1.0 X_0) 0.0))
 (assert (<= X_0 50.0))
