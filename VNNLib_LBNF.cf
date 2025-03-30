@@ -68,19 +68,9 @@ separator nonempty Property "" ;
 EType. ElementType ::= "Real" ;
 
 -- A tensor definition is a declaration of a tensor variable with a shape and an element type
-DefConst. Definition ::= "(" "declare-const" VariableName TensorShape ElementType ")" ;
 DefInput. Definition ::= "(" "declare-input" VariableName TensorShape ElementType ")" ;
+DefOnnxNode. Definition ::= "(" "declare-node" VariableName TensorShape ElementType "onnx-node" ":" String ")" ;
 DefOutput. Definition ::= "(" "declare-output" VariableName TensorShape ElementType ")" ;
-
--- A tensor definition may be used to refer to a set of intermediate nodes in the network.
--- We consider intermediate nodes as an intermediate output from the network
-PosLayerNumber. LayerNumber ::= Int ;
-NegLayerNumber. LayerNumber ::= SInt ;
-DefLayer. Definition ::= "(" "declare-output" VariableName TensorShape ElementType "layer" ":" LayerNumber ")" ;
-
--- A tensor definition may be used to refer to an ONNX node in the network.
--- We consider ONNX nodes as an intermediate output from the network
-DefOnnxNode. Definition ::= "(" "declare-output" VariableName TensorShape ElementType "onnx-node" ":" String ")" ;
 separator nonempty Definition "" ;
 
 DefNetwork. Network ::= "(" "declare-network" VariableName [Definition] ")" ;
