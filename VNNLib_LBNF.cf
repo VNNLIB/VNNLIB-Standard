@@ -98,7 +98,7 @@ NetworksListBase. NetworkList ::= Network ;
 NetworksList. NetworkList ::= NetworkList Network ;
 
 -- A query is a specification that consists a series of networks, followed by a series of definitions followed by a series of properties
-Query. Specification ::= NetworkList [Property] ;
+VNNLibQuery. Query ::= NetworkList [Property] ;
 
 -- A line may be commented out by starting with a semicolon
 comment ";" ;
