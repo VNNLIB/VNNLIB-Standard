@@ -84,6 +84,8 @@ ElementTypeU32. ElementType ::= "uint32" ;
 ElementTypeU64. ElementType ::= "uint64" ;
 ElementTypeC64. ElementType ::= "complex64" ;
 ElementTypeC128. ElementType ::= "complex128" ;
+ElementTypeBool. ElementType ::= "bool" ;
+ElementTypeString. ElementType ::= "string" ;
 
 -- A tensor definition is a declaration of a tensor variable with a shape and an element type
 DefInput. Definition ::= "(" "declare-input" VariableName ElementType [Int] ")" ;
