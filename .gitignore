@@ -1,4 +1,3 @@
-Makefile
 *.bak
 Syntax
 
@@ -17,3 +16,8 @@ document/*.out
 document/*.err
 document/*.aux
 document/*.pdf
+
+parser/src/bisonParser/*
+parser/bin
+parser/build
+
