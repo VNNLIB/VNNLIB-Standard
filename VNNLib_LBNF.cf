@@ -97,10 +97,10 @@ DefNetwork. Network ::= "(" "declare-network" VariableName [Definition] ")" ;
 NetworksListBase. NetworkList ::= Network ;
 NetworksList. NetworkList ::= NetworkList Network ;
 
--- A query is a specification that consists a series of networks, followed by a series of definitions followed by a series of properties
+-- A query is a series of network definitions followed by a series of properties
 VNNLibQuery. Query ::= NetworkList [Property] ;
 
 -- A line may be commented out by starting with a semicolon
 comment ";" ;
 
-entrypoints Specification ;
+entrypoints Query ;
