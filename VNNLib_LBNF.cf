@@ -73,16 +73,19 @@ ElementTypeBool. ElementType ::= "bool" ;
 ElementTypeString. ElementType ::= "string" ;
 
 -- A tensor definition is a declaration of a tensor variable with a shape and an element type
-InputDef. Definition ::= "(declare-input" VariableName ElementType [Int] ")" ;
-OnnxNodeDef. Definition ::= "(declare-node" VariableName ElementType [Int] "onnx-node" ":" String ")" ;
-OutputDef. Definition ::= "(declare-output" VariableName ElementType [Int] ")" ;
-separator nonempty Definition "" ;
+InputDef. InputDefinition ::= "(declare-input" VariableName ElementType [Int] ")" ;
+IntermediateDef. IntermediateDefinition ::= "(declare-intermediate" VariableName ElementType [Int] "onnx-node" ":" String ")" ;
+OutputDef. OutputDefinition ::= "(declare-output" VariableName ElementType [Int] ")" ;
 
-DefNetwork. Network ::= "(declare-network" VariableName [Definition] ")" ;
-separator nonempty Network "" ;
+separator nonempty InputDefinition "" ;
+separator IntermediateDefinition "" ;
+separator nonempty OutputDefinition "" ;
+
+NetworkDef. NetworkDefinition ::= "(declare-network" VariableName [InputDefinition] [IntermediateDefinition] [OutputDefinition] ")" ;
+separator nonempty NetworkDefinition "" ;
 
 -- A query is a series of network definitions followed by a series of properties
-VNNLibQuery. Query ::= [Network] [Property] ;
+VNNLibQuery. Query ::= [NetworkDefinition] [Property] ;
 
 -- A line may be commented out by starting with a semicolon
 comment ";" ;
