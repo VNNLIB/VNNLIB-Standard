@@ -16,39 +16,34 @@ token VariableName letter+ digit* ;
 (:). [Int] ::= Int [Int] ;
 
 -- ArithExpr is a numeric value that may be a paramater, a tensor element, 
--- or an arithmetic formula
+-- or an arithmetic operation
 VarExpr. ArithExpr ::= TensorElement ;
-ArithExpr. ArithExpr ::= ArithFormula ;
 DoubleExpr. ArithExpr ::= SDouble ;
 SIntExpr. ArithExpr ::= SInt ;
 IntExpr. ArithExpr ::= Int ;
-separator nonempty ArithExpr "" ;
 
 -- An arithmetic operator is an n-ary operator that performs an arithmetic operation on n inputs
-Negate. ArithOperation ::= "-" ArithExpr ;
-Plus. ArithOperation ::= "+" [ArithExpr] ;
-Minus. ArithOperation ::= "-" ArithExpr [ArithExpr] ;
-Multiply. ArithOperation ::= "*" [ArithExpr] ;
-
-ArithForm. ArithFormula ::= "(" ArithOperation")" ;
+Negate. ArithExpr ::= "(" "-" ArithExpr  ")" ;
+Plus. ArithExpr ::= "(" "+" [ArithExpr] ")";
+Minus. ArithExpr ::= "(" "-" ArithExpr [ArithExpr] ")" ;
+Multiply. ArithExpr ::= "(" "*" [ArithExpr] ")" ;
+separator nonempty ArithExpr "" ;
 
 -- A comparative operator is a binary operator that compares two inputs
-GreaterThan. BoolExpr ::= ">" ArithExpr ArithExpr ;
-LessThan. BoolExpr ::= "<" ArithExpr ArithExpr ;
-GreaterEqual. BoolExpr ::= ">=" ArithExpr ArithExpr ;
-LessEqual. BoolExpr ::= "<=" ArithExpr ArithExpr ;
-NotEqual. BoolExpr ::= "!=" ArithExpr ArithExpr;
-Equal. BoolExpr ::= "==" ArithExpr ArithExpr ;
+GreaterThan. BoolExpr ::= "(" ">" ArithExpr ArithExpr ")" ;
+LessThan. BoolExpr ::= "(" "<" ArithExpr ArithExpr ")" ;
+GreaterEqual. BoolExpr ::= "(" ">=" ArithExpr ArithExpr ")" ;
+LessEqual. BoolExpr ::= "(" "<=" ArithExpr ArithExpr ")" ;
+NotEqual. BoolExpr ::= "(" "!=" ArithExpr ArithExpr ")" ;
+Equal. BoolExpr ::= "(" "==" ArithExpr ArithExpr ")";
 
 -- A connective operator is an n-ary operator that combines at least two boolean formulas
-And. BoolExpr ::= "and" BoolFormula [BoolFormula] ;
-Or. BoolExpr ::= "or" BoolFormula [BoolFormula] ;
-
-LogicalForm. BoolFormula ::= "(" BoolExpr ")" ;
-separator nonempty BoolFormula "" ;
+And. BoolExpr ::= "(" "and" BoolExpr [BoolExpr] ")" ;
+Or. BoolExpr ::= "(" "or" BoolExpr [BoolExpr] ")";
+separator nonempty BoolExpr "" ;
 
 -- A property is a constraint that must be satisfied by the model. 
-PropComparative. Property ::= "(" "assert" BoolFormula ")" ;
+Prop. Property ::= "(" "assert" BoolExpr ")" ;
 separator nonempty Property "" ;
 
 -- A tensor element is a generic scalar variable of type Real
