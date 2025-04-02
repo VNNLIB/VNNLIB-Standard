@@ -15,46 +15,40 @@ token VariableName letter+ digit* ;
 []. [Int] ::= ;
 (:). [Int] ::= Int [Int] ;
 
--- An ArithExpr is a numeric value that may be a paramater, a tensor element, 
+-- ArithExpr is a numeric value that may be a paramater, a tensor element, 
 -- or an arithmetic formula
 VarExpr. ArithExpr ::= TensorElement ;
-ArithExpr. ArithExpr ::= ArithmeticFormula ;
+ArithExpr. ArithExpr ::= ArithFormula ;
 DoubleExpr. ArithExpr ::= SDouble ;
 SIntExpr. ArithExpr ::= SInt ;
 IntExpr. ArithExpr ::= Int ;
 separator nonempty ArithExpr "" ;
 
--- A comparative operator is a binary operator that compares two inputs
-GreaterThan. ComparativeOperation ::= ">" ArithExpr ArithExpr ;
-LessThan. ComparativeOperation ::= "<" ArithExpr ArithExpr ;
-GreaterEqual. ComparativeOperation ::= ">=" ArithExpr ArithExpr ;
-LessEqual. ComparativeOperation ::= "<=" ArithExpr ArithExpr ;
-NotEqual. ComparativeOperation ::= "!=" ArithExpr ArithExpr;
-Equal. ComparativeOperation ::= "==" ArithExpr ArithExpr ;
-
 -- An arithmetic operator is an n-ary operator that performs an arithmetic operation on n inputs
-Negate. ArithmeticOperation ::= "-" ArithExpr ;
-Plus. ArithmeticOperation ::= "+" [ArithExpr] ;
-Minus. ArithmeticOperation ::= "-" ArithExpr [ArithExpr] ;
-Multiply. ArithmeticOperation ::= "*" [ArithExpr] ;
+Negate. ArithOperation ::= "-" ArithExpr ;
+Plus. ArithOperation ::= "+" [ArithExpr] ;
+Minus. ArithOperation ::= "-" ArithExpr [ArithExpr] ;
+Multiply. ArithOperation ::= "*" [ArithExpr] ;
+
+ArithForm. ArithFormula ::= "(" ArithOperation")" ;
+
+-- A comparative operator is a binary operator that compares two inputs
+GreaterThan. BoolExpr ::= ">" ArithExpr ArithExpr ;
+LessThan. BoolExpr ::= "<" ArithExpr ArithExpr ;
+GreaterEqual. BoolExpr ::= ">=" ArithExpr ArithExpr ;
+LessEqual. BoolExpr ::= "<=" ArithExpr ArithExpr ;
+NotEqual. BoolExpr ::= "!=" ArithExpr ArithExpr;
+Equal. BoolExpr ::= "==" ArithExpr ArithExpr ;
 
 -- A connective operator is an n-ary operator that combines at least two boolean formulas
-ConnBool. Boolean ::= ConnectiveFormula ;
-CompBool. Boolean ::= ComparativeFormula ;
-separator nonempty Boolean "" ;
+And. BoolExpr ::= "and" BoolFormula [BoolFormula] ;
+Or. BoolExpr ::= "or" BoolFormula [BoolFormula] ;
 
-And. ConnectiveOperation ::= "and" Boolean [Boolean] ;
-Or. ConnectiveOperation ::= "or" Boolean [Boolean] ;
-
--- Arithmetic, comparative, and connective formulas are bounded by parentheses
-ArithForm. ArithmeticFormula ::= "(" ArithmeticOperation")" ;
-CompForm. ComparativeFormula ::= "(" ComparativeOperation ")" ;
-ConnForm. ConnectiveFormula ::= "(" ConnectiveOperation ")" ;
+LogicalForm. BoolFormula ::= "(" BoolExpr ")" ;
+separator nonempty BoolFormula "" ;
 
 -- A property is a constraint that must be satisfied by the model. 
--- It is an assertion of a comparative, or connective formula
-PropComparative. Property ::= "(" "assert" ComparativeFormula ")" ;
-PropConnective. Property ::= "(" "assert" ConnectiveFormula ")" ;
+PropComparative. Property ::= "(" "assert" BoolFormula ")" ;
 separator nonempty Property "" ;
 
 -- A tensor element is a generic scalar variable of type Real
@@ -84,9 +78,9 @@ ElementTypeBool. ElementType ::= "bool" ;
 ElementTypeString. ElementType ::= "string" ;
 
 -- A tensor definition is a declaration of a tensor variable with a shape and an element type
-DefInput. Definition ::= "(" "declare-input" VariableName ElementType [Int] ")" ;
-DefOnnxNode. Definition ::= "(" "declare-node" VariableName ElementType [Int] "onnx-node" ":" String ")" ;
-DefOutput. Definition ::= "(" "declare-output" VariableName ElementType [Int] ")" ;
+InputDef. Definition ::= "(" "declare-input" VariableName ElementType [Int] ")" ;
+OnnxNodeDef. Definition ::= "(" "declare-node" VariableName ElementType [Int] "onnx-node" ":" String ")" ;
+OutputDef. Definition ::= "(" "declare-output" VariableName ElementType [Int] ")" ;
 separator nonempty Definition "" ;
 
 DefNetwork. Network ::= "(" "declare-network" VariableName [Definition] ")" ;
