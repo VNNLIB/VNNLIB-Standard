@@ -13,3 +13,10 @@
 
 (assert (<= (* -1.0 Y_0) 0.0))
 (assert (<= Y_0 1.0))
+
+; weak left is minimal or COC is minimal
+(assert (and
+    (or (<= Y_2 Y_0) (<= Y_2 Y_1))
+    (or (<= Y_3 Y_0) (<= Y_3 Y_1))
+    (or (<= Y_4 Y_0) (<= Y_4 Y_1))
+))

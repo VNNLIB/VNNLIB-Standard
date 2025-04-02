@@ -15,50 +15,35 @@ token VariableName letter+ digit* ;
 []. [Int] ::= ;
 (:). [Int] ::= Int [Int] ;
 
--- A parameter is a scalar variable that may be a signed integer or a double
-DoubleParam. Parameter ::= SDouble ;
-SIntParam. Parameter ::= SInt ;
-IntParam. Parameter ::= Int ;
-
--- An Input is a numeric value that may be a paramater, a tensor element, 
--- or the result of an arithmetic formula
-TElemInput. Input ::= TensorElement ;
-ParamInput. Input ::= Parameter ;
-ArithInput. Input ::= ArithmeticFormula ;
-separator nonempty Input "" ;
-
--- A comparative operator is a binary operator that compares two inputs
-GreaterThan. ComparativeOperation ::= ">" Input Input ;
-LessThan. ComparativeOperation ::= "<" Input Input ;
-GreaterEqual. ComparativeOperation ::= ">=" Input Input ;
-LessEqual. ComparativeOperation ::= "<=" Input Input ;
-NotEqual. ComparativeOperation ::= "!=" Input Input;
-Equal. ComparativeOperation ::= "==" Input Input ;
+-- ArithExpr is a numeric value that may be a paramater, a tensor element, 
+-- or an arithmetic operation
+VarExpr. ArithExpr ::= TensorElement ;
+DoubleExpr. ArithExpr ::= SDouble ;
+SIntExpr. ArithExpr ::= SInt ;
+IntExpr. ArithExpr ::= Int ;
 
 -- An arithmetic operator is an n-ary operator that performs an arithmetic operation on n inputs
-Negate. ArithmeticOperation ::= "-" Input ;
-Plus. ArithmeticOperation ::= "+" Input [Input] ;
-Minus. ArithmeticOperation ::= "-" Input [Input] ;
-Multiply. ArithmeticOperation ::= "*" Input [Input] ;
+Negate. ArithExpr ::= "(" "-" ArithExpr  ")" ;
+Plus. ArithExpr ::= "(" "+" [ArithExpr] ")";
+Minus. ArithExpr ::= "(" "-" ArithExpr [ArithExpr] ")" ;
+Multiply. ArithExpr ::= "(" "*" [ArithExpr] ")" ;
+separator nonempty ArithExpr "" ;
+
+-- A comparative operator is a binary operator that compares two inputs
+GreaterThan. BoolExpr ::= "(" ">" ArithExpr ArithExpr ")" ;
+LessThan. BoolExpr ::= "(" "<" ArithExpr ArithExpr ")" ;
+GreaterEqual. BoolExpr ::= "(" ">=" ArithExpr ArithExpr ")" ;
+LessEqual. BoolExpr ::= "(" "<=" ArithExpr ArithExpr ")" ;
+NotEqual. BoolExpr ::= "(" "!=" ArithExpr ArithExpr ")" ;
+Equal. BoolExpr ::= "(" "==" ArithExpr ArithExpr ")";
 
 -- A connective operator is an n-ary operator that combines at least two boolean formulas
-ConnBool. Boolean ::= ConnectiveFormula ;
-CompBool. Boolean ::= ComparativeFormula ;
-separator nonempty Boolean "" ;
-
-And. ConnectiveOperation ::= "and" Boolean [Boolean] ;
-Or. ConnectiveOperation ::= "or" Boolean [Boolean] ;
-
--- Arithmetic, comparative, and connective formulas are bounded by parentheses
-ArithForm. ArithmeticFormula ::= "(" ArithmeticOperation")" ;
-CompForm. ComparativeFormula ::= "(" ComparativeOperation ")" ;
-ConnForm. ConnectiveFormula ::= "(" ConnectiveOperation ")" ;
+And. BoolExpr ::= "(" "and" BoolExpr [BoolExpr] ")" ;
+Or. BoolExpr ::= "(" "or" BoolExpr [BoolExpr] ")";
+separator nonempty BoolExpr "" ;
 
 -- A property is a constraint that must be satisfied by the model. 
--- It is an assertion of an arithmetic, comparative, or connective formula
-PropArithmetic. Property ::= "(" "assert" ArithmeticFormula ")" ;
-PropComparative. Property ::= "(" "assert" ComparativeFormula ")" ;
-PropConnective. Property ::= "(" "assert" ConnectiveFormula ")" ;
+Prop. Property ::= "(" "assert" BoolExpr ")" ;
 separator nonempty Property "" ;
 
 -- A tensor element is a generic scalar variable of type Real
@@ -88,9 +73,9 @@ ElementTypeBool. ElementType ::= "bool" ;
 ElementTypeString. ElementType ::= "string" ;
 
 -- A tensor definition is a declaration of a tensor variable with a shape and an element type
-DefInput. Definition ::= "(" "declare-input" VariableName ElementType [Int] ")" ;
-DefOnnxNode. Definition ::= "(" "declare-node" VariableName ElementType [Int] "onnx-node" ":" String ")" ;
-DefOutput. Definition ::= "(" "declare-output" VariableName ElementType [Int] ")" ;
+InputDef. Definition ::= "(" "declare-input" VariableName ElementType [Int] ")" ;
+OnnxNodeDef. Definition ::= "(" "declare-node" VariableName ElementType [Int] "onnx-node" ":" String ")" ;
+OutputDef. Definition ::= "(" "declare-output" VariableName ElementType [Int] ")" ;
 separator nonempty Definition "" ;
 
 DefNetwork. Network ::= "(" "declare-network" VariableName [Definition] ")" ;

@@ -14,3 +14,9 @@
 
 (assert (<= (* -1.0 Y_0) 0.0))
 (assert (<= Y_0 1.0))
+
+; unsafe if strong left is minimial or strong right is minimal
+(assert (or
+    (and (<= Y_3 Y_0) (<= Y_3 Y_1) (<= Y_3 Y_2))
+    (and (<= Y_4 Y_0) (<= Y_4 Y_1) (<= Y_4 Y_2))
+))
