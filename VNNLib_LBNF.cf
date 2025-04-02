@@ -61,9 +61,31 @@ PropComparative. Property ::= "(" "assert" ComparativeFormula ")" ;
 PropConnective. Property ::= "(" "assert" ConnectiveFormula ")" ;
 separator nonempty Property "" ;
 
--- A tensor element is a scalar variable of type Real
--- TODO: Add support for other types
-ElementType. ElementType ::= "Real" ;
+-- A tensor element is a generic scalar variable of type Real
+-- or a specific type that is defined for onnx nodes:
+-- https://github.com/onnx/onnx/blob/main/docs/IR.md#tensor-element-types
+GenericElementType. ElementType ::= "Real" ;
+ElementTypeF16. ElementType ::= "float16" ;
+ElementTypeF32. ElementType ::= "float32" ;
+ElementTypeF64. ElementType ::= "float64" ;
+ElementTypeBF16. ElementType ::= "bfloat16" ;
+ElementTypeF8E4M3FN. ElementType ::= "float8e4m3fn" ;
+ElementTypeF8E5M2. ElementType ::= "float8e5m2" ;
+ElementTypeF8E4M3FNUZ. ElementType ::= "float8e4m3fnuz" ;
+ElementTypeF8E5M2FNUZ. ElementType ::= "float8e5m2fnuz" ;
+ElementTypeF4E2M1. ElementType ::= "float4e2m1" ;
+ElementTypeI8. ElementType ::= "int8" ;
+ElementTypeI16. ElementType ::= "int16" ;
+ElementTypeI32. ElementType ::= "int32" ;
+ElementTypeI64. ElementType ::= "int64" ;
+ElementTypeU8. ElementType ::= "uint8" ;
+ElementTypeU16. ElementType ::= "uint16" ;
+ElementTypeU32. ElementType ::= "uint32" ;
+ElementTypeU64. ElementType ::= "uint64" ;
+ElementTypeC64. ElementType ::= "complex64" ;
+ElementTypeC128. ElementType ::= "complex128" ;
+ElementTypeBool. ElementType ::= "bool" ;
+ElementTypeString. ElementType ::= "string" ;
 
 -- A tensor definition is a declaration of a tensor variable with a shape and an element type
 DefInput. Definition ::= "(" "declare-input" VariableName ElementType [Int] ")" ;
@@ -72,11 +94,11 @@ DefOutput. Definition ::= "(" "declare-output" VariableName ElementType [Int] ")
 separator nonempty Definition "" ;
 
 DefNetwork. Network ::= "(" "declare-network" VariableName [Definition] ")" ;
-NetworkListBase. NetworkList ::= Network ;
-NetworkList. NetworkList ::= NetworkList Network ;
+NetworksListBase. NetworkList ::= Network ;
+NetworksList. NetworkList ::= NetworkList Network ;
 
--- A query consists a series of networks, followed by a series of definitions followed by a series of properties
-Query. Query ::= NetworkList [Property] ;
+-- A query is a series of network definitions followed by a series of properties
+VNNLibQuery. Query ::= NetworkList [Property] ;
 
 -- A line may be commented out by starting with a semicolon
 comment ";" ;
