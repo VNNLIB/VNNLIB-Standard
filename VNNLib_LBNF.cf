@@ -34,9 +34,9 @@ Equal. ComparativeOperation ::= "==" ArithExpr ArithExpr ;
 
 -- An arithmetic operator is an n-ary operator that performs an arithmetic operation on n inputs
 Negate. ArithmeticOperation ::= "-" ArithExpr ;
-Plus. ArithmeticOperation ::= "+" ArithExpr [ArithExpr] ;
-Minus. ArithmeticOperation ::= "-" ArithExpr [ArithExpr] ;
-Multiply. ArithmeticOperation ::= "*" ArithExpr [ArithExpr] ;
+Plus. ArithmeticOperation ::= "+" [ArithExpr] ;
+Minus. ArithmeticOperation ::= "-" [ArithExpr] ;
+Multiply. ArithmeticOperation ::= "*" [ArithExpr] ;
 
 -- A connective operator is an n-ary operator that combines at least two boolean formulas
 ConnBool. Boolean ::= ConnectiveFormula ;
