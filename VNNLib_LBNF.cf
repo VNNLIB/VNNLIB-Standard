@@ -55,8 +55,7 @@ CompForm. ComparativeFormula ::= "(" ComparativeOperation ")" ;
 ConnForm. ConnectiveFormula ::= "(" ConnectiveOperation ")" ;
 
 -- A property is a constraint that must be satisfied by the model. 
--- It is an assertion of an arithmetic, comparative, or connective formula
-PropArithmetic. Property ::= "(" "assert" ArithmeticFormula ")" ;
+-- It is an assertion of a comparative, or connective formula
 PropComparative. Property ::= "(" "assert" ComparativeFormula ")" ;
 PropConnective. Property ::= "(" "assert" ConnectiveFormula ")" ;
 separator nonempty Property "" ;
