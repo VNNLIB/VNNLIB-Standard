@@ -15,31 +15,28 @@ token VariableName letter+ digit* ;
 []. [Int] ::= ;
 (:). [Int] ::= Int [Int] ;
 
--- A parameter is a scalar variable that may be a signed integer or a double
-DoubleParam. Parameter ::= SDouble ;
-SIntParam. Parameter ::= SInt ;
-IntParam. Parameter ::= Int ;
-
--- An Input is a numeric value that may be a paramater, a tensor element, 
--- or the result of an arithmetic formula
-TElemInput. Input ::= TensorElement ;
-ParamInput. Input ::= Parameter ;
-ArithInput. Input ::= ArithmeticFormula ;
-separator nonempty Input "" ;
+-- An ArithExpr is a numeric value that may be a paramater, a tensor element, 
+-- or an arithmetic formula
+VarExpr. ArithExpr ::= TensorElement ;
+ArithExpr. ArithExpr ::= ArithmeticFormula ;
+DoubleExpr. ArithExpr ::= SDouble ;
+SIntExpr. ArithExpr ::= SInt ;
+IntExpr. ArithExpr ::= Int ;
+separator nonempty ArithExpr "" ;
 
 -- A comparative operator is a binary operator that compares two inputs
-GreaterThan. ComparativeOperation ::= ">" Input Input ;
-LessThan. ComparativeOperation ::= "<" Input Input ;
-GreaterEqual. ComparativeOperation ::= ">=" Input Input ;
-LessEqual. ComparativeOperation ::= "<=" Input Input ;
-NotEqual. ComparativeOperation ::= "!=" Input Input;
-Equal. ComparativeOperation ::= "==" Input Input ;
+GreaterThan. ComparativeOperation ::= ">" ArithExpr ArithExpr ;
+LessThan. ComparativeOperation ::= "<" ArithExpr ArithExpr ;
+GreaterEqual. ComparativeOperation ::= ">=" ArithExpr ArithExpr ;
+LessEqual. ComparativeOperation ::= "<=" ArithExpr ArithExpr ;
+NotEqual. ComparativeOperation ::= "!=" ArithExpr ArithExpr;
+Equal. ComparativeOperation ::= "==" ArithExpr ArithExpr ;
 
 -- An arithmetic operator is an n-ary operator that performs an arithmetic operation on n inputs
-Negate. ArithmeticOperation ::= "-" Input ;
-Plus. ArithmeticOperation ::= "+" Input [Input] ;
-Minus. ArithmeticOperation ::= "-" Input [Input] ;
-Multiply. ArithmeticOperation ::= "*" Input [Input] ;
+Negate. ArithmeticOperation ::= "-" ArithExpr ;
+Plus. ArithmeticOperation ::= "+" ArithExpr [ArithExpr] ;
+Minus. ArithmeticOperation ::= "-" ArithExpr [ArithExpr] ;
+Multiply. ArithmeticOperation ::= "*" ArithExpr [ArithExpr] ;
 
 -- A connective operator is an n-ary operator that combines at least two boolean formulas
 ConnBool. Boolean ::= ConnectiveFormula ;
