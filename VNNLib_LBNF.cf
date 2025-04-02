@@ -79,11 +79,10 @@ OutputDef. Definition ::= "(declare-output" VariableName ElementType [Int] ")" ;
 separator nonempty Definition "" ;
 
 DefNetwork. Network ::= "(declare-network" VariableName [Definition] ")" ;
-NetworksListBase. NetworkList ::= Network ;
-NetworksList. NetworkList ::= NetworkList Network ;
+separator nonempty Network "" ;
 
 -- A query is a series of network definitions followed by a series of properties
-VNNLibQuery. Query ::= NetworkList [Property] ;
+VNNLibQuery. Query ::= [Network] [Property] ;
 
 -- A line may be commented out by starting with a semicolon
 comment ";" ;
