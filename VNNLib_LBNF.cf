@@ -38,8 +38,8 @@ NotEqual. BoolExpr ::= "(" "!=" ArithExpr ArithExpr ")" ;
 Equal. BoolExpr ::= "(" "==" ArithExpr ArithExpr ")";
 
 -- A connective operator is an n-ary operator that combines at least two boolean formulas
-And. BoolExpr ::= "(" "and" BoolExpr [BoolExpr] ")" ;
-Or. BoolExpr ::= "(" "or" BoolExpr [BoolExpr] ")";
+And. BoolExpr ::= "(" "and" [BoolExpr] ")" ;
+Or. BoolExpr ::= "(" "or" [BoolExpr] ")";
 separator nonempty BoolExpr "" ;
 
 -- A property is a constraint that must be satisfied by the model. 
@@ -74,7 +74,7 @@ ElementTypeString. ElementType ::= "string" ;
 
 -- A tensor definition is a declaration of a tensor variable with a shape and an element type
 InputDef. Definition ::= "(" "declare-input" VariableName ElementType [Int] ")" ;
-OnnxNodeDef. Definition ::= "(" "declare-node" VariableName ElementType [Int] "onnx-node" ":" String ")" ;
+OnnxNodeDef. Definition ::= "(" "declare-intermediate" VariableName ElementType [Int] "onnx-node" ":" String ")" ;
 OutputDef. Definition ::= "(" "declare-output" VariableName ElementType [Int] ")" ;
 separator nonempty Definition "" ;
 
