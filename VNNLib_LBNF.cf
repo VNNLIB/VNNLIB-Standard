@@ -43,7 +43,7 @@ Or. BoolExpr ::= "(" "or" BoolExpr [BoolExpr] ")";
 separator nonempty BoolExpr "" ;
 
 -- A property is a constraint that must be satisfied by the model. 
-Prop. Property ::= "(" "assert" BoolExpr ")" ;
+Prop. Property ::= "(assert" BoolExpr ")" ;
 separator nonempty Property "" ;
 
 -- A tensor element is a generic scalar variable of type Real
@@ -73,17 +73,19 @@ ElementTypeBool. ElementType ::= "bool" ;
 ElementTypeString. ElementType ::= "string" ;
 
 -- A tensor definition is a declaration of a tensor variable with a shape and an element type
-InputDef. Definition ::= "(" "declare-input" VariableName ElementType [Int] ")" ;
-OnnxNodeDef. Definition ::= "(" "declare-node" VariableName ElementType [Int] "onnx-node" ":" String ")" ;
-OutputDef. Definition ::= "(" "declare-output" VariableName ElementType [Int] ")" ;
-separator nonempty Definition "" ;
+InputDef. InputDefinition ::= "(declare-input" VariableName ElementType [Int] ")" ;
+IntermediateDef. IntermediateDefinition ::= "(declare-intermediate" VariableName ElementType [Int] "onnx-node" ":" String ")" ;
+OutputDef. OutputDefinition ::= "(declare-output" VariableName ElementType [Int] ")" ;
 
-DefNetwork. Network ::= "(" "declare-network" VariableName [Definition] ")" ;
-NetworksListBase. NetworkList ::= Network ;
-NetworksList. NetworkList ::= NetworkList Network ;
+separator nonempty InputDefinition "" ;
+separator IntermediateDefinition "" ;
+separator nonempty OutputDefinition "" ;
+
+NetworkDef. NetworkDefinition ::= "(declare-network" VariableName [InputDefinition] [IntermediateDefinition] [OutputDefinition] ")" ;
+separator nonempty NetworkDefinition "" ;
 
 -- A query is a series of network definitions followed by a series of properties
-VNNLibQuery. Query ::= NetworkList [Property] ;
+VNNLibQuery. Query ::= [NetworkDefinition] [Property] ;
 
 -- A line may be commented out by starting with a semicolon
 comment ";" ;

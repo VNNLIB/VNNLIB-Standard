@@ -1,6 +1,6 @@
 (declare-network acc 
 	(declare-input X Real 3)
-	(declare-node N Real 1 2 onnx-node:"onnx")
+	(declare-intermediate N Real 1 2 onnx-node:"onnx")
 	(declare-output Y Real 3)
 )
 
