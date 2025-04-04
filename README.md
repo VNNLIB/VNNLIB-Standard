@@ -1,7 +1,7 @@
 # EVNNLIB
 
 A project to define and extend the grammar of the current VNNLIB specifications.  
-Contributors: Allen Anthony, Ann Roy <br>
+Contributors: Allen Antony, Ann Roy, Matthew Daggit <br>
 
 ## Set up
 This project uses the BNFC package to build and test the parser.  
@@ -26,7 +26,7 @@ $ bnfc --c -m -o VNNLibLBNF VNNLib_LBNF.cf  &&  make -C VNNLibLBNF
 
 2. Test the parser
    - the test files must be in the `/tests` folder
-   - the examples are taken from the [VNNLIB Benchmarks Repo](https://github.com/VNNLIB/Benchmarks/) or lines of valid commands
+   - the examples are converted from the [VNNLIB Benchmarks Repo](https://github.com/VNNLIB/Benchmarks/) or lines of valid commands
 ```bash
 $ VNNLibLBNF/Test <test-file-path>
 ```
