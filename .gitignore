@@ -21,3 +21,5 @@ parser/src/bisonParser/*
 parser/bin
 parser/build
 
+.vscode
+

@@ -6,6 +6,7 @@
 #include "SemanticChecker.h"
 #include "Parser.h"
 #include "Absyn.h"
+#include "Printer.h"
 
 
 // --- Program Information ---
@@ -47,65 +48,21 @@ void usage(const char *prog_name) {
 
 
 /**
- * @brief Executes the check command: Parses the input file and runs semantic checks.
- * (Implementation kept exactly as provided by user)
+ * @brief Executes the check command: performs semantic checks on the VNNLIB file.
  * @param args Parsed command line arguments.
  * @return int 0 on success (parsing and semantic checks passed), 1 on failure.
  */
-int do_check(struct arguments *args) {
-    if (args->verbose) {
-        printf("  Verbose mode enabled.\n");
-        printf("--- Running Check Mode ---\n");
-        printf("  Spec File: %s\n", args->spec_file);
-    }
-
-    FILE *input_file = NULL;
-    Query parse_tree = NULL;
-
-    // 1. Open the input file
-    input_file = fopen(args->spec_file, "r");
-    if (!input_file) {
-        fprintf(stderr, "Error: Cannot open input file '%s': ", args->spec_file);
-        perror(NULL); // Prints the OS error message
-        return 1;
-    }
-
-    if (args->verbose) {
-        printf("  File opened successfully: %s\n", args->spec_file);
-    }
-
-    // 2. Parse the file using the BNFC-generated parser
-    parse_tree = pQuery(input_file);
-    fclose(input_file);
-
-    if (!parse_tree) {
-        fprintf(stderr, "Error: Parsing failed.\n");
-        return 1;
-    }
-
-    if (args->verbose) {
-        printf("  Parse tree generated successfully.\n");
-        printf("[Linearized Tree]\n");
-        printf("%s\n\n", printQuery(parse_tree));
-    }
-
-    // 3. Perform Semantic Checks
-    if (args->verbose) {
-        printf("  Running semantic checks...\n");
+int do_check(Query parse_tree, int verbose) {
+    if (verbose) {
+        printf("\tRunning semantic checks...\n\n");
     }
 
     int check_status = checkSemantics(parse_tree);
 
-    if (args->verbose && check_status == 0) {
-        printf("--- Semantic Checks Completed: OK ---\n");
-    } else if (args->verbose) {
-        printf("--- Semantic Checks Completed: FAILED ---\n");
-    }
-
-    // 4. Clean up the AST
-    free_Query(parse_tree);
-    if (args->verbose) {
-        printf("  AST freed.\n");
+    if (verbose && check_status == 0) {
+        printf("\n\tSemantic Checks Completed: OK\n");
+    } else if (verbose) {
+        printf("\n\tSemantic Checks Completed: FAILED\n");
     }
 
     return check_status; // Return 0 on success, 1 on failure
@@ -123,7 +80,7 @@ int main(int argc, char **argv) {
     arguments.verbose = 0;
 
     // --- Manual Argument Parsing ---
-    int positional_arg_index = 0; // To track 'check' and 'filename'
+    int positional_arg_index = 0; 
 
     for (int i = 1; i < argc; ++i) {
         // Check for options first
@@ -183,12 +140,47 @@ int main(int argc, char **argv) {
          return EXIT_FAILURE;
     }
 
-    // --- Execute the selected mode ---
+    if (arguments.verbose) {
+        printf("\tVerbose mode enabled.\n");
+        printf("\tRunning Check Mode\n");
+        printf("\tSpec File: %s\n", arguments.spec_file);
+    }
+
+    // 1. Open the input file
+    FILE *input_file = fopen(arguments.spec_file, "r");
+    if (!input_file) {
+        fprintf(stderr, "Error: Cannot open input file '%s': ", arguments.spec_file);
+        return 1;
+    }
+    if (arguments.verbose) {
+        printf("\tFile opened successfully: %s\n", arguments.spec_file);
+    }
+
+    // 2. Parse the file using the BNFC-generated parser
+    Query parse_tree = pQuery(input_file);
+    if (!parse_tree) {
+        fprintf(stderr, "Error: Parsing failed.\n");
+        return 1;
+    }
+
+    if (arguments.verbose) {
+        printf("\tParse tree generated successfully.\n\n");
+        printf("[Linearized Tree]\n");
+        printf("%s\n\n", printQuery(parse_tree));
+    }
+
+    // 3. Execute the check command
     if (arguments.mode == MODE_CHECK) { 
-        if (do_check(&arguments) != 0) {
+        if (do_check(parse_tree, arguments.verbose) != 0) {
             exit_status = EXIT_FAILURE;
         }
     } 
+
+    // 4. Clean up the AST
+    free_Query(parse_tree);
+    if (arguments.verbose) {
+        printf("\tParse tree freed successfully.\n");
+    }
 
     return exit_status;
 }
