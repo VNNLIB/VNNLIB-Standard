@@ -149,7 +149,7 @@ int checkListInt(ListInt p, SemanticContext *ctx, int *shape, int *shapeSize)
 {
     if (!p) return 0;  // ListInt is optional
     int err = 0; 
-    while(p  != 0 && err == 0)
+    while(p != 0 && err == 0)
     {
         err |= checkInt(p->int_, ctx);
 
@@ -167,7 +167,7 @@ int checkListInt(ListInt p, SemanticContext *ctx, int *shape, int *shapeSize)
         p = p->listint_;
         (*shapeSize)++;
     }
-    return err; // Propagate error if any element failed
+    return err; // Propagate error if any check failed.
 }
 
 
@@ -218,7 +218,7 @@ int checkListArithExpr(ListArithExpr p, SemanticContext *ctx)
 {
     if (!p) return 1;
     int err = 0;
-    while(p  != 0 && err == 0)
+    while(p != 0 && err == 0)
     {
         err |= checkArithExpr(p->arithexpr_, ctx);
         p = p->listarithexpr_;
@@ -279,7 +279,7 @@ int checkListBoolExpr(ListBoolExpr p, SemanticContext *ctx)
 {
     if (!p) return 1;
     int err = 0;
-    while(p  != 0 && err == 0)
+    while(p != 0 && err == 0)
     {
         err |= checkBoolExpr(p->boolexpr_, ctx);
         p = p->listboolexpr_;
@@ -310,7 +310,7 @@ int checkListProperty(ListProperty p, SemanticContext *ctx)
 {
     if (!p) return 1;
     int err = 0;
-    while(p  != 0 && err == 0)
+    while(p != 0)
     {
         err |= checkProperty(p->property_, ctx);
         p = p->listproperty_;
@@ -417,7 +417,7 @@ int checkListInputDefinition(ListInputDefinition p, SemanticContext *ctx)
 {	
     if (!p) return 1;
     int err = 0;
-    while(p  != 0 && err == 0)
+    while(p != 0)
     {
         err |= checkInputDefinition(p->inputdefinition_, ctx);
         p = p->listinputdefinition_;
@@ -430,7 +430,7 @@ int checkListIntermediateDefinition(ListIntermediateDefinition p, SemanticContex
 {
 	if (!p) return 0; // ListIntermediateDefinition is optional
     int err = 0;
-    while(p  != 0 && err == 0)
+    while(p != 0)
     {
         err |= checkIntermediateDefinition(p->intermediatedefinition_, ctx);
         p = p->listintermediatedefinition_;
@@ -481,7 +481,7 @@ int checkListNetworkDefinition(ListNetworkDefinition p, SemanticContext *ctx)
 {
     if (!p) return 1;
     int err = 0;
-    while(p  != 0 && err == 0)
+    while(p != 0)
     {
         err |= checkNetworkDefinition(p->networkdefinition_, ctx);
         p = p->listnetworkdefinition_;
@@ -499,9 +499,6 @@ int checkQuery(Query p, SemanticContext *ctx)
     case is_VNNLibQuery:
         // 1. Process network definitions (populates symbol table)
         err |= checkListNetworkDefinition(p->u.vnnlibquery_.listnetworkdefinition_, ctx);
-
-        // If network definitions stop
-		if (err) return err;
 
         // 2. Process properties (uses symbol table for checks)
         err |= checkListProperty(p->u.vnnlibquery_.listproperty_, ctx);
@@ -529,11 +526,72 @@ int checkChar(Char c, SemanticContext *ctx) { return 0; }
 int checkString(String s, SemanticContext *ctx) { return 0; }
 
 
+int checkScalar(SymbolInfo *symbol, TensorElement element, SemanticContext *ctx, char *tensorDim) {
+    int index = strtol(tensorDim, NULL, 10);
+    if (index != 0) {
+        reportError(ctx, "Variable '%s' is not a tensor, expected dummy index 0. \
+            For example %s_0", element, element);
+        return 1;
+    }
+    return 0;
+}
+
+
+int checkTensor(SymbolInfo *symbol, TensorElement element, SemanticContext *ctx, char *tensorDim) {
+    int err = 0;
+
+    int *indices = malloc(sizeof(int) * symbol->numDimensions);
+    if (!indices) {
+        perror("Failed to allocate memory for indices array");
+        err = 1;
+        goto cleanup;
+    }
+
+    int idx = 0;
+    char *token;
+
+    // Check that the correct number of indices are provided
+    token = strtok(tensorDim, "-");
+
+    while (idx < symbol->numDimensions) {
+        if (token == NULL) {
+            reportError(ctx, "Not enough indices provided for Tensor Element '%s'. " \
+                "Expected %d indices but encountered %d.", element, symbol->numDimensions, idx + 1);
+            err = 1;
+            goto cleanup;
+        }
+
+        indices[idx] = strtol(token, NULL, 10);
+        idx++;
+        token = strtok(NULL, "-");
+    }
+
+    if (token != NULL) {
+        reportError(ctx, "Too many indices provided for Tensor Element '%s'. " \
+            "Expected %d indices but encountered %d.", element, symbol->numDimensions, idx + 1);
+        err = 1;
+        goto cleanup;
+    }
+
+    // Check that indices are within bounds
+    for (int i = 0; i < symbol->numDimensions; i++) {
+        if (indices[i] < 0 || indices[i] >= symbol->shape[i]) {
+            reportError(ctx, "Index %d out of bounds for Tensor Element '%s'. " \
+                "Expected index in range [0, %d)", indices[i], element, symbol->shape[i]);
+            err = 1;
+        }
+    }
+
+    cleanup:
+        free(indices);
+        return err;
+}
+
+
 // Checks usage of tensor elements
 int checkTensorElement(TensorElement p, SemanticContext *ctx) {
     if (!p) return 1;
     int err = 0;
-    int* indices = NULL;
 
     // Extract the tensor name and dimension from the string
     char *tensorName = strdup(p);
@@ -554,68 +612,19 @@ int checkTensorElement(TensorElement p, SemanticContext *ctx) {
     if (!symbol) {
         reportError(ctx, "Variable '%s' used but not declared.", p);
         err = 1;
-        goto cleanup;
     }
 
     // Check that index is 0 for scalar variables
     else if (symbol->numDimensions == 0) {
-        int index = strtol(tensorDim, NULL, 10);
-        if (index != 0) {
-            reportError(ctx, "Variable '%s' is not a tensor, expected dummy index 0. \
-                For example %s_0", p, tensorName);
-            err = 1;
-            goto cleanup;
-        }
+        err |= checkScalar(symbol, p, ctx, tensorDim);
     }
 
     // Check that indices are valid for tensor variables
     else {
-        int *indices = malloc(sizeof(int) * symbol->numDimensions);
-        if (!indices) {
-            perror("Failed to allocate memory for indices array");
-            err = 1;
-            goto cleanup;
-        }
-
-        int idx = 0;
-        char *token;
-
-        // Check that the correct number of indices are provided
-        token = strtok(tensorDim, ",");
-
-        while (idx < symbol->numDimensions) {
-            if (token == NULL) {
-                reportError(ctx, "Not enough indices provided for Tensor Element '%s'. \
-                     Expected %d indices but encountered %d.", p, symbol->numDimensions, idx + 1);
-                err = 1;
-                goto cleanup;
-            }
-
-            indices[idx] = strtol(token, NULL, 10);
-            idx++;
-            token = strtok(NULL, ",");
-        }
-
-        if (token != NULL) {
-            reportError(ctx, "Too many indices provided for Tensor Element '%s'. \
-                 Expected %d indices but encountered %d.", p, symbol->numDimensions, idx + 1);
-            err = 1;
-            goto cleanup;
-        }
-
-        // Check that indices are within bounds
-        for (int i = 0; i < symbol->numDimensions; i++) {
-            if (indices[i] < 0 || indices[i] >= symbol->shape[i]) {
-                reportError(ctx, "Index %d out of bounds for Tensor Element '%s'. \
-                    Expected index in range [0, %d)", indices[i], p, symbol->shape[i]);
-                err = 1;
-                goto cleanup;
-            }
-        }
+        err |= checkTensor(symbol, p, ctx, tensorDim);
     }
 
     cleanup:
-        free(tensorName);     
-        free(indices);        
-        return err;          
+        free(tensorName);
+        return err;  
 }

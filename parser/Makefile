@@ -20,10 +20,10 @@ OBJS = $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRCS))
 OBJS += $(patsubst $(SRC_DIR)/bisonParser/%.c, $(OBJ_DIR)/bisonParser/%.o, $(BISON_SRCS))
 
 # Executable name
-TARGET = $(BIN_DIR)/ExtendedParser
+TARGET = $(BIN_DIR)/VNNLibParser
 
 # Includes
-INCLUDES = -I $(SRC_DIR)/bisonParser
+INCLUDES = -I$(SRC_DIR)/bisonParser -I$(SRC_DIR)/../include
 
 # Libraries
 LDFLAGS = -lm
