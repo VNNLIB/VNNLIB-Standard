@@ -29,7 +29,9 @@ static char args_doc[] = "VNNLIBFILE";
 
 // Argument Parsing Options
 static struct argp_option options[] = {
-    { "verbose",  'v', 0,    0,  "Produce verbose output", 0 },
+    { "verbose",    'v',    0,      0,  "Produce verbose output",   0 },
+    {"json",        'j',    0,      0,  "Output in JSON format",    0},
+    {"output",      'o',    "FILE", 0,  "Output to FILE",           0},
     { 0 }
 };
 
@@ -45,7 +47,9 @@ typedef enum {
 struct arguments {
     parser_mode_t mode;
     char *spec_file;          
-    int verbose;          
+    int verbose;       // Verbose output flag  
+    int json;          // JSON output flag
+    FILE *out;         // Output file pointer   
 };  
 
 
@@ -63,7 +67,19 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
         case 'v':
             arguments->verbose = 1;
             break;
+        case 'j':
+            arguments->json = 1;
+            break;
+        case 'o':
+            arguments->out = fopen(arg, "w");
+            if (!arguments->out) {
+                fprintf(stderr, "Error: Cannot open output file '%s': ", arg);
+                return ARGP_ERR_UNKNOWN;
+            }
+            break;
+
         case ARGP_KEY_ARG:
+            // Check execution mode
             if (state->arg_num == 0) {
                 if (strcmp(arg, "check") == 0) {
                     arguments->mode = MODE_CHECK;
@@ -71,6 +87,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
                     fprintf(stderr, "Error: Unknown or unsupported mode '%s'. Only 'check' is currently supported.\n", arg);
                     argp_usage(state);
                 }
+            // Check for the VNNLIB file argument
             } else if (state->arg_num == 1) {
                 arguments->spec_file = arg;
             } else {
@@ -93,20 +110,47 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
  * @param args Parsed command line arguments.
  * @return int 0 on success (parsing and semantic checks passed), 1 on failure.
  */
-int do_check(Query parse_tree, int verbose) {
+int do_check(Query parse_tree, int verbose, int json, FILE *out) {
+    if (!out) out = stdout; // Default to stdout
+
     if (verbose) {
-        printf("\tRunning semantic checks...\n\n");
+        printf("Running semantic checks...\n\n");
+    }
+    
+    // Initialize the semantic context
+    SemanticContext ctx;
+    initSemanticContext(&ctx);
+
+    // Start traversal
+    checkQuery(parse_tree, &ctx);
+
+    // Check for semantic errors
+    if (ctx.errorCount > 0) {
+        char *errorReport = NULL;
+        if (json) {
+            errorReport = reportErrorsJSON(&ctx);
+        } else {
+            errorReport = reportErrors(&ctx);
+        }
+        
+        fprintf(out, "%s", errorReport);
+        free(errorReport);
     }
 
-    int check_status = checkSemantics(parse_tree);
+    int finalErrorCount = ctx.errorCount;
+    destroySemanticContext(&ctx); // Clean up allocated symbols
 
-    if (verbose && check_status == 0) {
-        printf("\n\tSemantic Checks Completed: OK\n");
+    if (finalErrorCount > 0) {
+        printf("Found %d semantic error(s).\n\n", finalErrorCount);
+    }
+
+    if (verbose && finalErrorCount == 0) {
+        printf("Semantic Checks Completed: OK\n");
     } else if (verbose) {
-        printf("\n\tSemantic Checks Completed: FAILED\n");
+        printf("Semantic Checks Completed: FAILED\n");
     }
 
-    return check_status; // Return 0 on success, 1 on failure
+    return finalErrorCount > 0 ? 1 : 0;
 }
 
 
@@ -120,14 +164,16 @@ int main(int argc, char **argv) {
     arguments.mode = MODE_NONE;
     arguments.spec_file = NULL;
     arguments.verbose = 0;
+    arguments.json = 0;
+    arguments.out = NULL;
 
     // 0. Parse command line arguments
     argp_parse(&argp, argc, argv, 0, 0, &arguments);
 
     if (arguments.verbose) {
-        printf("\tVerbose mode enabled.\n");
-        printf("\tRunning Check Mode\n");
-        printf("\tSpec File: %s\n", arguments.spec_file);
+        printf("Verbose mode enabled.\n");
+        printf("Running Check Mode\n");
+        printf("Spec File: %s\n", arguments.spec_file);
     }
 
     // 1. Open the input file
@@ -137,7 +183,7 @@ int main(int argc, char **argv) {
         return 1;
     }
     if (arguments.verbose) {
-        printf("\tFile opened successfully: %s\n", arguments.spec_file);
+        printf("File opened successfully: %s\n", arguments.spec_file);
     }
 
     // 2. Parse the file using the BNFC-generated parser
@@ -148,14 +194,14 @@ int main(int argc, char **argv) {
     }
 
     if (arguments.verbose) {
-        printf("\tParse tree generated successfully.\n\n");
+        printf("Parse tree generated successfully.\n\n");
         printf("[Linearized Tree]\n");
         printf("%s\n\n", printQuery(parse_tree));
     }
 
     // 3. Execute the check command
     if (arguments.mode == MODE_CHECK) { 
-        if (do_check(parse_tree, arguments.verbose) != 0) {
+        if (do_check(parse_tree, arguments.verbose, arguments.json, arguments.out) != 0) {
             exit_status = EXIT_FAILURE;
         }
     } 
@@ -163,7 +209,7 @@ int main(int argc, char **argv) {
     // 4. Clean up the AST
     free_Query(parse_tree);
     if (arguments.verbose) {
-        printf("\tParse tree freed successfully.\n");
+        printf("Parse tree freed successfully.\n");
     }
 
     return exit_status;
