@@ -9,6 +9,27 @@
 
 #define MAX_DIMENSIONS 10 // Maximum number of dimensions for a tensor
 
+
+typedef enum {
+    MultipleDeclaration,
+    TypeMismatch,
+    UndeclaredVariable,
+    IndexOutOfBounds,
+    TooManyIndices,
+    NotEnoughIndices,
+} ErrorCode;
+
+
+// Structure to store semantic errors
+typedef struct {
+    char* message;         
+    char* offendingSymbol; 
+    char* hint;            
+    ErrorCode errorCode;
+    // TODO: Add line/number information if BNFC supports it in the future
+} VNNLibError;
+
+
 // Enum to distinguish variable kinds
 typedef enum {
     SYM_INPUT,
@@ -17,25 +38,29 @@ typedef enum {
 } SymbolKind;
 
 
-// Structure to store information about a declared variable (tensor)
+// Structure to store information about a declared variable
 typedef struct SymbolInfo {
     char        *name;          // Pointer to the VariableName node
     ElementType type;           // Pointer to the ElementType node 
     int         numDimensions;  // Number of dimensions
     int        *shape;          // Array of dimensions
-    SymbolKind  kind;
-    // TODO: Check if its possible to add line/number information here
-    struct SymbolInfo *next;
+    SymbolKind  kind;           // Kind of variable (input, output, intermediate)
+    struct SymbolInfo *next;    // Pointer to the next symbol in the linked list
 } SymbolInfo;
 
 
-// --- Semantic Context ---
 // Structure to hold state during semantic checking
 typedef struct SemanticContext {
-    SymbolInfo *symbolTableHead; // Head of the symbol linked list
-    int errorCount;          // Counter for detected errors
-    // TODO: Add additional context information if needed
+    SymbolInfo *symbolTableHead;    // Head of the symbol linked list
+    VNNLibError *errors;            // List of semantic errors
+    int errorCapacity;              // Capacity of the error list
+    int errorCount;                 // Counter for detected errors
 } SemanticContext;
+
+
+// Error reporting functions
+char *reportErrors(SemanticContext *ctx);
+char *reportErrorsJSON(SemanticContext *ctx);
 
 
 // Main entry point
@@ -47,6 +72,9 @@ void destroySemanticContext(SemanticContext *ctx);
 SymbolInfo* addSymbol(SemanticContext *ctx, VariableName name, ElementType type, ListInt dims, SymbolKind kind);
 SymbolInfo* findSymbol(SemanticContext *ctx, VariableName name);
 void reportError(SemanticContext *ctx, const char *format, ...); // Use variable args
+
+// Error Management
+void addError(SemanticContext *ctx, VNNLibError error);
 
 // Checker functions
 int checkQuery(Query p, SemanticContext *ctx);
