@@ -3,6 +3,232 @@
 
 #include "SemanticChecker.h" // Include the header above
 
+
+// --- Helper Functions ---
+
+
+static void free_safe(void* ptr) {
+    if (ptr) free(ptr);
+}
+
+
+static void* malloc_safe(size_t size) {
+    void* ptr = malloc(size);
+    if (!ptr) {
+        perror("Failed to allocate memory");
+        exit(EXIT_FAILURE);
+    }
+    return ptr;
+}
+
+
+// Helper duplicate strings safely
+static char* strdup_safe(const char* src) {
+    if (!src) return NULL;
+    size_t len = strlen(src);
+    char* dst = malloc_safe(len + 1);
+    if (dst) strcpy(dst, src);
+    return dst;
+}
+
+
+// Helper to format strings with variable arguments
+char *format_string(const char *fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+
+    // Calculate required length
+    int needed = vsnprintf(NULL, 0, fmt, args);
+    va_end(args);
+
+    // Formatting error
+    if (needed < 0) {
+        va_end(args);
+        return NULL; 
+    }
+
+    // Allocate buffer
+    char *buffer = malloc_safe(needed + 1);
+
+    // Format string
+    va_start(args, fmt);
+    vsnprintf(buffer, needed + 1, fmt, args);
+    va_end(args);
+
+    return buffer;
+}
+
+
+// Helper to append formatted strings to a buffer
+char *appendf(char *buffer, size_t *size, size_t *used, const char *fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+
+    // Calculate required length
+    int needed = vsnprintf(NULL, 0, fmt, args);
+    va_end(args);
+
+    if (*used + needed + 1 >= *size) {
+        *size = (*used + needed + 1) * 2; // Grow size of buffer
+        buffer = realloc(buffer, *size);
+        if (!buffer) {
+            perror("Failed to reallocate memory for buffer");
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    va_start(args, fmt);
+    vsnprintf(buffer + *used, *size - *used, fmt, args);
+    va_end(args);
+
+    *used += needed;
+    return buffer;
+}
+
+
+// --- Error Reporting ---
+
+#define ERR_INITIAL_CAPACITY 4
+
+
+// Helper to intitialise the error list
+void initErrorList(SemanticContext *ctx) {
+    ctx->errors = malloc_safe(ERR_INITIAL_CAPACITY * sizeof(VNNLibError));
+    ctx->errorCount = 0;
+    ctx->errorCapacity = ERR_INITIAL_CAPACITY;
+}
+
+
+// Add an error to the list
+void addError(SemanticContext *ctx, VNNLibError error) {
+    int errorCount = ctx->errorCount;
+    int errorCapacity = ctx->errorCapacity;
+
+    if (errorCount >= errorCapacity) {
+        size_t new_capacity = errorCapacity * 2;
+        VNNLibError* new_errors = realloc(ctx->errors, new_capacity * sizeof(VNNLibError));
+        if (!new_errors) {
+            perror("Failed to reallocate memory for error list");
+            exit(EXIT_FAILURE);
+        }
+        ctx->errors = new_errors;
+        ctx->errorCapacity = new_capacity;
+    }
+
+    // Create a deep copy of the error
+    VNNLibError copy = {
+        .message = strdup_safe(error.message),
+        .offendingSymbol = strdup_safe(error.offendingSymbol),
+        .hint = strdup_safe(error.hint),
+        .errorCode = error.errorCode
+    };
+
+    ctx->errors[ctx->errorCount] = copy;
+    ctx->errorCount++;
+}
+
+
+// Helper to free the error list
+void freeErrorList(SemanticContext *ctx) {
+    for (int i = 0; i < ctx->errorCount; i++) {
+        free_safe(ctx->errors[i].message);
+        free_safe(ctx->errors[i].offendingSymbol);
+        free_safe(ctx->errors[i].hint);
+    }
+    free_safe(ctx->errors);
+    ctx->errors = NULL;
+    ctx->errorCount = 0;
+    ctx->errorCapacity = 0;
+}
+
+
+// Basic error reporting to stderr
+void reportError(SemanticContext *ctx, const char *format, ...) {
+    if (ctx) {
+        fprintf(stderr, "Semantic Error: ");
+        va_list args;
+        va_start(args, format);
+        vfprintf(stderr, format, args);
+        va_end(args);
+        fprintf(stderr, "\n");
+    } else {
+        fprintf(stderr, "Semantic Error: Context unavailable. Message: %s\n", format);
+    }
+}
+
+
+const char* errorCodeToString(ErrorCode code) {
+    switch (code) {
+        case MultipleDeclaration: return "MultipleDeclaration";
+        case TypeMismatch: return "TypeMismatch";
+        case UndeclaredVariable: return "UndeclaredVariable";
+        case IndexOutOfBounds: return "IndexOutOfBounds";
+        case TooManyIndices: return "TooManyIndices";
+        case NotEnoughIndices: return "NotEnoughIndices";
+        default: return "UnknownErrorCode";
+    }
+}
+
+
+char *reportErrors(SemanticContext *ctx) {
+    size_t size = 1024;
+    size_t used = 0;
+    char *buffer = malloc_safe(size);
+    buffer[0] = '\0';
+
+    if (ctx && ctx->errorCount > 0) {
+        for (int i = 0; i < ctx->errorCount; i++) {
+            VNNLibError e = ctx->errors[i];
+            buffer = appendf(buffer, &size, &used, 
+                "[%s] %s (symbol: %s)\nHint: %s\n", 
+                errorCodeToString(e.errorCode),
+                e.message, 
+                e.offendingSymbol, 
+                e.hint);
+
+            buffer = appendf(buffer, &size, &used, "\n");
+        }
+    }
+
+    return buffer;
+}
+
+
+char *reportErrorsJSON(SemanticContext *ctx) {
+    size_t size = 1024;
+    size_t used = 0;
+    char *buffer = malloc_safe(size);
+    buffer[0] = '\0';
+    buffer = appendf(buffer, &size, &used, "{\n  \"errors\": [\n");
+
+
+    if (ctx && ctx->errorCount > 0) {
+        for (int i = 0; i < ctx->errorCount; i++) {
+            VNNLibError e = ctx->errors[i];
+            buffer = appendf(buffer, &size, &used,
+                "    {\n"
+                "      \"message\": \"%s\",\n"
+                "      \"offendingSymbol\": \"%s\",\n"
+                "      \"hint\": \"%s\",\n"
+                "      \"errorCode\": \"%s\"\n"
+                "    }",
+                e.message,
+                e.offendingSymbol,
+                e.hint,
+                errorCodeToString(e.errorCode));
+
+            if (i < ctx->errorCount - 1) {
+                buffer = appendf(buffer, &size, &used, ",");
+            }
+            buffer = appendf(buffer, &size, &used, "\n");
+        }
+    }
+
+    buffer = appendf(buffer, &size, &used, "  ]\n}\n");
+    return buffer;
+}
+
+
 // --- Semantic Context Initialization and Cleanup ---
 
 // Initialize the semantic context
@@ -10,15 +236,16 @@ void initSemanticContext(SemanticContext *ctx) {
     if (!ctx) return;
     ctx->symbolTableHead = NULL;
     ctx->errorCount = 0;
+    initErrorList(ctx);
 }
 
 
 // Helper to free symbol info (does not free nodes from original AST)
 void freeSymbolInfo(SymbolInfo *info) {
     if (!info) return;
-    free(info->name); 
-    free(info->shape); 
-    free(info);        
+    free_safe(info->name); 
+    free_safe(info->shape); 
+    free_safe(info);        
 }
 
 
@@ -34,22 +261,7 @@ void destroySemanticContext(SemanticContext *ctx) {
     }
     ctx->symbolTableHead = NULL;
     ctx->errorCount = 0;
-}
-
-
-// Basic error reporting
-void reportError(SemanticContext *ctx, const char *format, ...) {
-    if (ctx) {
-        ctx->errorCount++;
-        fprintf(stderr, "Semantic Error: ");
-        va_list args;
-        va_start(args, format);
-        vfprintf(stderr, format, args);
-        va_end(args);
-        fprintf(stderr, "\n");
-    } else {
-        fprintf(stderr, "Semantic Error: Context unavailable. Message: %s\n", format);
-    }
+    freeErrorList(ctx);
 }
 
 
@@ -57,54 +269,47 @@ void reportError(SemanticContext *ctx, const char *format, ...) {
 // Returns the added symbol or NULL if an error occurred
 SymbolInfo* addSymbol(SemanticContext *ctx, VariableName name, ElementType type, ListInt listInt, SymbolKind kind) {
     // Check for duplicates
-    int is_symbol = ctx->symbolTableHead != NULL;
-
-    SymbolInfo *existing = findSymbol(ctx, name);
-    if (existing) {
-        reportError(ctx, "Variable '%s' already declared.", name);
-        // TODO: report where it was previously declared if line numbers are available
+    if (findSymbol(ctx, name)) {
+        // reportError(ctx, "Duplicate variable declaration: %s", name);
+        addError(ctx, (VNNLibError) {
+            .message = "Duplicate variable declaration",
+            .offendingSymbol = name,
+            .hint = "Variable names must be unique within the VNNLib file.",
+            .errorCode = MultipleDeclaration
+        });
         return NULL;
     }
 
-    // Create new symbol info
-    SymbolInfo *newSymbol = (SymbolInfo*)malloc(sizeof(SymbolInfo));
+    SymbolInfo *newSymbol = malloc_safe(sizeof(SymbolInfo));
+    int *symbolShape = malloc_safe(sizeof(int) * MAX_DIMENSIONS);
 
-    if (!newSymbol) {
-        perror("Failed to allocate memory for symbol shape");
-        exit(EXIT_FAILURE);
-    } 
-
-    int *symbolShape = malloc(sizeof(int) * MAX_DIMENSIONS);
-    int numDimensions = 0; 
-
-    if (!symbolShape) {
-        perror("Failed to allocate memory for symbol shape");
-        free(newSymbol);
-        exit(EXIT_FAILURE);
-    }
-
+    int numDimensions = 0;
     if (listInt && checkListInt(listInt, ctx, symbolShape, &numDimensions) != 0) {
-        free(symbolShape);
-        free(newSymbol);
+        free_safe(symbolShape);
+        free_safe(newSymbol);
+        return NULL;
     }
 
-	// Store pointers to original AST nodes
-	newSymbol->name = strdup(name);
-
-    if (!newSymbol->name) {
+    // Duplicate variable name
+    char *nameCopy = strdup_safe(name);
+    if (!nameCopy) {
         perror("Failed to duplicate symbol name");
-        free(symbolShape);
-        free(newSymbol);
+        free_safe(symbolShape);
+        free_safe(newSymbol);
+        return NULL;
     }
 
-    newSymbol->type = type;              
+    // Populate symbol info
+    newSymbol->name = nameCopy;
+    newSymbol->type = type;
     newSymbol->kind = kind;
     newSymbol->shape = symbolShape;
     newSymbol->numDimensions = numDimensions;
 
-	// Add to front of linked list
+    // Add to front of symbol table
     newSymbol->next = ctx->symbolTableHead;
     ctx->symbolTableHead = newSymbol;
+
     return newSymbol;
 }
 
@@ -130,6 +335,13 @@ int checkSemantics(Query p) {
 
     checkQuery(p, &ctx); // Start traversal
 
+    // Check for semantic errors
+    if (ctx.errorCount > 0) {
+        char *errorReport = reportErrors(&ctx);
+        fprintf(stderr, "%s", errorReport);
+        free_safe(errorReport);
+    }
+
     int finalErrorCount = ctx.errorCount;
     destroySemanticContext(&ctx); // Clean up allocated symbols
 
@@ -154,12 +366,12 @@ int checkListInt(ListInt p, SemanticContext *ctx, int *shape, int *shapeSize)
         err |= checkInt(p->int_, ctx);
 
         if (err) {
-            reportError(ctx, "Invalid integer in ListInt at index %s.", *shapeSize);
+            fprintf(stderr, "Unexpected Error in ListInt: %s\n", p->int_);
             return 1;
         } 
         
         if (*shapeSize >= MAX_DIMENSIONS) {
-            reportError(ctx, "Exceeded maximum allowed dimensions (%d) for Tensor", MAX_DIMENSIONS);
+            fprintf(stderr, "Error: Too many dimensions in ListInt.\n");
             return 1;
         }
 
@@ -207,7 +419,7 @@ int checkArithExpr(ArithExpr p, SemanticContext *ctx)
             break;
 
         default:
-            reportError(ctx, "Bad kind field in ArithExpr node.");
+            fprintf(stderr, "Bad kind field in ArithExpr node.\n");
             return 1; // Error
     }
     return err; // Propagate error if any check failed
@@ -268,7 +480,7 @@ int checkBoolExpr(BoolExpr p, SemanticContext *ctx)
             break;
 
         default:
-			reportError(ctx, "Bad kind field in BoolExpr node.");
+			fprintf(stderr, "Bad kind field in BoolExpr node.\n");
 			return 1;
     }
 	return err;
@@ -299,7 +511,7 @@ int checkProperty(Property p, SemanticContext *ctx)
             break;
 
         default:
-			reportError(ctx, "Bad kind field in Property node.");
+			fprintf(stderr, "Bad kind field in Property node.\n");
 			return 1;
     }
     return err;
@@ -330,7 +542,7 @@ int checkElementType(ElementType p, SemanticContext *ctx)
         case is_ElementTypeString: break;
 
         default:
-            reportError(ctx, "Bad kind field in ElementType node.");
+            fprintf(stderr, "Bad kind field in ElementType node.\n");
             return 1; 
 	}
 	return 0; 
@@ -355,7 +567,7 @@ int checkInputDefinition(InputDefinition p, SemanticContext *ctx)
             break;
 
         default:
-            reportError(ctx, "Bad kind field in InputDefinition node.");
+            fprintf(stderr, "Bad kind field in InputDefinition node.\n");
             return 1; 
     }
     return err;
@@ -381,7 +593,7 @@ int checkIntermediateDefinition(IntermediateDefinition p, SemanticContext *ctx)
             break;
 
         default:
-			reportError(ctx, "Bad kind field in IntermediateDefinition node.");
+			fprintf(stderr, "Bad kind field in IntermediateDefinition node.\n");
 			return 1;
 	}
 	return err;
@@ -406,7 +618,7 @@ int checkOutputDefinition(OutputDefinition p, SemanticContext *ctx)
             break;
 
         default:
-            reportError(ctx, "Bad kind field in OutputDefinition node.");
+            fprintf(stderr, "Bad kind field in OutputDefinition node.\n");
             return 1; // Error
 	}
 	return err;
@@ -470,7 +682,7 @@ int checkNetworkDefinition(NetworkDefinition p, SemanticContext *ctx)
             break;
 
         default:
-            reportError(ctx, "Bad kind field in NetworkDefinition node.");
+            fprintf(stderr, "Bad kind field in NetworkDefinition node.\n");
             return 1; 
 	}
 	return err;
@@ -505,7 +717,7 @@ int checkQuery(Query p, SemanticContext *ctx)
         break;
 
     default:
-        reportError(ctx, "Bad kind field in Query node.");
+        fprintf(stderr, "Bad kind field in Query node.\n");
         return 1; // Error
     }
     return err;
@@ -529,8 +741,13 @@ int checkString(String s, SemanticContext *ctx) { return 0; }
 int checkScalar(SymbolInfo *symbol, TensorElement element, SemanticContext *ctx, char *tensorDim) {
     int index = strtol(tensorDim, NULL, 10);
     if (index != 0) {
-        reportError(ctx, "Variable '%s' is not a tensor, expected dummy index 0. \
-            For example %s_0", element, element);
+        // reportError(ctx, "Invalid tensor element '%s'. Expected index 0 for scalar variable.", element);
+        addError(ctx, (VNNLibError) {
+            .message = "Invalid tensor element",
+            .offendingSymbol = element,
+            .hint = "Expected dummy index 0 for scalar variable.",
+            .errorCode = NotEnoughIndices
+        });
         return 1;
     }
     return 0;
@@ -539,14 +756,7 @@ int checkScalar(SymbolInfo *symbol, TensorElement element, SemanticContext *ctx,
 
 int checkTensor(SymbolInfo *symbol, TensorElement element, SemanticContext *ctx, char *tensorDim) {
     int err = 0;
-
-    int *indices = malloc(sizeof(int) * symbol->numDimensions);
-    if (!indices) {
-        perror("Failed to allocate memory for indices array");
-        err = 1;
-        goto cleanup;
-    }
-
+    int *indices = malloc_safe(sizeof(int) * symbol->numDimensions);
     int idx = 0;
     char *token;
 
@@ -555,9 +765,14 @@ int checkTensor(SymbolInfo *symbol, TensorElement element, SemanticContext *ctx,
 
     while (idx < symbol->numDimensions) {
         if (token == NULL) {
-            reportError(ctx, "Not enough indices provided for Tensor Element '%s'. " \
-                "Expected %d indices but encountered %d.", element, symbol->numDimensions, idx + 1);
             err = 1;
+            // reportError(ctx, "Not enough indices provided for tensor element '%s'.", element);
+            addError(ctx, (VNNLibError) {
+                .message = "Not enough indices provided",
+                .offendingSymbol = element,
+                .hint = format_string("Expected %d indices but encountered %d.", symbol->numDimensions, idx),
+                .errorCode = NotEnoughIndices
+            });
             goto cleanup;
         }
 
@@ -567,23 +782,33 @@ int checkTensor(SymbolInfo *symbol, TensorElement element, SemanticContext *ctx,
     }
 
     if (token != NULL) {
-        reportError(ctx, "Too many indices provided for Tensor Element '%s'. " \
-            "Expected %d indices but encountered %d.", element, symbol->numDimensions, idx + 1);
         err = 1;
+        // reportError(ctx, "Too many indices provided for tensor element '%s'.", element);
+        addError(ctx, (VNNLibError) {
+            .message = "Too many indices provided",
+            .offendingSymbol = element,
+            .hint = format_string("Expected %d indices but encountered %d.", symbol->numDimensions, idx + 1),
+            .errorCode = TooManyIndices
+        });
         goto cleanup;
     }
 
     // Check that indices are within bounds
     for (int i = 0; i < symbol->numDimensions; i++) {
         if (indices[i] < 0 || indices[i] >= symbol->shape[i]) {
-            reportError(ctx, "Index %d out of bounds for Tensor Element '%s'. " \
-                "Expected index in range [0, %d)", indices[i], element, symbol->shape[i]);
             err = 1;
+            // reportError(ctx, "Index out of bounds: %d for dimension %d", indices[i], i);
+            addError(ctx, (VNNLibError) {
+                .message = "Index out of bounds",
+                .offendingSymbol = element,
+                .hint = format_string("Expected index in range [0, %d), but got %d.", symbol->shape[i], indices[i]),
+                .errorCode = IndexOutOfBounds
+            });
         }
     }
 
     cleanup:
-        free(indices);
+        free_safe(indices);
         return err;
 }
 
@@ -594,15 +819,21 @@ int checkTensorElement(TensorElement p, SemanticContext *ctx) {
     int err = 0;
 
     // Extract the tensor name and dimension from the string
-    char *tensorName = strdup(p);
+    char *tensorName = strdup_safe(p);
 	char *tensorDim = strchr(tensorName, '_');
     *tensorDim = '\0'; // Terminate the variable name
     tensorDim = tensorDim ? tensorDim + 1 : NULL; 
 
     // Check that the tensor indices are provided
     if (!tensorDim) {
-        reportError(ctx, "Invalid tensor element '%s'. Expected format: <tensor>_<index>", p);
+        // reportError(ctx, "Invalid tensor element '%s'. Expected format: <tensor>_<index>", p);
         err = 1;
+        addError(ctx, (VNNLibError) {
+            .message = "Invalid tensor element",
+            .offendingSymbol = p,
+            .hint = "Expected format: <tensor>_<index>",
+            .errorCode = NotEnoughIndices
+        });
         goto cleanup;
     }
 
@@ -610,8 +841,14 @@ int checkTensorElement(TensorElement p, SemanticContext *ctx) {
 
     // Check that variable is declared
     if (!symbol) {
-        reportError(ctx, "Variable '%s' used but not declared.", p);
+        // reportError(ctx, "Variable '%s' used but not declared.", p);
         err = 1;
+        addError(ctx, (VNNLibError) {
+            .message = "Undeclared variable",
+            .offendingSymbol = tensorName,
+            .hint = "Variable must be declared before use.",
+            .errorCode = UndeclaredVariable
+        });
     }
 
     // Check that index is 0 for scalar variables
@@ -625,6 +862,6 @@ int checkTensorElement(TensorElement p, SemanticContext *ctx) {
     }
 
     cleanup:
-        free(tensorName);
+        free_safe(tensorName);
         return err;  
 }
