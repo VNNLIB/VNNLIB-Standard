@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -g
+CFLAGS = -Wall -Wextra -g -fPIC -Wno-unused-parameter
 BISON_OPTS = -t -pvnn_lib_lbnf_ -d
 FLEX_OPTS = -Pvnn_lib_lbnf_
 
@@ -20,7 +20,8 @@ OBJS = $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRCS))
 OBJS += $(patsubst $(SRC_DIR)/bisonParser/%.c, $(OBJ_DIR)/bisonParser/%.o, $(BISON_SRCS))
 
 # Executable name
-TARGET = $(BIN_DIR)/VNNLibParser
+TARGET_EXEC = $(BIN_DIR)/VNNLibParser
+TARGET_LIB = $(BIN_DIR)/libVNNLib.so
 
 # Includes
 INCLUDES = -I$(SRC_DIR)/bisonParser -I$(SRC_DIR)/../include
@@ -28,11 +29,15 @@ INCLUDES = -I$(SRC_DIR)/bisonParser -I$(SRC_DIR)/../include
 # Libraries
 LDFLAGS = -lm
 
-all: $(TARGET)
+all: $(TARGET_EXEC) $(TARGET_LIB)
+
+# Build the shared library
+$(TARGET_LIB): $(OBJS) | $(BIN_DIR)
+	$(CC) -shared -o $@ $^
 
 # Link final executable
-$(TARGET): $(OBJS) | $(BIN_DIR)
-	$(CC) $(CFLAGS) $(INCLUDES) -o $@ $^ $(LIBS) 
+$(TARGET_EXEC): $(OBJS) | $(BIN_DIR)
+	$(CC) $(CFLAGS) $(INCLUDES) -o $@ $^
 
 # Compile src object files
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
@@ -63,6 +68,6 @@ $(SRC_DIR)/bisonParser/Lexer.c:
 	cd ../..
 
 clean:
-	rm -f $(OBJS) $(TARGET)
+	rm -f $(OBJS) $(TARGET_EXEC)
 
 .PHONY: all clean
