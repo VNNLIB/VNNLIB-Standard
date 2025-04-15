@@ -6,6 +6,7 @@
 #include <string.h> 
 #include <stdio.h>
 #include "Absyn.h" 
+#include "Util.h"
 
 #define MAX_DIMENSIONS 10 // Maximum number of dimensions for a tensor
 
@@ -59,12 +60,11 @@ typedef struct SemanticContext {
 
 
 // Error reporting functions
+#define ERR_INITIAL_CAPACITY 4  // Initial capacity for the error list
+
 char *reportErrors(SemanticContext *ctx);
 char *reportErrorsJSON(SemanticContext *ctx);
 
-
-// Main entry point
-int checkSemantics(Query p);
 
 // Context Management
 void initSemanticContext(SemanticContext *ctx);
