@@ -6,6 +6,7 @@ FLEX_OPTS = -Pvnn_lib_lbnf_
 SRC_DIR = src
 OBJ_DIR = build
 BIN_DIR = bin
+PYBIND11_DIR = pybind
 
 # Source files
 SRCS = $(wildcard $(SRC_DIR)/*.c)
@@ -34,6 +35,8 @@ all: $(TARGET_EXEC) $(TARGET_LIB)
 # Build the shared library
 $(TARGET_LIB): $(OBJS) | $(BIN_DIR)
 	$(CC) -shared -o $@ $^
+	cp $(TARGET_LIB) $(PYBIND11_DIR)
+	
 
 # Link final executable
 $(TARGET_EXEC): $(OBJS) | $(BIN_DIR)
