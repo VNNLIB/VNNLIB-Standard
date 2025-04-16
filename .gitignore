@@ -19,7 +19,9 @@ document/*.pdf
 
 parser/src/bisonParser/*
 parser/bin
-parser/build
+
+*.so
+build
 
 .vscode
 
