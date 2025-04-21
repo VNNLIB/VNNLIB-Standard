@@ -8,8 +8,6 @@
 
 void free_safe(void* ptr);
 
-void* malloc_safe(size_t size);
-
 char* strdup_safe(const char* src);
 
 char *format_string(const char *fmt, ...);
