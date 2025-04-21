@@ -7,10 +7,15 @@
 // --- Error Reporting ---
 
 // Helper to intitialise the error list
-void initErrorList(SemanticContext *ctx) {
-    ctx->errors = malloc_safe(ERR_INITIAL_CAPACITY * sizeof(VNNLibError));
+int initErrorList(SemanticContext *ctx) {
+    ctx->errors = malloc(ERR_INITIAL_CAPACITY * sizeof(VNNLibError));
+    if (!ctx->errors) {
+        perror("Failed to allocate memory for error list");
+        return 1;
+    }
     ctx->errorCount = 0;
     ctx->errorCapacity = ERR_INITIAL_CAPACITY;
+    return 0;
 }
 
 
@@ -24,7 +29,7 @@ void addError(SemanticContext *ctx, VNNLibError error) {
         VNNLibError* new_errors = realloc(ctx->errors, new_capacity * sizeof(VNNLibError));
         if (!new_errors) {
             perror("Failed to reallocate memory for error list");
-            exit(EXIT_FAILURE);
+            return;
         }
         ctx->errors = new_errors;
         ctx->errorCapacity = new_capacity;
@@ -90,7 +95,11 @@ const char* errorCodeToString(ErrorCode code) {
 char *reportErrors(SemanticContext *ctx) {
     size_t size = 1024;
     size_t used = 0;
-    char *buffer = malloc_safe(size);
+    char *buffer = malloc(size);
+    if (!buffer) {
+        perror("Failed to allocate memory for error report");
+        return NULL;
+    }
     buffer[0] = '\0';
 
     if (ctx && ctx->errorCount > 0) {
@@ -104,6 +113,11 @@ char *reportErrors(SemanticContext *ctx) {
                 e.hint);
 
             buffer = append_str(buffer, &size, &used, "\n");
+
+            if (!buffer) {
+                fprintf(stderr, "Error: Buffer overflow while reporting errors.\n");
+                return NULL;
+            }
         }
     }
 
@@ -115,7 +129,11 @@ char *reportErrors(SemanticContext *ctx) {
 char *reportErrorsJSON(SemanticContext *ctx) {
     size_t size = 1024;
     size_t used = 0;
-    char *buffer = malloc_safe(size);
+    char *buffer = malloc(size);
+    if (!buffer) {
+        perror("Failed to allocate memory for JSON error report");
+        return NULL;
+    }
     buffer[0] = '\0';
     buffer = append_str(buffer, &size, &used, "{\n  \"errors\": [\n");
 
@@ -139,6 +157,12 @@ char *reportErrorsJSON(SemanticContext *ctx) {
                 buffer = append_str(buffer, &size, &used, ",");
             }
             buffer = append_str(buffer, &size, &used, "\n");
+
+            if (buffer == NULL) {
+                fprintf(stderr, "Error: Buffer overflow while reporting errors.\n");
+                free(buffer);
+                return NULL;
+            }
         }
     }
 
@@ -150,11 +174,11 @@ char *reportErrorsJSON(SemanticContext *ctx) {
 // --- Semantic Context Initialization and Cleanup ---
 
 // Initialize the semantic context
-void initSemanticContext(SemanticContext *ctx) {
-    if (!ctx) return;
+int initSemanticContext(SemanticContext *ctx) {
+    if (!ctx) return 1;
     ctx->symbolTableHead = NULL;
     ctx->errorCount = 0;
-    initErrorList(ctx);
+    return initErrorList(ctx);
 }
 
 
@@ -198,8 +222,14 @@ SymbolInfo* addSymbol(SemanticContext *ctx, VariableName name, ElementType type,
         return NULL;
     }
 
-    SymbolInfo *newSymbol = malloc_safe(sizeof(SymbolInfo));
-    int *symbolShape = malloc_safe(sizeof(int) * MAX_DIMENSIONS);
+    SymbolInfo *newSymbol = malloc(sizeof(SymbolInfo));
+    int *symbolShape = malloc(sizeof(int) * MAX_DIMENSIONS);
+    if (!newSymbol || !symbolShape) {
+        perror("Failed to allocate memory for symbol info");
+        free_safe(newSymbol);
+        free_safe(symbolShape);
+        return NULL;
+    }
 
     int numDimensions = 0;
     if (listInt && checkListInt(listInt, ctx, symbolShape, &numDimensions) != 0) {
@@ -210,12 +240,6 @@ SymbolInfo* addSymbol(SemanticContext *ctx, VariableName name, ElementType type,
 
     // Duplicate variable name
     char *nameCopy = strdup_safe(name);
-    if (!nameCopy) {
-        perror("Failed to duplicate symbol name");
-        free_safe(symbolShape);
-        free_safe(newSymbol);
-        return NULL;
-    }
 
     // Populate symbol info
     newSymbol->name = nameCopy;
@@ -644,7 +668,7 @@ int checkScalar(SymbolInfo *symbol, TensorElement element, SemanticContext *ctx,
 
 int checkTensor(SymbolInfo *symbol, TensorElement element, SemanticContext *ctx, char *tensorDim) {
     int err = 0;
-    int *indices = malloc_safe(sizeof(int) * symbol->numDimensions);
+    int *indices = malloc(sizeof(int) * symbol->numDimensions);
     int idx = 0;
     char *token;
 
