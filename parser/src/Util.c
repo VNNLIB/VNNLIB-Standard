@@ -11,20 +11,14 @@ void free_safe(void* ptr) {
 }
 
 
-void* malloc_safe(size_t size) {
-    void* ptr = malloc(size);
-    if (!ptr) {
-        perror("Failed to allocate memory");
-        exit(EXIT_FAILURE);
-    }
-    return ptr;
-}
-
-
 char* strdup_safe(const char* src) {
     if (!src) return NULL;
     size_t len = strlen(src);
-    char* dst = (char *)malloc_safe(len + 1);
+    char* dst = (char *)malloc(len + 1);
+    if (!dst) {
+        perror("Failed to allocate memory for string duplication");
+        return NULL; 
+    }
     if (dst) strcpy(dst, src);
     return dst;
 }
@@ -46,7 +40,11 @@ char *format_string(const char *fmt, ...) {
     }
 
     // Allocate buffer
-    char *buffer = (char *)malloc_safe(needed + 1);
+    char *buffer = (char *)malloc(needed + 1);
+    if (!buffer) {
+        perror("Failed to allocate memory for formatted string");
+        return NULL; 
+    }
 
     // Format string
     va_start(args, fmt);
@@ -72,7 +70,7 @@ char *append_str(char *buffer, size_t *size, size_t *used, const char *fmt, ...)
         buffer = (char *)realloc(buffer, *size);
         if (!buffer) {
             perror("Failed to reallocate memory for buffer");
-            exit(EXIT_FAILURE);
+            return NULL; 
         }
     }
 

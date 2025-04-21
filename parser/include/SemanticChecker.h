@@ -67,11 +67,10 @@ char *reportErrorsJSON(SemanticContext *ctx);
 
 
 // Context Management
-void initSemanticContext(SemanticContext *ctx);
+int initSemanticContext(SemanticContext *ctx);
 void destroySemanticContext(SemanticContext *ctx);
 SymbolInfo* addSymbol(SemanticContext *ctx, VariableName name, ElementType type, ListInt dims, SymbolKind kind);
 SymbolInfo* findSymbol(SemanticContext *ctx, VariableName name);
-void reportError(SemanticContext *ctx, const char *format, ...); // Use variable args
 
 // Error Management
 void addError(SemanticContext *ctx, VNNLibError error);
