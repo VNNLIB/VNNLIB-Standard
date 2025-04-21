@@ -13,13 +13,19 @@ PYBIND11_MODULE(vnnlib, m) {
 
     m.def("parse_vnnlib", [](const std::string& path) {
         Query q = parse_vnnlib(path.c_str());
-        return QueryWrapper(q);
+        if (!q) {
+            throw std::runtime_error("Failed to parse VNNLib file.");
+        }
+        return std::make_unique<QueryWrapper>(q);
     });
 
     m.def("check_query", [](const QueryWrapper& wrapper, bool json) {
         char* res = check_query(wrapper.get(), json ? 1 : 0);
-        std::string result(res);
-        free(res);
-        return result;
+        if (res != nullptr) {
+            std::string result(res);
+            free(res);
+            return result;
+        }
+        return std::string();
     });
 }

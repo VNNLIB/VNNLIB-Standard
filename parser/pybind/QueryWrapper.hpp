@@ -10,7 +10,7 @@ public:
     Query q;
 
     QueryWrapper(Query q_) {
-		q = q_;
+		this->q = q_;
 	}
 
     std::string to_string() const {
