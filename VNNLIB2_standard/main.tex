@@ -1,0 +1,85 @@
+\documentclass[12pt,a4paper]{report}
+
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{todonotes}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{authblk}
+\usepackage{algorithm, algpseudocode}
+
+\newcommand{\ie}{\textit{i.e.}}
+%customized todo
+\definecolor{lightgreen}{rgb}{0.8,1.0,0.8}
+\definecolor{red}{rgb}{0.8,0,0}
+\definecolor{green}{rgb}{0,0.8,0}
+\definecolor{blue}{rgb}{0,0,1}
+\newcommand{\mytodo}[1]{\todo[inline,color=lightgreen]{TODO: #1}}
+\newcommand{\myremark}[1]{\todo[inline, color=lightgreen]{\textbf{Remark:} #1}}
+
+\title{The VNN-LIB standard for benchmarks\\2022}
+
+\author[1]{Stefano Demarchi}
+\author[2]{Dario Guidotti}
+\author[2]{Luca Pulina}
+\author[1]{Armando Tacchella}
+
+\affil[1]{University of Genoa, Viale Causa 13, 16145 Genoa, Italy}
+\affil[2]{University of Sassari, Via Roma 151, 07100 Sassari, Italy}
+  
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+  The purpose of this document is to present the first version of the
+  standard for neural network verification benchmarks, expressed as
+  VNN-LIB. This standard builds on the Open Neural Network Exchange 
+  (ONNX) format for model description, and on the Satisfiabily Modulo
+  Theories Library (SMT-LIB) format for the property specification. 
+  Throughout the document we will refer to the combination of model 
+  and property description formats as the \emph{VNN-LIB format}.
+\end{abstract}
+
+
+\section*{Introduction}
+
+In the last years the community of neural networks verification has
+been growing larger and larger: after three years of the official
+competition VNN-COMP we identified the needs and patterns that can
+help people designing and improving their benchmarks.
+
+This document is structured as follows. In Chapter~\ref{sec:model} we
+present the guidelines for the model specification language, i.e., how
+to describe the neural network for verification purposes and which 
+operators are either supported, to be supported or discouraged; in
+Chapter~\ref{sec:property} we present the guidelines for the property
+specification language, i.e., how to specify the requirements that the
+neural network ought to satisfy. Finally, in Section~\ref{sec:examples} 
+we present some examples of benchmarks to further illustrate the
+capabilities and the limitations of the VNN-LIB format.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\chapter{Modeling language}
+\label{sec:model}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\input{onnx_modelzoo_report}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\chapter{Property specification language}
+\label{sec:property}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\input{smtlib_property}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\chapter{Examples}
+\label{sec:examples}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\input{examples}
+
+\end{document}

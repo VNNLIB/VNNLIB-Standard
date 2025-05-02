@@ -1,0 +1,65 @@
+Inputs and outputs of operators are \emph{tensors}, i.e.,
+multidimensional arrays over some domain, usually numerical. 
+If we let $\mathbb{D}$ be any such domain, a $k$-dimensional 
+tensor on $\mathbb{D}$ is denoted as $x \in \mathbb{D}^{n_1 
+	\times \ldots \times n_k}$.
+For example, a vector of $n$ real numbers is a 1-dimensional
+tensor $x \in \mathbb{R}^n$, whereas a matrix of $n \times n$ 
+Booleans is a 2-dimensional tensor $x \in \mathbb{B}^{n 
+	\times n}$ with $\mathbb{B} = \{0, 1\}$. A specific element 
+of a tensor can be singled-out via \emph{subscripting}. 
+
+Given a $k$-dimensional tensor $x \in \mathbb{D}^{n_1 \times 
+	\ldots \times n_k}$, the element $x_{i_1, \ldots, i_k} \in 
+	\mathbb{D}$ is a scalar corresponding to the indexes 
+${i_1, \ldots, i_k}$. For example, in a vector of real numbers 
+$x \in \mathbb{R}^n$, $x_1$ is the first element, $x_2$ the second 
+and so on. In a matrix of Boleans $x \in \mathbb{B}^{n \times
+  n}$, $x_{1,1}$ is the first element of the first row, $x_{2,1}$ 
+is the first element of the second and so on.
+
+An \emph{operator} $f$ is a function on tensors 
+$f: \mathbb{D}^{n_{1} \times n_h} \to \mathbb{D}^{m_{1} \times m_k}$
+where $h$ is the dimension of the input tensor and $k$ is the 
+dimension of the output tensor. Given a set $F = \{f_1, \ldots, 
+	f_p\}$ of $p$ operators, a \emph{feedforward neural network}
+is a function $\nu = f_p(f_{p-1}(\ldots f_2(f_1(x))\ldots))$ obtained
+through the composition of the operators in $F$ assuming that the 
+dimensions of their inputs and outputs are \emph{compatible}, i.e.,
+if the  output of $f_i$ is a $k$-dimensional tensor, then the input
+of $f_{i+1}$ is also a $k$-dimensional tensor, for all $1 \leq i < p$.
+
+Given a neural network $\nu : \mathbb{D}^{n_{1} \times n_h} \to
+\mathbb{D}^{m_{1} \times m_k}$ built on the set of operators $\{f_1,
+\ldots, f_p\}$, let $x \in \mathbb{D}^{n_{1} \times n_h}$ denote
+the input of $\nu$ and $y_1, \ldots, y_p$ denote the outputs of the
+operators $f_1, \ldots, f_p$ --- therefore $y_p$ is also the output
+$y$ of $\nu$. We assume that, in general, a \emph{property} is a first
+order formula $P(x, y_1, \ldots y_p)$ which should be satisfied given 
+$\nu$. More formally, given $p$ bounded sets $X_1, \ldots, X_p$ in $I$ 
+such that $\Pi = \bigcup_{i=1}^p X_i$ and $s$ bounded sets $Y_1, 
+\ldots, Y_s$ in $O$ such that $\Sigma = \bigcup_{i=1}^s Y_i$, we wish
+to prove that  
+\begin{equation}
+	\label{eq:verif}
+	\forall x \in \Pi \rightarrow \nu(x) \in \Sigma.
+\end{equation}
+The definition of the property given in equation (\ref{eq:verif})
+consists of a \textit{pre-}condition $x \in \Pi$ and a 
+\textit{post-}condition $\nu(x) \in \Sigma$. The 
+\textit{pre-}condition encodes the bounds of the input space, i.e.,
+bounds the variables that are fed to the network, and the 
+\textit{post-}condition defines the safe zone, outside which the 
+verification task fails.
+
+The SMT-LIB language is a well-known language used to formalize 
+Satisfiability Modulo Theories problems, and is expressive enough to
+represent the verification properties of interest. In this language, 
+it is possible to define both the \textit{pre-} and 
+\textit{post-}conditions at once, by defining the variables for the
+input and the output of the neural network. In the following we
+show some examples of networks and corresponding properties in the
+SMT-LIB language.
+
+\myremark{Note that the input and output variable names should match
+	the identifiers of the input and of the last node in the network.}
