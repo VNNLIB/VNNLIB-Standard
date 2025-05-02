@@ -10,6 +10,7 @@ HEADER_FILE = f"{fpath}/../src/bisonParser/Absyn.h"
 
 
 def extract_fields(struct_cursor):
+    """Extracts string and pointer fields from a given struct cursor."""
     string_fields = []
     pointer_fields = {}
 
@@ -74,7 +75,7 @@ def construct_subclass(struct, class_name, super_struct, super_class):
 
 
 def construct_base_class(struct_name, class_name):
-    """Constructs a base wrapper class for a given struct."""
+    """Constructs a base wrapper class for a given struct_name and class_name."""
     indent = " " * INDENT_SIZE
     struct_as_field = "_" + struct_name.lower()
 
@@ -137,6 +138,7 @@ def construct_variant_generator(struct,
                              class_name, 
                              path_to_field,
                              num_indent = 0):
+    """A helper function that generates the code for recursively constructing a subclass and its fields."""
     indent = " " * INDENT_SIZE
 
     fun_code = []
@@ -169,7 +171,7 @@ def construct_generator(variants,
                         subclass_names, 
                         struct_cursor, 
                         class_name):
-    """Constructs a function that generates the appropriate subclass based on the variant."""
+    """Generates a function that constructs and returns the appropriate subclass based on the variant."""
     indent = " " * INDENT_SIZE
 
     struct_name = struct_cursor.spelling.rstrip('_')
