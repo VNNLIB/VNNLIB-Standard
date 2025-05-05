@@ -7,6 +7,6 @@ do
     echo "$f" >> test/error-files.txt
     # break
   else
-    echo "make success: $f"
+    echo "parse success: $f"
   fi
 done
