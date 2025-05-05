@@ -6,10 +6,10 @@ token SInt '-' digit+ ;
 token Int digit+ ;
 
 -- The regular expression for an element of a tensor variable
-token TensorElement letter (letter|digit)* '_' digit+ ('-' digit+)* ;
+token TensorElement letter (letter|digit|'@')* '_' digit+ ('-' digit+)* ;
 
 -- The regular expression for a tensor variable
-token VariableName letter (letter|digit)* ;
+token VariableName letter (letter|digit|'@')* ;
 
 -- Production to represent a Tensor shape as a sequence of integers
 []. [Int] ::= ;
