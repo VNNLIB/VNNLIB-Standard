@@ -1,7 +1,7 @@
 # EVNNLIB
 
 A project to define and extend the grammar of the current VNNLIB specifications.  
-Contributors: Allen Antony, Ann Roy, Matthew Daggit <br>
+Contributors: Allen Antony, Ann Roy, Matthew Daggitt <br>
 
 ## Set up
 This project uses the BNFC package to build and test the parser.  
