@@ -1,0 +1,97 @@
+Here we describe the operators that are officially supported, i.e.,
+those operators supplied by the ONNX model 
+zoo~\footnote{https://github.com/onnx/models} that allow to represent
+the majority of the models in the zoo limiting as much as possible the
+variety. We consider the model zoo as representative enough for the 
+kind of model architectures, and operators, that are commonly used in
+the Machine Learning community.
+
+The following operators cover almost every benchmark provided in the
+VNN-COMP repositories for sequential networks; other kinds of networks
+(ResNet, Recurrent, etc.) are often based on "exotic" and, in general,
+peculiar operators that do not lie in this list.
+
+\myremark{While the standard supports the operators, it is strongly 
+	unadvised to include pre-processing in the benchmark model, e.g., 
+	normalization and flattening, since the properties should match
+	the first node with the same input dimension.}
+
+\begin{itemize}
+	\item \emph{Add (Add)} operator performs the element-wise sum of
+		a tensor and a scalar. We strongly encourage to use the 
+		\textit{Gemm} operator when paired with \textit{MatMul}.
+	
+	\item \emph{AveragePool (Average Pooling)} operator
+	  supports downsampling with averaging.
+	
+	\item \emph{BatchNormalization (Batch
+	  Normalization)} operator supports adjusting and scaling the
+	  activations functions, and it is expressive enough to represent
+	  general batch normalization.
+	  
+	\item \emph{Concat (Concatenation)} operator concatenates a list
+		of tensors into a single tensor, with the same shape except for
+		the axis to concatenate on.	
+	
+	\item \emph{Conv (Convolutional)} operator supports
+	  all the attributes to encode a generic convolutional layer.
+	
+	\item \emph{Dropout (Dropout)} operator supports
+	  random dropping of units (during training). This operator should not
+	  appear on trained models.  
+	  
+	\item \emph{Flatten (Flatten)} this operator converts multidimensional
+	  arrays (tensors) to single dimensional ones; it is used instead of
+	  \emph{Reshape} in some of the models in the zoo.
+	  
+	\item \emph{Gemm (General Matrix Multiplication)}
+	  operator encodes matrix multiplication possibly with a scalar
+	  coefficient and the addition of another matrix; as such \emph{Gemm}
+	  can encode fully connected layers in neural networks.
+	
+	\item \emph{LRN (Local Response Normalization)}
+	  operator supports normalization over local input regions; it is uatilized
+	  in Alexnet and derived networks.
+	  
+	\item \emph{MatMul (Matrix Multiplication)} operator performs a
+		numPy-like matrix multiplication. We strongly encourage to use
+		the \textit{Gemm} operator.
+	  
+	\item \emph{MaxPool (Maximum pooling)} operator supports
+	  downsampling with maximization.
+	
+	\item \emph{ReLU (Rectified Linear Unit)} operator
+	  encodes the corresponding activation function $\sigma(x) = \max(0, x)$.
+	  
+	\item \emph{Reshape (Reshape)} operator supports
+	  reshaping of the tensor's dimensions.
+	  
+	\item \emph{Sigmoid (Logistic Unit)} operator
+	  encodes the corresponding activation function $\sigma(x) =
+	  \frac{1}{1 + e^{-x}}$.
+	  
+	\item \emph{SoftMax (Softmax Unit)} operator transforms
+	  vectors into probabilities, e.g., for selecting among different
+	  classes and it is commonly utilized in state of the art
+	  networks.
+	  
+	\item \emph{Sub (Sub)} operator performs element-wise binary subtraction
+		between two tensors.
+	
+	\item \emph{Unsqueeze (Unsqueeze)} operator removes dimensions of size
+	  1 from tensors, and it is utilized, e.g., in \emph{Densenet} and
+	  \emph{Inception2}.
+\end{itemize}
+
+%% At a high level, networks can be seen as functions 
+%% $\nu : I^n \to O^m$, mapping an $n$-dimensional \emph{input domain}
+%% $I^n$ ($n > 0$) to a $m$-dimensional \emph{output domain} $O^m$ ($m
+%% >0$). We argue that this representation captures most cases of practical
+%% interest.
+%% For instance, a network computing an approximation
+%% of some function $f: \mathbb{R}^n \to \mathbb{R}$ would have $I = O =
+%% \mathbb{R}$, whereas a network classifying 8-bit images of size $h \times v$ in
+%%  two classes would be defined as ${\nu: \{0,\ldots,255\}^{h \cdot v}
+%%    \to \{0, 1\}}$ with $I=\{0, \ldots, 255\}$ and $O = \{0,1\}$.
+
+
