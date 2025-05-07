@@ -6,6 +6,7 @@ open import Data.Nat
 open import Data.Integer
 open import Data.Rational as ℚ
 open import Data.Bool
+open import Data.Fin
 
 -- Tokens
 -- -- UNUSED
@@ -14,6 +15,13 @@ data SDouble : Set where
 
 data SInt : Set where
   mkSInt : String → SInt
+
+
+Context : Set
+Context = ℕ
+
+Environment : Context → Set
+Environment ctx = Fin ctx → ℚ
 
 -- -- Naming/referencing
 data TensorElement : Set where
@@ -27,13 +35,14 @@ data TensorShape : Set where
   shape : List ℕ → TensorShape
 
 -- Arithmetic Expressions: nary operations
-data ArithExpr : Set where
+data ArithExpr (ctx:Context): Set where
   const : ℚ → ArithExpr
+  var : Fin ctx → ArithExpr
   add : List ArithExpr → ArithExpr
   negate : List ArithExpr → ArithExpr
   mult : List ArithExpr → ArithExpr
 
-⟦_⟧ : ArithExpr → ℚ
+⟦_-%_-%_⟧ : (ctx:Context) → Environment (ctx) → ArithExpr (ctx) → ℚ
 ⟦ const e ⟧ = e
 ⟦ add [] ⟧ = 0ℚ
 ⟦ add (e ∷ xe) ⟧ = ℚ._+_ ⟦ e ⟧ ⟦ add xe ⟧
@@ -60,7 +69,7 @@ data BoolExpr : Set where
 <_> : BoolExpr → Bool
 < literal e > = e 
 < greaterThan e1 e2 > = not ( ℚ._≤ᵇ_ ⟦ e1 ⟧ ⟦ e2 ⟧ )
-< lessThan e1 e2 > = ℚ._≤ᵇ_ ⟦ e1 ⟧ ⟦ e2 ⟧ ∧ not ( ℚ._≤ᵇ_ ⟦ e1 ⟧ ⟦ e2 ⟧ ∧ ℚ._≤ᵇ_ ⟦ e2 ⟧ ⟦ e1 ⟧ )
+< lessThan e1 e2 > = not (ℚ._≤ᵇ_ ⟦ e2 ⟧ ⟦ e1 ⟧ )
 < greaterEqual e1 e2 > = ℚ._≤ᵇ_ ⟦ e2 ⟧ ⟦ e1 ⟧
 < lessEqual e1 e2 > = ℚ._≤ᵇ_ ⟦ e1 ⟧ ⟦ e2 ⟧
 < notEqual e1 e2 > = not ( ℚ._≤ᵇ_ ⟦ e1 ⟧ ⟦ e2 ⟧ ∧ ℚ._≤ᵇ_ ⟦ e2 ⟧ ⟦ e1 ⟧ )
