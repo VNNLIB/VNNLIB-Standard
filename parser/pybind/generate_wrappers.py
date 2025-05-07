@@ -278,6 +278,8 @@ if __name__ == "__main__":
     tu = index.parse(HEADER_FILE, args=["-x", "c", "-std=c11", "-D_POSIX_C_SOURCE=200809L"])
 
     cpp_code = []
+    forward_decls = []
+    class_code = []
 
     cpp_code += [
         f"#ifndef VNNLIBWRAPPERS_HPP",
@@ -288,8 +290,18 @@ if __name__ == "__main__":
     for cursor in tu.cursor.get_children():
         if cursor.kind == CursorKind.STRUCT_DECL and cursor.is_definition():
             # Check if the struct name ends with an underscore
+            struct_name = cursor.spelling.rstrip('_')
             if cursor.spelling.endswith("_"):  # e.g., Query_
-                cpp_code += decode_struct(cursor)
+                
+                forward_decls += [
+                    f"class {struct_name}Wrapper;",
+                    f"std::unique_ptr<{struct_name}Wrapper> generate(struct {struct_name}_ *ptr);",
+                ]
+
+                class_code += decode_struct(cursor)
+
+    cpp_code += forward_decls + ["\n"]
+    cpp_code += class_code
 
     cpp_code += [
         f"#endif // VNNLIBWRAPPERS_HPP",
