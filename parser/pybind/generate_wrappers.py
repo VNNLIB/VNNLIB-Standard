@@ -61,7 +61,7 @@ def construct_subclass(struct, class_name, super_struct, super_class):
                         f"{indent * 2}): ",
                         f"{indent * 4}{super_class}({super_struct.lower()}_struct),"]
 
-        for field_name in string_fields + list(pointer_fields.keys()):
+        for field_name in string_fields + list(pointer_fields):
             constructor += [f"{indent * 4}{field_name}(std::move(_{field_name})),"]
         constructor[-1] = constructor[-1].rstrip(",")
         constructor += [f"{indent * 2}{{}}"]
@@ -132,31 +132,29 @@ def add_includes():
     ]
 
 
-def construct_variant_generator(struct, 
-                             string_fields, 
-                             pointer_fields, 
-                             class_name, 
-                             path_to_field,
-                             num_indent = 0):
+def construct_variant_generator(
+                            string_fields, 
+                            pointer_fields, 
+                            class_name, 
+                            path_to_field,
+                            num_indent = 0):
     """A helper function that generates the code for recursively constructing a subclass and its fields."""
     indent = " " * INDENT_SIZE
 
     fun_code = []
-
-    string_fields, pointer_fields = extract_fields(struct)
-    for field_name in string_fields:
+    for i, field_name in enumerate(string_fields):
         fun_code += [
-            f"{indent * num_indent}char* s = {path_to_field}{field_name};",
-            f"{indent * num_indent}std::string {field_name} = s ? std::string(s) : std::string();",
+            f"{indent * num_indent}char* s{i} = {path_to_field}{field_name};",
+            f"{indent * num_indent}std::string {field_name} = s{i} ? std::string(s{i}) : std::string();",
         ]
     for field_name in pointer_fields:
         fun_code += [
-            f"{indent * num_indent}auto {field_name} = generate({path_to_field}{field_name});",
+            f"{indent * num_indent}auto {field_name} = {path_to_field}{field_name}? generate({path_to_field}{field_name}) : nullptr;",
         ]
 
     fun_code += [f"{indent * num_indent}return std::make_unique<{class_name}>("]
 
-    for field_name in string_fields + list(pointer_fields.keys()):
+    for field_name in string_fields + list(pointer_fields):
         fun_code += [f"{indent * (num_indent + 1)}std::move({field_name}),"]
 
     fun_code += [
@@ -178,31 +176,36 @@ def construct_generator(variants,
 
     fun_code = []
     fun_code += [
-        f"{indent * 0}std::unique_ptr<{class_name}> generate({struct_name} ptr) {{"
+        f"{indent * 0}std::unique_ptr<{class_name}> generate({struct_name} ptr) {{",
+        f"{indent * 1}if (!ptr) return nullptr;"
     ]
 
     if struct_name.startswith("List"):
         subcls_name = struct_name.lstrip("List") + "List"       # Special case for list types
         string_fields, pointer_fields = extract_fields(struct_cursor)
-        fun_code += construct_variant_generator(struct_cursor,
-                                                string_fields,
+        fun_code += construct_variant_generator(string_fields,
                                                 pointer_fields,
                                                 subcls_name,
                                                 f"ptr->",
                                                 num_indent=1)
-    elif variants:
+    elif subclass_names:
         fun_code += [f"{indent * 1}switch (ptr->kind) {{"]  
-        for i, variant in enumerate(variants):
+        for i in range(len(subclass_names)):
             fun_code += [f"{indent * 2}case {i}: {{"]
-            string_fields, pointer_fields = extract_fields(variant)
-            fun_code += construct_variant_generator(variant, 
-                                                    string_fields, 
+
+            if variants:
+                string_fields, pointer_fields = extract_fields(variants[i])
+                path_to_field = f"ptr->u.{variant_names[i]}."
+            else:
+                string_fields, pointer_fields = [], {}
+                path_to_field = ""
+
+            fun_code += construct_variant_generator(string_fields, 
                                                     pointer_fields, 
                                                     subclass_names[i],
-                                                    f"ptr->u.{variant_names[i]}.",
+                                                    path_to_field,
                                                     num_indent=3)  
             fun_code += [
-                f"{indent * 3}break;",
                 f"{indent * 2}}}",
             ]
         fun_code += [
@@ -275,6 +278,11 @@ if __name__ == "__main__":
     tu = index.parse(HEADER_FILE, args=["-x", "c", "-std=c11", "-D_POSIX_C_SOURCE=200809L"])
 
     cpp_code = []
+
+    cpp_code += [
+        f"#ifndef VNNLIBWRAPPERS_HPP",
+        f"#define VNNLIBWRAPPERS_HPP",
+    ]
     cpp_code += add_includes()
 
     for cursor in tu.cursor.get_children():
@@ -283,8 +291,12 @@ if __name__ == "__main__":
             if cursor.spelling.endswith("_"):  # e.g., Query_
                 cpp_code += decode_struct(cursor)
 
+    cpp_code += [
+        f"#endif // VNNLIBWRAPPERS_HPP",
+    ]
+
     output = "\n".join(cpp_code)
 
-    output_file = os.path.join(fpath, "generated_wrapper.hpp")
+    output_file = os.path.join(fpath, "VNNLIBWrappers.hpp")
     with open(output_file, "w") as f:
         f.write(output)
