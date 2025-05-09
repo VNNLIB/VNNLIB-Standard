@@ -2,3 +2,13 @@ Makefile
 *.bak
 VNNLibBNF
 VNNLibLBNF
+
+parser/src/bisonParser/*
+parser/bin
+
+VNNLIBWrappers.hpp
+
+*.so
+build
+
+.vscode
