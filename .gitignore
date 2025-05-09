@@ -12,3 +12,9 @@ VNNLIBWrappers.hpp
 build
 
 .vscode
+
+VNNLIB2_standard/*.log
+VNNLIB2_standard/*.out
+VNNLIB2_standard/*.err
+VNNLIB2_standard/*.aux
+VNNLIB2_standard/*.pdf
