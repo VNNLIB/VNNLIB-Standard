@@ -58,7 +58,7 @@ This document is structured as follows. In Chapter~\ref{sec:model} we
 present the guidelines for the model specification language, i.e., how
 to describe the neural network for verification purposes and which 
 operators are either supported, to be supported or discouraged; in
-Chapter~\ref{sec:property} we present the guidelines for the property
+Chapter~\ref{sec:specification_language} we present the guidelines for the property
 specification language, i.e., how to specify the requirements that the
 neural network ought to satisfy. Finally, in Section~\ref{sec:examples} 
 we present some examples of benchmarks to further illustrate the
@@ -68,28 +68,35 @@ capabilities and the limitations of the VNN-LIB format.
 \label{sec:model}
 \input{onnx_modelzoo_report}
 
-\chapter{Query Specification Language}
-\label{sec:synax}
+\chapter{Query Specification Language}\label{sec:specification_language}
 
-\label{sec:semantics}
+\section{Syntax}\label{sec:syntax}
+
+\section{Semantics}\label{sec:semantics}
+
+% ---------------------------------------------------------------
 
 \chapter{Query Categories}
-\label{sec:linearity}
 
-\label{sec:reachability}
+\section{Linearity}\label{sec:linearity}
 
-\label{sec:dnf}
+\section{Reachability}\label{sec:reachability}
 
-\chapter{Solver Interface}
-\label{sec:functionalities}
+\section{Disjunctive Normal Form}\label{sec:dnf}
 
-\label{sec:counterexamples}
+% ---------------------------------------------------------------
 
-\label{sec:proof_certificates}
+\chapter{Solver Interface}\label{sec:solver_interface}
 
-\chapter{Examples}
-\label{sec:examples}
+\section{Functionalities}\label{sec:functionalities}
 
+\section{Counterexamples}\label{sec:counterexamples}
+
+\section{Proof Certificates}\label{sec:proof_certificates}
+
+% ---------------------------------------------------------------
+
+\chapter{Examples}\label{sec:examples}
 \input{examples}
 
 \end{document}
