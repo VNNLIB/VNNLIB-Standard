@@ -31,94 +31,86 @@ print(f"Attempting to parse: {vnnlib_file_path}\n")
 try:
     # 1. Parse the VNNLib file
     query_ast = vnnlib.parse_vnnlib(vnnlib_file_path)
+    print("Successfully parsed VNNLib file!")
+    print(f"Query Object Type: {type(query_ast)}")
+    print(f"Query AST as string:\n{str(query_ast)}\n") 
 
-    if query_ast:
-        print("Successfully parsed VNNLib file!")
-        print(f"Query Object Type: {type(query_ast)}")
-        print(f"Query AST as string:\n{str(query_ast)}\n") 
+    # 2. Traverse Network Definitions
+    print("--- Networks ---")
+    current_network = query_ast.networks
+    while current_network:
+        network_def = current_network.definition 
+        print(f"  Network Definition Type: {type(network_def)}")
+        print(f"  Network Variable Name: {network_def.variable_name}")
+        print(f"  Network as string: {str(network_def)}")
 
-        # 2. Traverse Network Definitions
-        print("--- Networks ---")
-        current_network = query_ast.networks
-        while current_network:
-            network_def = current_network.definition 
-            if network_def:
-                print(f"  Network Definition Type: {type(network_def)}")
-                print(f"  Network Variable Name: {network_def.variable_name}")
-                print(f"  Network as string: {str(network_def)}")
+        # Traverse Input Definitions for this network
+        print("    Inputs:")
+        current_input_list_node = network_def.inputs 
+        while current_input_list_node:
+            input_def = current_input_list_node.definition 
+            print(f"      Input Variable: {input_def.variable_name}") 
+            print(f"        Type: {str(input_def.element_type)}") 
+            print(f"        Type Object: {type(input_def.element_type)}")
+            # Traverse shape (ListInt)
+            shape_str = []
+            current_shape_node = input_def.shape 
+            while current_shape_node: 
+                shape_str.append(current_shape_node.value) 
+                current_shape_node = current_shape_node.next 
+            print(f"        Shape: ({', '.join(shape_str)})")
+            current_input_list_node = current_input_list_node.next 
 
-                # Traverse Input Definitions for this network
-                print("    Inputs:")
-                current_input_list_node = network_def.inputs 
-                while current_input_list_node:
-                    input_def = current_input_list_node.definition 
-                    if input_def:
-                        print(f"      Input Variable: {input_def.variable_name}") 
-                        print(f"        Type: {str(input_def.element_type)}") 
-                        print(f"        Type Object: {type(input_def.element_type)}")
-                        # Traverse shape (ListInt)
-                        shape_str = []
-                        current_shape_node = input_def.shape 
-                        while current_shape_node: 
-                            shape_str.append(current_shape_node.value) 
-                            current_shape_node = current_shape_node.next 
-                        print(f"        Shape: ({', '.join(shape_str)})")
-                    current_input_list_node = current_input_list_node.next 
+        # Traverse Output Definitions (similar to inputs)
+        print("    Outputs:")
+        current_output_list_node = network_def.outputs
+        while current_output_list_node:
+            output_def = current_output_list_node.definition
+            print(f"      Output Variable: {output_def.variable_name}")
+            print(f"        Type: {str(output_def.element_type)}")
+            # Traverse shape
+            shape_str = []
+            current_shape_node = output_def.shape
+            while current_shape_node:
+                shape_str.append(current_shape_node.value)
+                current_shape_node = current_shape_node.next
+            print(f"        Shape: ({', '.join(shape_str)})")
+            current_output_list_node = current_output_list_node.next
+        
+        current_network = current_network.next 
 
-                # Traverse Output Definitions (similar to inputs)
-                print("    Outputs:")
-                current_output_list_node = network_def.outputs
-                while current_output_list_node:
-                    output_def = current_output_list_node.definition
-                    if output_def:
-                        print(f"      Output Variable: {output_def.variable_name}")
-                        print(f"        Type: {str(output_def.element_type)}")
-                        # Traverse shape
-                        shape_str = []
-                        current_shape_node = output_def.shape
-                        while current_shape_node:
-                            shape_str.append(current_shape_node.value)
-                            current_shape_node = current_shape_node.next
-                        print(f"        Shape: ({', '.join(shape_str)})")
-                    current_output_list_node = current_output_list_node.next
+    # 3. Traverse Properties
+    print("\n--- Properties ---")
+    current_property = query_ast.properties 
+    prop_count = 0
+    while current_property:
+        prop_count += 1
+        property_item = current_property.property_item 
+        print(f"  Property {prop_count} Type: {type(property_item)}")
+        print(f"  Property as string: {str(property_item)}")
+
+        bool_expr = property_item.expr # Prop::boolexpr_
+        if bool_expr:
+            print(f"    Boolean Expr Type: {type(bool_expr)}") 
+            print(f"    Boolean Expr as string: {str(bool_expr)}")
+
+
+            if isinstance(bool_expr, vnnlib.GreaterEqual): 
+                print(f"      LHS (expr1): {str(bool_expr.expr1)} (Type: {type(bool_expr.expr1)})")
+                # bool_expr.expr1 should be an ArithExpr, e.g., VarExpr
+                if isinstance(bool_expr.expr1, vnnlib.VarExpr):
+                        print(f"        VarExpr Tensor Element: {bool_expr.expr1.tensor_element}")
+                
+                print(f"      RHS (expr2): {str(bool_expr.expr2)} (Type: {type(bool_expr.expr2)})")
+                # bool_expr.expr2 should be an ArithExpr, e.g., DoubleExpr
+                if isinstance(bool_expr.expr2, vnnlib.DoubleExpr):
+                    print(f"        DoubleExpr Value: {bool_expr.expr2.value}")
             
-            current_network = current_network.next 
+            elif isinstance(bool_expr, vnnlib.LessThan):
+                print(f"      LHS (expr1): {str(bool_expr.expr1)} (Type: {type(bool_expr.expr1)})")
+                print(f"      RHS (expr2): {str(bool_expr.expr2)} (Type: {type(bool_expr.expr2)})")
 
-        # 3. Traverse Properties
-        print("\n--- Properties ---")
-        current_property = query_ast.properties 
-        prop_count = 0
-        while current_property:
-            prop_count += 1
-            property_item = current_property.property_item 
-            if property_item:
-                print(f"  Property {prop_count} Type: {type(property_item)}")
-                print(f"  Property as string: {str(property_item)}")
-
-                bool_expr = property_item.expr # Prop::boolexpr_
-                if bool_expr:
-                    print(f"    Boolean Expr Type: {type(bool_expr)}") 
-                    print(f"    Boolean Expr as string: {str(bool_expr)}")
-
-
-                    if isinstance(bool_expr, vnnlib.GreaterEqual): 
-                        print(f"      LHS (expr1): {str(bool_expr.expr1)} (Type: {type(bool_expr.expr1)})")
-                        # bool_expr.expr1 should be an ArithExpr, e.g., VarExpr
-                        if isinstance(bool_expr.expr1, vnnlib.VarExpr):
-                             print(f"        VarExpr Tensor Element: {bool_expr.expr1.tensor_element}")
-                        
-                        print(f"      RHS (expr2): {str(bool_expr.expr2)} (Type: {type(bool_expr.expr2)})")
-                        # bool_expr.expr2 should be an ArithExpr, e.g., DoubleExpr
-                        if isinstance(bool_expr.expr2, vnnlib.DoubleExpr):
-                            print(f"        DoubleExpr Value: {bool_expr.expr2.value}")
-                    
-                    elif isinstance(bool_expr, vnnlib.LessThan):
-                        print(f"      LHS (expr1): {str(bool_expr.expr1)} (Type: {type(bool_expr.expr1)})")
-                        print(f"      RHS (expr2): {str(bool_expr.expr2)} (Type: {type(bool_expr.expr2)})")
-
-            current_property = current_property.next 
-    else:
-        print("Parsing returned None (or an empty object).")
+        current_property = current_property.next 
 
 except RuntimeError as e:
     print(f"An error occurred: {e}")
