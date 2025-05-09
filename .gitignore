@@ -20,6 +20,8 @@ document/*.pdf
 parser/src/bisonParser/*
 parser/bin
 
+VNNLIBWrappers.hpp
+
 *.so
 build
 
