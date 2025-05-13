@@ -1,325 +1,366 @@
 from clang.cindex import Index, CursorKind, TypeKind
-from collections import deque, defaultdict
 
 import os
-
-INDENT_SIZE = 2
 
 fpath = os.path.dirname(os.path.abspath(__file__))
 HEADER_FILE = f"{fpath}/../src/bisonParser/Absyn.h"
 
+INDENT_SIZE = 2
 TOP_LEVEL_CLASS = "Query"
 
 
-def extract_fields(struct_cursor):
-    """Extracts string and pointer fields from a given struct cursor."""
-    string_fields = []
-    pointer_fields = {}
-
-    for field in struct_cursor.get_children():
-        if field.kind == CursorKind.FIELD_DECL and field.is_definition():
-            canonical_type = field.type.get_canonical()
-            if canonical_type.kind == TypeKind.POINTER and canonical_type.get_pointee().kind == TypeKind.CHAR_S:
-                string_fields.append(field.spelling) 
-            elif canonical_type.kind == TypeKind.POINTER and canonical_type.get_pointee().kind == TypeKind.RECORD:
-                pointer_fields[field.spelling] = field.type.spelling
-
-    return string_fields, pointer_fields
+def ind(n):
+	"""Returns a string with n indents."""
+	return " " * INDENT_SIZE * n
 
 
-def construct_subclass(struct, class_name, super_struct, super_class):
-    """Constructs a subclass from a given struct, representing a variant of the base class."""
-    indent = " " * INDENT_SIZE
+class CppField:
+	def __init__(self, name, type_str, is_string=False):
+		self.name = name
+		self.type_str = type_str
+		self.is_string = is_string
 
-    cpp_class = [
-        f"{indent * 0}class {class_name} : public {super_class} {{",
-    ]
+	def declaration(self):
+		# return f"std::string {self.name};" if self.is_string else f"std::unique_ptr<{self.type_str}Wrapper> {self.name};"
+		if self.is_string:
+			return f"std::string {self.name};"
+		else:
+			return f"std::unique_ptr<{self.type_str}Wrapper> {self.name};"
+		
+	
+	@staticmethod
+	def from_cursor(field):
+		# Check if the field is a string
+		canonical_type = field.type.get_canonical()
+		if canonical_type.kind == TypeKind.POINTER and canonical_type.get_pointee().kind == TypeKind.CHAR_S:
+			return CppField(field.spelling, field.type.spelling, is_string=True)
+		elif canonical_type.kind == TypeKind.POINTER and canonical_type.get_pointee().kind == TypeKind.RECORD:
+			return CppField(field.spelling, field.type.spelling)
+		else:
+			raise ValueError(f"Unsupported field type: {field.type.spelling}")
+		
+	
+	@staticmethod
+	def from_struct(struct):
+		fields = []
+		for field in struct.get_children():
+			if field.kind == CursorKind.FIELD_DECL and field.is_definition():
+				fields.append(CppField.from_cursor(field))
+		return fields
+	
 
-    string_fields = []
-    pointer_fields = {}
+class CppLeafClass:
+	cpp_code = []
 
-    if struct is not None:
-        string_fields, pointer_fields = extract_fields(struct)
+	def __init__(self, class_name, base_class, base_struct):
+		self.name = class_name
+		self.base_class = base_class
+		self.base_struct = base_struct
+		self.fields = []
 
-    # Public
-    cpp_class += [f"{indent * 1}public:"]
+		self.construct_class()
 
-    # Field declarations
-    for field_name in string_fields:
-        cpp_class += [f"{indent * 2}std::string {field_name};"]
-    for field_name, field_type in pointer_fields.items():
-        cpp_class += [f"{indent * 2}std::unique_ptr<{field_type}Wrapper> {field_name};"]
+	
+	def construct_class(self):
+		self.cpp_code = [
+			f"{ind(0)}class {self.name} : public {self.base_class} {{",
+			f"{ind(1)}public:",
+			f"{ind(2)}{self.name}({self.base_struct} _{self.base_struct.lower()}) : {self.base_class}(_{self.base_struct.lower()}) {{}}"
+		]
+		self.cpp_code += ["};\n"]
+		
 
-    # Constructor
-    if struct is not None:
-        constructor = [f"{indent * 2}{class_name}("]
+class CppNodeClass:
+	def __init__(self, class_name, struct_cursor, base_struct, base_class):
+		self.cpp_code = []
+		self.name = class_name
+		self.base_class = base_class
+		self.base_struct = base_struct
+		self.fields = CppField.from_struct(struct_cursor)
 
-        for field_name in string_fields:
-            constructor += [f"{indent * 3}std::string _{field_name},"]
-        for field_name, field_type in pointer_fields.items():
-            constructor += [f"{indent * 3}std::unique_ptr<{field_type}Wrapper> _{field_name},"]
-
-        constructor += [f"{indent * 3}{super_struct} {super_struct.lower()}_struct",
-                        f"{indent * 2}): ",
-                        f"{indent * 4}{super_class}({super_struct.lower()}_struct),"]
-
-        for field_name in string_fields + list(pointer_fields):
-            constructor += [f"{indent * 4}{field_name}(std::move(_{field_name})),"]
-        constructor[-1] = constructor[-1].rstrip(",")
-        constructor += [f"{indent * 2}{{}}"]
-    else:
-        constructor = [
-            f"{indent * 2}{class_name}({super_struct} _{super_struct.lower()}) : {super_class}(_{super_struct.lower()}) {{}}"
-        ]
-
-    cpp_class += constructor + ["};\n"]
-    return cpp_class
-
-
-def construct_base_class(struct_name, class_name):
-    """Constructs a base wrapper class for a given struct_name and class_name."""
-    indent = " " * INDENT_SIZE
-    struct_as_field = "_" + struct_name.lower()
-
-    # Generate the top-level class
-    cpp_class = [
-        f"{indent * 0}class {class_name} {{",
-        f"{indent * 1}protected:",
-        f"{indent * 2}{struct_name} {struct_as_field};"
-    ]
-
-    # Constructor
-    cpp_class += [
-        f"{indent * 1}public:",
-        f"{indent * 2}{class_name}({struct_name} ptr) : {struct_as_field}(ptr) {{}}",
-    ]
-
-    # To string
-    cpp_class += [
-        f"{indent * 2}std::string to_string() const {{",
-        f"{indent * 3}bufReset();",
-        f"{indent * 3}pp{struct_name}({struct_as_field}, 0);",
-        f"{indent * 3}std::string result(buf_);",
-        f"{indent * 3}return result;",
-        f"{indent * 2}}}"
-    ]
-
-    # __str__
-    cpp_class += [
-        f"{indent * 2}std::string __str__() const {{",
-        f"{indent * 3}return to_string();",
-        f"{indent * 2}}}"
-    ]
-
-    # Destructor
-    cpp_class += [
-        f"{indent * 2}virtual ~{class_name}() {{",
-    ]
-
-    if struct_name == TOP_LEVEL_CLASS:
-        cpp_class += [
-            f"{indent * 3}if ({struct_as_field}) {{",
-            f"{indent * 4}free_{struct_name}({struct_as_field});",
-            f"{indent * 3}}}",
-        ]
-
-    cpp_class += [
-        f"{indent * 2}}}"
-    ]
-
-    cpp_class += ["};\n"]
-    return cpp_class
+		self.construct_class()
 
 
-def add_includes():
-    """Adds necessary includes for the generated code."""
-    return [
-        '#include <string>',
-        '#include <stdexcept>',
-        '#include <memory>',
-        '#include "Absyn.h"',
-        '#include "Printer.h"'
-        '\n'
-    ]
+	def construct_class(self):
+		cpp_class = [
+			f"{ind(0)}class {self.name} : public {self.base_class} {{",
+		]
+		
+		# Public
+		cpp_class += [f"{ind(1)}public:"]
+
+		# Field declarations
+		for field in self.fields:
+			if field.is_string:
+				cpp_class += [f"{ind(2)}std::string {field.name};"]
+			else:
+				cpp_class += [f"{ind(2)}std::unique_ptr<{field.type_str}Wrapper> {field.name};"]
+
+		# Constructor
+		constructor = [f"{ind(2)}{self.name}("]
+
+		for field in self.fields:
+			if field.is_string:
+				constructor += [f"{ind(3)}std::string _{field.name},"]
+			else:
+				constructor += [f"{ind(3)}std::unique_ptr<{field.type_str}Wrapper> _{field.name},"]
+
+		constructor += [f"{ind(3)}{self.base_struct} {self.base_struct.lower()}_struct",
+						f"{ind(2)}): ",
+						f"{ind(4)}{self.base_class}({self.base_struct.lower()}_struct),"]
+
+		for field in self.fields:
+			# E.g., name(std::move(_name)), kind(std::move(_kind)), ...
+			constructor += [f"{ind(4)}{field.name}(std::move(_{field.name})),"]
+		constructor[-1] = constructor[-1].rstrip(",")	 # Remove the last comma
+		
+		constructor += [f"{ind(2)}{{}}"] # End of constructor
+
+		cpp_class += constructor + ["};\n"]
+		self.cpp_code += cpp_class
 
 
-def construct_variant_generator(
-                            string_fields, 
-                            pointer_fields, 
-                            class_name, 
-                            path_to_field,
-                            num_indent = 0):
-    """A helper function that generates the code for recursively constructing a subclass and its fields."""
-    indent = " " * INDENT_SIZE
+class CppClassWrapper:
+	def __init__(self, struct):
+		self.cpp_code = []
+		self.subcls_names = []
+		self.variant_names = []
+		self.variant_structs = []
+		self.subclasses = []
 
-    fun_code = []
-    for i, field_name in enumerate(string_fields):
-        fun_code += [
-            f"{indent * num_indent}char* s{i} = {path_to_field}{field_name};",
-            f"{indent * num_indent}std::string {field_name} = s{i} ? std::string(s{i}) : std::string();",
-        ]
-    for field_name in pointer_fields:
-        fun_code += [
-            f"{indent * num_indent}auto {field_name} = {path_to_field}{field_name}? generate({path_to_field}{field_name}) : nullptr;",
-        ]
+		self.struct = struct
+		self.struct_name = struct.spelling.rstrip('_') # E.g., Query
+		self.name = self.struct_name + "Wrapper" # E.g., QueryWrapper
+		self.is_list = self.struct_name.startswith("List") # E.g., ListNetwork
 
-    fun_code += [f"{indent * num_indent}return std::make_unique<{class_name}>("]
+		# Traverse the fields of the struct
+		for field in struct.get_children():
+			decl = field.type.get_declaration()
 
-    for field_name in string_fields + list(pointer_fields):
-        fun_code += [f"{indent * (num_indent + 1)}std::move({field_name}),"]
+			# Extracting from field "name". E.g.,  std::string name;
+			if field.kind == CursorKind.UNION_DECL and field.is_definition(): 
+				for child in decl.get_children():
+					if child.kind == CursorKind.FIELD_DECL and child.is_definition():
+						self.variant_names.append(child.spelling)
+						self.variant_structs.append(child.type.get_declaration())
 
-    fun_code += [
-        f"{indent * (num_indent + 1)}ptr",
-        f"{indent * num_indent});",
-    ]
-    return fun_code
+			# Extracting from enum field "kind". E.g.,  enum { is_VNNLibQuery } kind;
+			elif field.kind == CursorKind.FIELD_DECL and field.is_definition() and decl.kind == CursorKind.ENUM_DECL:
+				for child in decl.get_children():
+					if child.kind == CursorKind.ENUM_CONSTANT_DECL and child.is_definition():
+						subcls_name = child.spelling.lstrip('is_') # Remove the prefix "is_" from the enum constant
+						self.subcls_names.append(subcls_name)
 
-
-def construct_generator(variants, 
-                        variant_names, 
-                        subclass_names, 
-                        struct_cursor, 
-                        class_name):
-    """Generates a function that constructs and returns the appropriate subclass based on the variant."""
-    indent = " " * INDENT_SIZE
-
-    struct_name = struct_cursor.spelling.rstrip('_')
-
-    fun_code = []
-    fun_code += [
-        f"{indent * 0}std::unique_ptr<{class_name}> generate({struct_name} ptr) {{",
-        f"{indent * 1}if (!ptr) return nullptr;"
-    ]
-
-    if struct_name.startswith("List"):
-        subcls_name = struct_name.lstrip("List") + "List"       # Special case for list types
-        string_fields, pointer_fields = extract_fields(struct_cursor)
-        fun_code += construct_variant_generator(string_fields,
-                                                pointer_fields,
-                                                subcls_name,
-                                                f"ptr->",
-                                                num_indent=1)
-    elif subclass_names:
-        fun_code += [f"{indent * 1}switch (ptr->kind) {{"]  
-        for i in range(len(subclass_names)):
-            fun_code += [f"{indent * 2}case {i}: {{"]
-
-            if variants:
-                string_fields, pointer_fields = extract_fields(variants[i])
-                path_to_field = f"ptr->u.{variant_names[i]}."
-            else:
-                string_fields, pointer_fields = [], {}
-                path_to_field = ""
-
-            fun_code += construct_variant_generator(string_fields, 
-                                                    pointer_fields, 
-                                                    subclass_names[i],
-                                                    path_to_field,
-                                                    num_indent=3)  
-            fun_code += [
-                f"{indent * 2}}}",
-            ]
-        fun_code += [
-            f"{indent * 2}default: {{",
-            f"{indent * 3}throw std::runtime_error(\"Unknown variant\");",
-            f"{indent * 2}}}",
-            f"{indent * 1}}}",
-        ]
-    
-    fun_code += [
-        f"{indent * 0}}}\n",
-    ]
-
-    return fun_code
+		self.construct_class()
+		self.construct_subclasses()
+		self.construct_generator()
 
 
-def decode_struct(struct_cursor):
-    """Generates a C++ wrapper class for a given struct cursor."""
-    variants = [] # List of structs in the union (to be generated as subclasses)
-    subclass_names = []
-    variant_names = []
+	def construct_class(self):
+		"""Constructs a base wrapper class for a given struct_name and class_name."""
+		struct_field = "_" + self.struct_name.lower()
+		cpp_class = []
 
-    # Traverse the fields of the struct
-    for field in struct_cursor.get_children():
-        if field.kind == CursorKind.UNION_DECL and field.is_definition(): # Extracting from field "u"
-            decl = field.type.get_declaration()
-            for child in decl.get_children():
-                if child.kind == CursorKind.FIELD_DECL and child.is_definition():
-                    variant_body = child.type.get_declaration()
-                    variants.append(variant_body)
-                    variant_names.append(child.spelling)
+		# Generate the top-level class
+		cpp_class = [
+			f"{ind(0)}class {self.name} {{",
+			f"{ind(1)}protected:",
+			f"{ind(2)}{self.struct_name} {struct_field};"
+		]
 
-        elif field.kind == CursorKind.FIELD_DECL and field.is_definition():
-            decl = field.type.get_declaration()
-            if decl.kind == CursorKind.ENUM_DECL: # Extracting from field "kind"
-                for child in decl.get_children():
-                    if child.kind == CursorKind.ENUM_CONSTANT_DECL:
-                        subclass_names.append(child.spelling.lstrip('is_')) # Remove the prefix "is_" from the enum constant
+		# Constructor
+		cpp_class += [
+			f"{ind(1)}public:",
+			f"{ind(2)}{self.name}({self.struct_name} ptr) : {struct_field}(ptr) {{}}",
+		]
 
-    cpp_code = []
+		# To string
+		cpp_class += [
+			f"{ind(2)}std::string to_string() const {{",
+			f"{ind(3)}bufReset();",
+			f"{ind(3)}pp{self.struct_name}({struct_field}, 0);",
+			f"{ind(3)}std::string result(buf_);",
+			f"{ind(3)}return result;",
+			f"{ind(2)}}}"
+		]
 
-    struct_name = struct_cursor.spelling.rstrip('_')
-    class_name = f"{struct_name}Wrapper"
-    cpp_code += construct_base_class(struct_name, class_name)
+		# __str__
+		cpp_class += [
+			f"{ind(2)}std::string __str__() const {{",
+			f"{ind(3)}return to_string();",
+			f"{ind(2)}}}"
+		]
 
-    # Generate an additional subclass for list types
-    if struct_name.startswith("List"):
-        subcls_name = struct_name[4:] + "List"
-        cpp_code += construct_subclass(struct_cursor, subcls_name, struct_name, class_name)
-    # Generate the subclass for each variant
-    elif subclass_names:
-        for i, subcls_name in enumerate(subclass_names):
-            variant = variants[i] if variants else None
-            cpp_code += construct_subclass(variant, subcls_name, struct_name, class_name)
-    else:
-        raise ValueError(f"Unexpected struct: {struct_name}")
-    
-    # Generate the function to create the appropriate subclass
-    cpp_code += construct_generator(variants, 
-                                    variant_names,
-                                    subclass_names, 
-                                    struct_cursor, 
-                                    class_name)
-    
-    return cpp_code
+		# Destructor
+		cpp_class += [
+			f"{ind(2)}virtual ~{self.name}() {{",
+		]
+
+		if self.struct_name == TOP_LEVEL_CLASS:
+			cpp_class += [
+				f"{ind(3)}if ({struct_field}) {{",
+				f"{ind(4)}free_{self.struct_name}({struct_field});",
+				f"{ind(3)}}}",
+			]
+
+		cpp_class += [
+			f"{ind(2)}}}"
+		]
+		cpp_class += ["};\n"]
+
+		self.cpp_code += cpp_class
+
+	
+	def construct_subclasses(self):
+		if self.is_list:
+			subcls_name = self.struct_name[4:] + "List" # E.g., ListNetwork -> NetworkList
+			subcls = CppNodeClass(subcls_name, self.struct, self.struct_name, self.name)
+			self.subclasses.append(subcls)
+			self.subcls_names.append(subcls_name)
+
+		elif self.variant_structs:
+			for i in range(len(self.subcls_names)):
+				subcls = CppNodeClass(self.subcls_names[i], self.variant_structs[i], self.struct_name, self.name)
+				self.subclasses.append(subcls)
+		
+		elif self.subcls_names:
+			for i in range(len(self.subcls_names)):
+				subcls = CppLeafClass(self.subcls_names[i], self.name, self.struct_name)
+				self.subclasses.append(subcls)
+
+		else:
+			raise ValueError(f"Unsupported subclass type for {self.struct_name}")
+		
+		for subclass in self.subclasses:
+			self.cpp_code += subclass.cpp_code
+
+	
+	def construct_generator_for_subclass(self, subcls_name, fields, path_to_field, indent):
+		fun_code = []
+
+		s_n = 0
+		for field in fields:
+			if field.is_string:
+				fun_code += [
+					f"{ind(indent)}char* s{s_n} = {path_to_field}{field.name};",
+					f"{ind(indent)}std::string {field.name} = s{s_n} ? std::string(s{s_n}) : std::string();",
+				]
+				s_n += 1
+			else:
+				fun_code += [
+					f"{ind(indent)}auto {field.name} = {path_to_field}{field.name}? generate({path_to_field}{field.name}) : nullptr;",
+				]
+
+		fun_code += [f"{ind(indent)}return std::make_unique<{subcls_name}>("]
+
+		for field in fields:
+			fun_code += [f"{ind(indent + 1)}std::move({field.name}),"]
+
+		fun_code += [
+			f"{ind(indent + 1)}ptr",
+			f"{ind(indent)});",
+		]
+
+		return fun_code
+		
+	
+	def construct_generator(self):
+		"""Constructs a generator function for the class."""
+		fun_code = []
+		fun_code += [
+			f"{ind(0)}std::unique_ptr<{self.name}> generate({self.struct_name} ptr) {{",
+			f"{ind(1)}if (!ptr) return nullptr;"
+		]
+
+		if self.is_list:
+			fields = CppField.from_struct(self.struct)
+			subcls_name = self.subcls_names[0]
+			fun_code += self.construct_generator_for_subclass(subcls_name, fields, "ptr->", indent=1)
+
+		elif self.subcls_names:
+			fun_code += [f"{ind(1)}switch (ptr->kind) {{"]  
+			for i in range(len(self.subcls_names)):
+				fun_code += [f"{ind(2)}case {i}: {{"]
+				fields = self.subclasses[i].fields
+				path_to_field = f"ptr->u.{self.variant_names[i]}." if self.variant_names else ""
+				fun_code += self.construct_generator_for_subclass(self.subcls_names[i], fields, path_to_field, indent=3)
+				fun_code += [
+                	f"{ind(2)}}}",
+            	]
+			fun_code += [
+				f"{ind(2)}default: {{",
+				f"{ind(3)}throw std::runtime_error(\"Unknown variant\");",
+				f"{ind(2)}}}",
+				f"{ind(1)}}}",
+        	]
+		
+		fun_code += [
+        	f"{ind(0)}}}\n",
+    	]
+
+		self.cpp_code += fun_code
+
+
+class CodeWriter:
+	def __init__(self, clang_header_path):
+		index = Index.create()
+		self.tu = index.parse(clang_header_path, args=["-x", "c", "-std=c11", "-D_POSIX_C_SOURCE=200809L"])
+		self.clang_header_path = clang_header_path
+		self.base_classes = []
+		self.subclasses = []
+
+		self.construct_cpp_classes()
+
+
+	def construct_cpp_classes(self):
+		for cursor in self.tu.cursor.get_children():
+			if cursor.kind == CursorKind.STRUCT_DECL and cursor.is_definition() and cursor.spelling.endswith("_"):
+				base_class = CppClassWrapper(cursor)
+				self.base_classes.append(base_class)
+				self.subclasses += base_class.subclasses
+
+
+	def write_code(self, output_path):
+		lines = ["#ifndef VNNLIBWRAPPERS_HPP", "#define VNNLIBWRAPPERS_HPP"]
+		lines += [
+			'#include <string>',
+			'#include <stdexcept>',
+			'#include <memory>',
+			'#include "Absyn.h"',
+			'#include "Printer.h"'
+			'\n'
+    	]
+
+		# Write forward declarations of the classes and the generate function
+		for cls in self.base_classes:
+			if isinstance(cls, CppClassWrapper):
+				lines += [
+                    f"class {cls.name};",
+                    f"std::unique_ptr<{cls.name}> generate(struct {cls.struct_name}_ *ptr);",
+                ]
+		lines += ["\n"]
+
+		# Write the constructed classes to the file
+		for cls in self.base_classes:
+			lines += cls.cpp_code
+
+		lines += ["#endif // VNNLIBWRAPPERS_HPP"]
+
+		with open(output_path, "w") as f:
+			f.write("\n".join(lines))
 
 
 if __name__ == "__main__":
-    index = Index.create()
-    tu = index.parse(HEADER_FILE, args=["-x", "c", "-std=c11", "-D_POSIX_C_SOURCE=200809L"])
+	# Create the CodeWriter instance
+	output_path = os.path.join(os.path.dirname(__file__), "VNNLIBWrappers.hpp")
+	code_writer = CodeWriter(HEADER_FILE)
 
-    cpp_code = []
-    forward_decls = []
-    class_code = []
+	# Write the constructed code to a file
+	code_writer.write_code(output_path)
 
-    cpp_code += [
-        f"#ifndef VNNLIBWRAPPERS_HPP",
-        f"#define VNNLIBWRAPPERS_HPP",
-    ]
-    cpp_code += add_includes()
+	
 
-    for cursor in tu.cursor.get_children():
-        if cursor.kind == CursorKind.STRUCT_DECL and cursor.is_definition():
-            # Check if the struct name ends with an underscore
-            struct_name = cursor.spelling.rstrip('_')
-            if cursor.spelling.endswith("_"):  # e.g., Query_
-                
-                forward_decls += [
-                    f"class {struct_name}Wrapper;",
-                    f"std::unique_ptr<{struct_name}Wrapper> generate(struct {struct_name}_ *ptr);",
-                ]
 
-                class_code += decode_struct(cursor)
 
-    cpp_code += forward_decls + ["\n"]
-    cpp_code += class_code
 
-    cpp_code += [
-        f"#endif // VNNLIBWRAPPERS_HPP",
-    ]
-
-    output = "\n".join(cpp_code)
-
-    output_file = os.path.join(fpath, "VNNLIBWrappers.hpp")
-    with open(output_file, "w") as f:
-        f.write(output)
+	
