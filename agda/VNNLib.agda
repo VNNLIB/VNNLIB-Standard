@@ -8,24 +8,13 @@ open import Data.Rational as ℚ
 open import Data.Bool
 open import Data.Fin
 
--- Tokens
--- -- UNUSED
-data SDouble : Set where
-  mkSDouble : String → SDouble
-
-data SInt : Set where
-  mkSInt : String → SInt
-
-
 Context : Set
 Context = ℕ
 
 Environment : Context → Set
-Environment ctx = Fin ctx → ℚ
+Environment Γ = Fin Γ → ℚ
 
 -- -- Naming/referencing
-data TensorElement : Set where
-  STensorElement : String → TensorElement
 
 data VariableName : Set where
   SVariableName : String → VariableName
@@ -35,56 +24,59 @@ data TensorShape : Set where
   shape : List ℕ → TensorShape
 
 -- Arithmetic Expressions: nary operations
-data ArithExpr (ctx:Context): Set where
-  const : ℚ → ArithExpr
-  var : Fin ctx → ArithExpr
-  add : List ArithExpr → ArithExpr
-  negate : List ArithExpr → ArithExpr
-  mult : List ArithExpr → ArithExpr
+data ArithExpr (Γ : Context) : Set where
+  const  : ℚ → ArithExpr Γ
+  negate : ArithExpr Γ → ArithExpr Γ 
+  var : Fin Γ → ArithExpr Γ
+  add : List (ArithExpr Γ) → ArithExpr Γ
+  minus : List (ArithExpr Γ) → ArithExpr Γ
+  mult  : List (ArithExpr Γ) → ArithExpr Γ
 
-⟦_-%_-%_⟧ : (ctx:Context) → Environment (ctx) → ArithExpr (ctx) → ℚ
-⟦ const e ⟧ = e
-⟦ add [] ⟧ = 0ℚ
-⟦ add (e ∷ xe) ⟧ = ℚ._+_ ⟦ e ⟧ ⟦ add xe ⟧
-⟦ mult [] ⟧ = 1ℚ
-⟦ mult (e ∷ xe) ⟧ = ℚ._*_ ⟦ e ⟧ ⟦ mult xe ⟧
-⟦ negate [] ⟧ = 0ℚ
-⟦ negate (e ∷ xe) ⟧ = ℚ._-_ ⟦ e ⟧ ⟦ negate xe ⟧
+-- Arithmetic Expression Evaluation
+⟦_%_%_⟧ₐ : (Γ : Context) → Environment (Γ) → ArithExpr (Γ) → ℚ
+⟦ Γ % ε % (const a) ⟧ₐ  = a
+⟦ Γ % ε % (negate a) ⟧ₐ = 0ℚ ℚ.- ⟦ Γ % ε % a ⟧ₐ 
+⟦ Γ % ε % (var a) ⟧ₐ    = ε a
+⟦ Γ % ε % (add []) ⟧ₐ   = 0ℚ
+⟦ Γ % ε % (add (a ∷ ax)) ⟧ₐ   = ⟦ Γ % ε % a ⟧ₐ ℚ.+ ⟦ Γ % ε % (add ax) ⟧ₐ
+⟦ Γ % ε % (mult []) ⟧ₐ  = 1ℚ
+⟦ Γ % ε % (mult (a ∷ ax)) ⟧ₐ  = ⟦ Γ % ε % a ⟧ₐ ℚ.* ⟦ Γ % ε % (mult ax) ⟧ₐ
+⟦ Γ % ε % (minus []) ⟧ₐ = 0ℚ
+⟦ Γ % ε % (minus (a ∷ ax)) ⟧ₐ = ⟦ Γ % ε % a ⟧ₐ ℚ.- ⟦ Γ % ε % (minus ax) ⟧ₐ
 
 -- Boolean Expressions: Connective and Comparative Expressions
-data BoolExpr : Set where
-  literal : Bool → BoolExpr
+data BoolExpr (Γ : Context) : Set where
+  literal : Bool → BoolExpr Γ
   -- Comparative Expressions: 2-ary operations
-  greaterThan    : ArithExpr → ArithExpr → BoolExpr
-  lessThan       : ArithExpr → ArithExpr → BoolExpr
-  greaterEqual   : ArithExpr → ArithExpr → BoolExpr
-  lessEqual      : ArithExpr → ArithExpr → BoolExpr
-  notEqual       : ArithExpr → ArithExpr → BoolExpr
-  equal          : ArithExpr → ArithExpr → BoolExpr
+  greaterThan    : ArithExpr Γ → ArithExpr Γ → BoolExpr Γ
+  lessThan       : ArithExpr Γ → ArithExpr Γ → BoolExpr Γ
+  greaterEqual   : ArithExpr Γ → ArithExpr Γ → BoolExpr Γ
+  lessEqual      : ArithExpr Γ → ArithExpr Γ → BoolExpr Γ
+  notEqual       : ArithExpr Γ → ArithExpr Γ → BoolExpr Γ
+  equal          : ArithExpr Γ → ArithExpr Γ → BoolExpr Γ
   -- Connective Expressions
-  andExpr : List BoolExpr → BoolExpr
-  orExpr  : List BoolExpr → BoolExpr
+  andExpr : List (BoolExpr Γ) → BoolExpr Γ
+  orExpr  : List (BoolExpr Γ) → BoolExpr Γ
 
-
-<_> : BoolExpr → Bool
-< literal e > = e 
-< greaterThan e1 e2 > = not ( ℚ._≤ᵇ_ ⟦ e1 ⟧ ⟦ e2 ⟧ )
-< lessThan e1 e2 > = not (ℚ._≤ᵇ_ ⟦ e2 ⟧ ⟦ e1 ⟧ )
-< greaterEqual e1 e2 > = ℚ._≤ᵇ_ ⟦ e2 ⟧ ⟦ e1 ⟧
-< lessEqual e1 e2 > = ℚ._≤ᵇ_ ⟦ e1 ⟧ ⟦ e2 ⟧
-< notEqual e1 e2 > = not ( ℚ._≤ᵇ_ ⟦ e1 ⟧ ⟦ e2 ⟧ ∧ ℚ._≤ᵇ_ ⟦ e2 ⟧ ⟦ e1 ⟧ )
-< equal e1 e2 > = ℚ._≤ᵇ_ ⟦ e1 ⟧ ⟦ e2 ⟧ ∧ ℚ._≤ᵇ_ ⟦ e2 ⟧ ⟦ e1 ⟧
-< andExpr [] > = true
-< andExpr (e ∷ xe) > = _∧_ < e > < andExpr xe >
-< orExpr [] > = false
-< orExpr (e ∷ xe) > = _∨_ < e > < orExpr xe >
+⟦_%_%_⟧ᵇ : (Γ : Context) → Environment (Γ) → BoolExpr (Γ) → Bool
+⟦ Γ % ε % (literal b) ⟧ᵇ = b
+⟦ Γ % ε % (greaterThan a1 a2) ⟧ᵇ  = not ( ⟦ Γ % ε % a1 ⟧ₐ ℚ.≤ᵇ ⟦ Γ % ε % a2 ⟧ₐ )
+⟦ Γ % ε % (lessThan a1 a2) ⟧ᵇ = not (ℚ._≤ᵇ_ ⟦ Γ % ε % a2 ⟧ₐ ⟦ Γ % ε % a1 ⟧ₐ )
+⟦ Γ % ε % (greaterEqual a1 a2) ⟧ᵇ = ℚ._≤ᵇ_ ⟦ Γ % ε % a2 ⟧ₐ ⟦ Γ % ε % a1 ⟧ₐ
+⟦ Γ % ε % (lessEqual a1 a2) ⟧ᵇ = ℚ._≤ᵇ_ ⟦ Γ % ε % a1 ⟧ₐ ⟦ Γ % ε % a2 ⟧ₐ
+⟦ Γ % ε % (notEqual a1 a2) ⟧ᵇ  = not ( ℚ._≤ᵇ_ ⟦ Γ % ε % a1 ⟧ₐ ⟦ Γ % ε % a2 ⟧ₐ ∧ ℚ._≤ᵇ_ ⟦ Γ % ε % a2 ⟧ₐ ⟦ Γ % ε % a1 ⟧ₐ )
+⟦ Γ % ε % (equal a1 a2) ⟧ᵇ = ℚ._≤ᵇ_ ⟦ Γ % ε % a1 ⟧ₐ ⟦ Γ % ε % a2 ⟧ₐ ∧ ℚ._≤ᵇ_ ⟦ Γ % ε % a2 ⟧ₐ ⟦ Γ % ε % a1 ⟧ₐ
+⟦ Γ % ε % (andExpr []) ⟧ᵇ  = true
+⟦ Γ % ε % (andExpr (b ∷ xb)) ⟧ᵇ = _∧_ ⟦ Γ % ε % b ⟧ᵇ ⟦ Γ % ε % (andExpr xb) ⟧ᵇ
+⟦ Γ % ε % (orExpr []) ⟧ᵇ = false
+⟦ Γ % ε % (orExpr (b ∷ xb)) ⟧ᵇ  = _∨_ ⟦ Γ % ε % b ⟧ᵇ ⟦ Γ % ε % (orExpr xb) ⟧ᵇ
 
 -- Properties: evalute to true or false
-data Property : Set where
-  assert : BoolExpr → Property
+data Property (Γ : Context) : Set where
+  assert : BoolExpr Γ → Property Γ
 
-%_% : Property → Bool
-% assert p % = < p >
+⟦_%_%_⟧ₚ : (Γ : Context) → Environment (Γ) → Property (Γ) → Bool
+⟦ Γ % ε % (assert p) ⟧ₚ = ⟦ Γ % ε % p ⟧ᵇ
 
 -- Element Types
 data ElementType : Set where
@@ -125,6 +117,7 @@ data OutputDefinition : Set where
 data NetworkDefinition : Set where
   declareNetwork : VariableName → List InputDefinition → List IntermediateDefinition → List OutputDefinition → NetworkDefinition
 
+-- TODO: Does not pass type-check
 -- Queries
-data Query : Set where
-  mkQuery : List NetworkDefinition → List Property → Query
+-- data Query : Set where
+-- -- mkQuery : List NetworkDefinition → List Property → Query
