@@ -8,6 +8,8 @@ INDENT_SIZE = 2
 fpath = os.path.dirname(os.path.abspath(__file__))
 HEADER_FILE = f"{fpath}/../src/bisonParser/Absyn.h"
 
+TOP_LEVEL_CLASS = "Query"
+
 
 def extract_fields(struct_cursor):
     """Extracts string and pointer fields from a given struct cursor."""
@@ -112,7 +114,16 @@ def construct_base_class(struct_name, class_name):
     # Destructor
     cpp_class += [
         f"{indent * 2}virtual ~{class_name}() {{",
-        f"{indent * 3}free_{struct_name}({struct_as_field});",
+    ]
+
+    if struct_name == TOP_LEVEL_CLASS:
+        cpp_class += [
+            f"{indent * 3}if ({struct_as_field}) {{",
+            f"{indent * 4}free_{struct_name}({struct_as_field});",
+            f"{indent * 3}}}",
+        ]
+
+    cpp_class += [
         f"{indent * 2}}}"
     ]
 
