@@ -39,7 +39,7 @@ try:
     print("--- Networks ---")
     current_network = query_ast.networks
     while current_network:
-        network_def = current_network.definition 
+        network_def = current_network.current 
         print(f"  Network Definition Type: {type(network_def)}")
         print(f"  Network Variable Name: {network_def.variable_name}")
         print(f"  Network as string: {str(network_def)}")
@@ -48,7 +48,7 @@ try:
         print("    Inputs:")
         current_input_list_node = network_def.inputs 
         while current_input_list_node:
-            input_def = current_input_list_node.definition 
+            input_def = current_input_list_node.current 
             print(f"      Input Variable: {input_def.variable_name}") 
             print(f"        Type: {str(input_def.element_type)}") 
             print(f"        Type Object: {type(input_def.element_type)}")
@@ -56,7 +56,7 @@ try:
             shape_str = []
             current_shape_node = input_def.shape 
             while current_shape_node: 
-                shape_str.append(current_shape_node.value) 
+                shape_str.append(current_shape_node.current) 
                 current_shape_node = current_shape_node.next 
             print(f"        Shape: ({', '.join(shape_str)})")
             current_input_list_node = current_input_list_node.next 
@@ -65,14 +65,14 @@ try:
         print("    Outputs:")
         current_output_list_node = network_def.outputs
         while current_output_list_node:
-            output_def = current_output_list_node.definition
+            output_def = current_output_list_node.current
             print(f"      Output Variable: {output_def.variable_name}")
             print(f"        Type: {str(output_def.element_type)}")
             # Traverse shape
             shape_str = []
             current_shape_node = output_def.shape
             while current_shape_node:
-                shape_str.append(current_shape_node.value)
+                shape_str.append(current_shape_node.current)
                 current_shape_node = current_shape_node.next
             print(f"        Shape: ({', '.join(shape_str)})")
             current_output_list_node = current_output_list_node.next
@@ -85,7 +85,7 @@ try:
     prop_count = 0
     while current_property:
         prop_count += 1
-        property_item = current_property.property_item 
+        property_item = current_property.current 
         print(f"  Property {prop_count} Type: {type(property_item)}")
         print(f"  Property as string: {str(property_item)}")
 
@@ -104,7 +104,7 @@ try:
                 print(f"      RHS (expr2): {str(bool_expr.expr2)} (Type: {type(bool_expr.expr2)})")
                 # bool_expr.expr2 should be an ArithExpr, e.g., DoubleExpr
                 if isinstance(bool_expr.expr2, vnnlib.DoubleExpr):
-                    print(f"        DoubleExpr Value: {bool_expr.expr2.value}")
+                    print(f"        DoubleExpr Value: {bool_expr.expr2.current}")
             
             elif isinstance(bool_expr, vnnlib.LessThan):
                 print(f"      LHS (expr1): {str(bool_expr.expr1)} (Type: {type(bool_expr.expr1)})")
