@@ -307,7 +307,6 @@ class CodeWriter:
 		self.tu = index.parse(clang_header_path, args=["-x", "c", "-std=c11", "-D_POSIX_C_SOURCE=200809L"])
 		self.clang_header_path = clang_header_path
 		self.base_classes = []
-		self.subclasses = []
 
 		self.construct_cpp_classes()
 
@@ -317,7 +316,6 @@ class CodeWriter:
 			if cursor.kind == CursorKind.STRUCT_DECL and cursor.is_definition() and cursor.spelling.endswith("_"):
 				base_class = CppClassWrapper(cursor)
 				self.base_classes.append(base_class)
-				self.subclasses += base_class.subclasses
 
 
 	def write_code(self, output_path):
@@ -331,13 +329,26 @@ class CodeWriter:
 			'\n'
     	]
 
-		# Write forward declarations of the classes and the generate function
+		# Write forward declarations of the classes
 		for cls in self.base_classes:
-			if isinstance(cls, CppClassWrapper):
-				lines += [
-                    f"class {cls.name};",
-                    f"std::unique_ptr<{cls.name}> generate(struct {cls.struct_name}_ *ptr);",
-                ]
+			lines += [f"class {cls.name};"]
+			subcls_decls = ind(1)
+			line_count = 1
+
+			for subclass in cls.subclasses:
+				subcls_decls += f"class {subclass.name}; "
+				line_count += 1
+				if line_count % 5 == 0:
+					subcls_decls += f"\n{ind(1)}"
+
+			lines += [subcls_decls]
+		
+		lines += ["\n"]
+
+		# Write forward declarations of the generate functions
+		for cls in self.base_classes:
+			lines += [f"std::unique_ptr<{cls.name}> generate(struct {cls.struct_name}_ *ptr);"]
+				
 		lines += ["\n"]
 
 		# Write the constructed classes to the file
