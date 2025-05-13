@@ -52,7 +52,7 @@ PYBIND11_MODULE(vnnlib, m) {
         .def("__str__", &ListIntWrapper::__str__);
 
     py::class_<IntList, ListIntWrapper>(m, "IntList")
-        .def_readonly("value", &IntList::int_) // Expose the int string value
+        .def_readonly("current", &IntList::int_) // Expose the int string value
         .def_property_readonly("next", [](const IntList &obj) {
             return obj.listint_.get();
         }, py::return_value_policy::reference_internal);
@@ -88,7 +88,7 @@ PYBIND11_MODULE(vnnlib, m) {
         .def("__str__", &ListArithExprWrapper::__str__);
 
     py::class_<ArithExprList, ListArithExprWrapper>(m, "ArithExprList")
-        .def_property_readonly("expr", [](const ArithExprList &obj) {
+        .def_property_readonly("current", [](const ArithExprList &obj) {
             return obj.arithexpr_.get();
         }, py::return_value_policy::reference_internal)
         .def_property_readonly("next", [](const ArithExprList &obj) {
@@ -153,7 +153,7 @@ PYBIND11_MODULE(vnnlib, m) {
         .def("__str__", &ListBoolExprWrapper::__str__);
 
     py::class_<BoolExprList, ListBoolExprWrapper>(m, "BoolExprList")
-        .def_property_readonly("expr", [](const BoolExprList &obj) {
+        .def_property_readonly("current", [](const BoolExprList &obj) {
             return obj.boolexpr_.get();
         }, py::return_value_policy::reference_internal)
         .def_property_readonly("next", [](const BoolExprList &obj) {
@@ -191,7 +191,7 @@ PYBIND11_MODULE(vnnlib, m) {
         .def("__str__", &ListPropertyWrapper::__str__);
 
     py::class_<PropertyList, ListPropertyWrapper>(m, "PropertyList")
-        .def_property_readonly("property_item", [](const PropertyList &obj) { // Renamed to avoid conflict
+        .def_property_readonly("current", [](const PropertyList &obj) { // Renamed to avoid conflict
             return obj.property_.get();
         }, py::return_value_policy::reference_internal)
         .def_property_readonly("next", [](const PropertyList &obj) {
@@ -216,7 +216,7 @@ PYBIND11_MODULE(vnnlib, m) {
         .def("__str__", &IntermediateDefinitionWrapper::__str__);
     
     py::class_<IntermediateDef, IntermediateDefinitionWrapper>(m, "IntermediateDef")
-        .def_readonly("comment_string", &IntermediateDef::string_) // Assuming 'string_' is a comment or similar
+        .def_readonly("onnx_name", &IntermediateDef::string_) // Assuming 'string_' is a comment or similar
         .def_readonly("variable_name", &IntermediateDef::variablename_)
         .def_property_readonly("element_type", [](const IntermediateDef &obj) { return obj.elementtype_.get(); }, py::return_value_policy::reference_internal)
         .def_property_readonly("shape", [](const IntermediateDef &obj) { return obj.listint_.get(); }, py::return_value_policy::reference_internal);
@@ -239,7 +239,7 @@ PYBIND11_MODULE(vnnlib, m) {
         .def("__str__", &ListInputDefinitionWrapper::__str__);
 
     py::class_<InputDefinitionList, ListInputDefinitionWrapper>(m, "InputDefinitionList")
-        .def_property_readonly("definition", [](const InputDefinitionList &obj) { return obj.inputdefinition_.get(); }, py::return_value_policy::reference_internal)
+        .def_property_readonly("current", [](const InputDefinitionList &obj) { return obj.inputdefinition_.get(); }, py::return_value_policy::reference_internal)
         .def_property_readonly("next", [](const InputDefinitionList &obj) { return obj.listinputdefinition_.get(); }, py::return_value_policy::reference_internal);
 
     py::class_<ListIntermediateDefinitionWrapper> listIntermediateDefWrapper(m, "ListIntermediateDefinition");
@@ -248,7 +248,7 @@ PYBIND11_MODULE(vnnlib, m) {
         .def("__str__", &ListIntermediateDefinitionWrapper::__str__);
 
     py::class_<IntermediateDefinitionList, ListIntermediateDefinitionWrapper>(m, "IntermediateDefinitionList")
-        .def_property_readonly("definition", [](const IntermediateDefinitionList &obj) { return obj.intermediatedefinition_.get(); }, py::return_value_policy::reference_internal)
+        .def_property_readonly("current", [](const IntermediateDefinitionList &obj) { return obj.intermediatedefinition_.get(); }, py::return_value_policy::reference_internal)
         .def_property_readonly("next", [](const IntermediateDefinitionList &obj) { return obj.listintermediatedefinition_.get(); }, py::return_value_policy::reference_internal);
     
     py::class_<ListOutputDefinitionWrapper> listOutputDefWrapper(m, "ListOutputDefinition");
@@ -257,7 +257,7 @@ PYBIND11_MODULE(vnnlib, m) {
         .def("__str__", &ListOutputDefinitionWrapper::__str__);
 
     py::class_<OutputDefinitionList, ListOutputDefinitionWrapper>(m, "OutputDefinitionList")
-        .def_property_readonly("definition", [](const OutputDefinitionList &obj) { return obj.outputdefinition_.get(); }, py::return_value_policy::reference_internal)
+        .def_property_readonly("current", [](const OutputDefinitionList &obj) { return obj.outputdefinition_.get(); }, py::return_value_policy::reference_internal)
         .def_property_readonly("next", [](const OutputDefinitionList &obj) { return obj.listoutputdefinition_.get(); }, py::return_value_policy::reference_internal);
 
 
@@ -281,7 +281,7 @@ PYBIND11_MODULE(vnnlib, m) {
         .def("__str__", &ListNetworkDefinitionWrapper::__str__);
 
     py::class_<NetworkDefinitionList, ListNetworkDefinitionWrapper>(m, "NetworkDefinitionList")
-        .def_property_readonly("definition", [](const NetworkDefinitionList &obj) { return obj.networkdefinition_.get(); }, py::return_value_policy::reference_internal)
+        .def_property_readonly("current", [](const NetworkDefinitionList &obj) { return obj.networkdefinition_.get(); }, py::return_value_policy::reference_internal)
         .def_property_readonly("next", [](const NetworkDefinitionList &obj) { return obj.listnetworkdefinition_.get(); }, py::return_value_policy::reference_internal);
 
 
