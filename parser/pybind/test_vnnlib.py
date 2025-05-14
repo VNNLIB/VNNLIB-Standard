@@ -37,55 +37,40 @@ try:
 
     # 2. Traverse Network Definitions
     print("--- Networks ---")
-    current_network = query_ast.networks
-    while current_network:
-        network_def = current_network.current 
+    for network_def in query_ast.networks:
         print(f"  Network Definition Type: {type(network_def)}")
         print(f"  Network Variable Name: {network_def.variable_name}")
         print(f"  Network as string: {str(network_def)}")
 
         # Traverse Input Definitions for this network
         print("    Inputs:")
-        current_input_list_node = network_def.inputs 
-        while current_input_list_node:
-            input_def = current_input_list_node.current 
+        for input_def in network_def.inputs :
             print(f"      Input Variable: {input_def.variable_name}") 
             print(f"        Type: {str(input_def.element_type)}") 
             print(f"        Type Object: {type(input_def.element_type)}")
             # Traverse shape (ListInt)
             shape_str = []
-            current_shape_node = input_def.shape 
-            while current_shape_node: 
-                shape_str.append(current_shape_node.current) 
-                current_shape_node = current_shape_node.next 
+            for i in input_def.shape:
+                shape_str.append(i) 
             print(f"        Shape: ({', '.join(shape_str)})")
-            current_input_list_node = current_input_list_node.next 
 
         # Traverse Output Definitions (similar to inputs)
         print("    Outputs:")
-        current_output_list_node = network_def.outputs
-        while current_output_list_node:
-            output_def = current_output_list_node.current
+        for output_def in network_def.outputs:
             print(f"      Output Variable: {output_def.variable_name}")
             print(f"        Type: {str(output_def.element_type)}")
             # Traverse shape
             shape_str = []
             current_shape_node = output_def.shape
-            while current_shape_node:
-                shape_str.append(current_shape_node.current)
-                current_shape_node = current_shape_node.next
+            for i in input_def.shape:
+                shape_str.append(i) 
             print(f"        Shape: ({', '.join(shape_str)})")
-            current_output_list_node = current_output_list_node.next
         
-        current_network = current_network.next 
-
     # 3. Traverse Properties
     print("\n--- Properties ---")
-    current_property = query_ast.properties 
     prop_count = 0
-    while current_property:
+    for property_item in query_ast.properties:
         prop_count += 1
-        property_item = current_property.current 
         print(f"  Property {prop_count} Type: {type(property_item)}")
         print(f"  Property as string: {str(property_item)}")
 
@@ -109,8 +94,6 @@ try:
             elif isinstance(bool_expr, vnnlib.LessThan):
                 print(f"      LHS (expr1): {str(bool_expr.expr1)} (Type: {type(bool_expr.expr1)})")
                 print(f"      RHS (expr2): {str(bool_expr.expr2)} (Type: {type(bool_expr.expr2)})")
-
-        current_property = current_property.next 
 
 except RuntimeError as e:
     print(f"An error occurred: {e}")
