@@ -1,28 +1,35 @@
 module VNNLib where
 
-open import Data.List
+open import Data.List as List
 open import Data.String hiding (map)
 open import Data.Nat
 open import Data.Integer
 open import Data.Rational as ℚ
 open import Data.Bool
 open import Data.Fin
+open import Data.Product
+
+-- Tensor Shape (replaces Int in syntax)
+data TensorShape : Set where
+  shape : List ℕ → TensorShape
+
+postulate Tensor : TensorShape → Set
 
 Context : Set
-Context = ℕ
+Context = List (TensorShape × TensorShape)
 
 Environment : Context → Set
-Environment Γ = Fin Γ → ℚ
+Environment Γ =
+  (i : Fin (List.length Γ)) →
+  let (inputShape , outputShape) = List.lookup Γ i in
+  (Tensor inputShape → Tensor outputShape) × Tensor inputShape
 
 -- -- Naming/referencing
 
 data VariableName : Set where
   SVariableName : String → VariableName
 
--- Tensor Shape (replaces Int in syntax)
-data TensorShape : Set where
-  shape : List ℕ → TensorShape
-
+{-
 -- Arithmetic Expressions: nary operations
 data ArithExpr (Γ : Context) : Set where
   const  : ℚ → ArithExpr Γ
@@ -32,11 +39,13 @@ data ArithExpr (Γ : Context) : Set where
   minus : List (ArithExpr Γ) → ArithExpr Γ
   mult  : List (ArithExpr Γ) → ArithExpr Γ
 
--- Arithmetic Expression Evaluation
+-- Arithmetic Expression Evaluation         
 ⟦_%_%_⟧ₐ : (Γ : Context) → Environment (Γ) → ArithExpr (Γ) → ℚ
+-- Use implicit arguments (∀ {Γ} → Environment Γ → ...)
 ⟦ Γ % ε % (const a) ⟧ₐ  = a
 ⟦ Γ % ε % (negate a) ⟧ₐ = 0ℚ ℚ.- ⟦ Γ % ε % a ⟧ₐ 
 ⟦ Γ % ε % (var a) ⟧ₐ    = ε a
+-- Can simplify similar cases with `fold`
 ⟦ Γ % ε % (add []) ⟧ₐ   = 0ℚ
 ⟦ Γ % ε % (add (a ∷ ax)) ⟧ₐ   = ⟦ Γ % ε % a ⟧ₐ ℚ.+ ⟦ Γ % ε % (add ax) ⟧ₐ
 ⟦ Γ % ε % (mult []) ⟧ₐ  = 1ℚ
@@ -49,6 +58,7 @@ data BoolExpr (Γ : Context) : Set where
   literal : Bool → BoolExpr Γ
   -- Comparative Expressions: 2-ary operations
   greaterThan    : ArithExpr Γ → ArithExpr Γ → BoolExpr Γ
+  -- Come up with consistent length names
   lessThan       : ArithExpr Γ → ArithExpr Γ → BoolExpr Γ
   greaterEqual   : ArithExpr Γ → ArithExpr Γ → BoolExpr Γ
   lessEqual      : ArithExpr Γ → ArithExpr Γ → BoolExpr Γ
@@ -60,6 +70,7 @@ data BoolExpr (Γ : Context) : Set where
 
 ⟦_%_%_⟧ᵇ : (Γ : Context) → Environment (Γ) → BoolExpr (Γ) → Bool
 ⟦ Γ % ε % (literal b) ⟧ᵇ = b
+-- Put undefined comparisons in utils file
 ⟦ Γ % ε % (greaterThan a1 a2) ⟧ᵇ  = not ( ⟦ Γ % ε % a1 ⟧ₐ ℚ.≤ᵇ ⟦ Γ % ε % a2 ⟧ₐ )
 ⟦ Γ % ε % (lessThan a1 a2) ⟧ᵇ = not (ℚ._≤ᵇ_ ⟦ Γ % ε % a2 ⟧ₐ ⟦ Γ % ε % a1 ⟧ₐ )
 ⟦ Γ % ε % (greaterEqual a1 a2) ⟧ᵇ = ℚ._≤ᵇ_ ⟦ Γ % ε % a2 ⟧ₐ ⟦ Γ % ε % a1 ⟧ₐ
@@ -117,7 +128,11 @@ data OutputDefinition : Set where
 data NetworkDefinition : Set where
   declareNetwork : VariableName → List InputDefinition → List IntermediateDefinition → List OutputDefinition → NetworkDefinition
 
+mkContext : List NetworkDefinition → Context
+mkContext = {!!}
+
 -- TODO: Does not pass type-check
 -- Queries
--- data Query : Set where
--- -- mkQuery : List NetworkDefinition → List Property → Query
+data Query : Set where
+   mkQuery : (networks : List NetworkDefinition) → List (Property (mkContext networks)) → Query
+-}
