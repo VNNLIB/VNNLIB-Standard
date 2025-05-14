@@ -14,7 +14,7 @@ def ind(n):
 	return " " * INDENT_SIZE * n
 
 
-class CppField:
+class Field:
 	def __init__(self, name, type_str, is_string=False):
 		self.name = name
 		self.type_str = type_str
@@ -33,9 +33,9 @@ class CppField:
 		# Check if the field is a string
 		canonical_type = field.type.get_canonical()
 		if canonical_type.kind == TypeKind.POINTER and canonical_type.get_pointee().kind == TypeKind.CHAR_S:
-			return CppField(field.spelling, field.type.spelling, is_string=True)
+			return Field(field.spelling, field.type.spelling, is_string=True)
 		elif canonical_type.kind == TypeKind.POINTER and canonical_type.get_pointee().kind == TypeKind.RECORD:
-			return CppField(field.spelling, field.type.spelling)
+			return Field(field.spelling, field.type.spelling)
 		else:
 			raise ValueError(f"Unsupported field type: {field.type.spelling}")
 		
@@ -45,18 +45,18 @@ class CppField:
 		fields = []
 		for field in struct.get_children():
 			if field.kind == CursorKind.FIELD_DECL and field.is_definition():
-				fields.append(CppField.from_cursor(field))
+				fields.append(Field.from_cursor(field))
 		return fields
 	
 
-class CppLeafClass:
-	cpp_code = []
-
+class Leaf:
 	def __init__(self, class_name, base_class, base_struct):
+		self.cpp_code = []
 		self.name = class_name
 		self.base_class = base_class
 		self.base_struct = base_struct
 		self.fields = []
+		self.is_list = False
 
 		self.construct_class()
 
@@ -70,13 +70,14 @@ class CppLeafClass:
 		self.cpp_code += ["};\n"]
 		
 
-class CppNodeClass:
+class Node:
 	def __init__(self, class_name, struct_cursor, base_struct, base_class):
 		self.cpp_code = []
 		self.name = class_name
 		self.base_class = base_class
 		self.base_struct = base_struct
-		self.fields = CppField.from_struct(struct_cursor)
+		self.fields = Field.from_struct(struct_cursor)
+		self.is_list = False
 
 		self.construct_class()
 
@@ -120,9 +121,102 @@ class CppNodeClass:
 		self.cpp_code += cpp_class
 
 
-class CppClassWrapper:
+class ListNode(Node):
+	def __init__(self, class_name, struct_cursor, base_struct, base_class):
+		super().__init__(class_name, struct_cursor, base_struct, base_class)
+		self.is_list = True
+
+		self.modify_class()
+		self.construct_iterator()
+	
+
+	def construct_iterator(self):
+		""" Constructs an iterator struct for the node """
+		struct_code = []
+		iterator_name = self.name + "Iterator"
+		[node_field, next_field] = self.fields 
+
+		if node_field.is_string:
+			node_type = "std::string"
+		else:
+			node_type = f"{node_field.type_str}Wrapper"
+
+		# Constructor for the iterator
+		struct_code += [
+			f"{ind(0)}struct {iterator_name} {{",
+			f"{ind(1)}{self.name}* current_node;",
+			f"{ind(1)}{iterator_name}({self.name}* start_node) : current_node(start_node) {{}}"
+		]
+
+		# operator* for dereferencing the iterator
+		if node_field.is_string:
+			struct_code += [f"{ind(1)}{node_type} operator*() const {{"]
+		else:
+			struct_code += [f"{ind(1)}{node_type}* operator*() const {{"]
+		struct_code += [
+			f"{ind(2)} if (!current_node) {{",
+			f"{ind(3)}throw std::runtime_error(\"Dereferencing null list iterator\");",
+			f"{ind(2)}}}",
+		]
+		if node_field.is_string:
+			struct_code += [f"{ind(2)}return current_node->{node_field.name};"]
+		else:
+			struct_code += [f"{ind(2)}return current_node->{node_field.name}.get();"]
+		struct_code += [f"{ind(1)}}}\n"]
+	
+		# operator++ for incrementing the iterator
+		struct_code += [
+			f"{ind(1)}{iterator_name}& operator++() {{",
+			f"{ind(2)}if (current_node) {{",
+			f"{ind(3)}{self.base_class}* next_list_wrapper = current_node->{next_field.name}.get();",
+			f"{ind(3)}current_node = dynamic_cast<{self.name}*>(next_list_wrapper);",
+			f"{ind(2)}}}",
+			f"{ind(2)}return *this;",
+			f"{ind(1)}}}\n"
+		]
+
+		# operator== for comparing iterators
+		struct_code += [
+			f"{ind(1)}bool operator==(const {iterator_name}& other) const {{",
+			f"{ind(2)}return current_node == other.current_node;",
+			f"{ind(1)}}}",
+		]
+
+		# operator!= for comparing iterators
+		struct_code += [
+			f"{ind(1)}bool operator!=(const {iterator_name}& other) const {{",
+			f"{ind(2)}return current_node != other.current_node;",
+			f"{ind(1)}}}"
+		]
+
+		struct_code += ["};\n"]
+		self.cpp_code += struct_code
+
+		self.cpp_code += [
+			f"{ind(0)}inline {iterator_name} {self.name}::begin() {{return {iterator_name}(this);}}",
+			f"{ind(0)}inline {iterator_name} {self.name}::end() {{return {iterator_name}(nullptr);}}\n"
+		]
+
+	
+	def modify_class(self):
+		"""Modifies the class to include the iterator."""
+		iterator_name = self.name + "Iterator"
+		self.cpp_code = self.cpp_code[:-1]  # Remove the last closing brace
+
+		self.cpp_code += [
+			f"{ind(2)}{iterator_name} begin();",
+			f"{ind(2)}{iterator_name} end();",
+		]
+
+		self.cpp_code += ["};\n"]
+
+
+class Wrapper:
 	def __init__(self, struct):
-		self.cpp_code = []
+		self.current_class_code = []
+		self.subclass_code = []
+		self.generator_code = []
+
 		self.subcls_names = []
 		self.variant_names = []
 		self.variant_structs = []
@@ -184,13 +278,6 @@ class CppClassWrapper:
 			f"{ind(2)}}}"
 		]
 
-		# __str__
-		cpp_class += [
-			f"{ind(2)}std::string __str__() const {{",
-			f"{ind(3)}return to_string();",
-			f"{ind(2)}}}"
-		]
-
 		# Destructor
 		cpp_class += [
 			f"{ind(2)}virtual ~{self.name}() {{",
@@ -208,31 +295,31 @@ class CppClassWrapper:
 		]
 		cpp_class += ["};\n"]
 
-		self.cpp_code += cpp_class
+		self.current_class_code += cpp_class
 
 	
 	def construct_subclasses(self):
 		if self.is_list:
 			subcls_name = self.struct_name[4:] + "List" # E.g., ListNetwork -> NetworkList
-			subcls = CppNodeClass(subcls_name, self.struct, self.struct_name, self.name)
+			subcls = ListNode(subcls_name, self.struct, self.struct_name, self.name)
 			self.subclasses.append(subcls)
 			self.subcls_names.append(subcls_name)
 
 		elif self.variant_structs:
 			for i in range(len(self.subcls_names)):
-				subcls = CppNodeClass(self.subcls_names[i], self.variant_structs[i], self.struct_name, self.name)
+				subcls = Node(self.subcls_names[i], self.variant_structs[i], self.struct_name, self.name)
 				self.subclasses.append(subcls)
 		
 		elif self.subcls_names:
 			for i in range(len(self.subcls_names)):
-				subcls = CppLeafClass(self.subcls_names[i], self.name, self.struct_name)
+				subcls = Leaf(self.subcls_names[i], self.name, self.struct_name)
 				self.subclasses.append(subcls)
 
 		else:
 			raise ValueError(f"Unsupported subclass type for {self.struct_name}")
 		
 		for subclass in self.subclasses:
-			self.cpp_code += subclass.cpp_code
+			self.subclass_code += subclass.cpp_code
 
 	
 	def construct_generator_for_subclass(self, subcls_name, fields, path_to_field, indent):
@@ -260,7 +347,6 @@ class CppClassWrapper:
 			f"{ind(indent + 1)}ptr",
 			f"{ind(indent)});",
 		]
-
 		return fun_code
 		
 	
@@ -273,7 +359,7 @@ class CppClassWrapper:
 		]
 
 		if self.is_list:
-			fields = CppField.from_struct(self.struct)
+			fields = Field.from_struct(self.struct)
 			subcls_name = self.subcls_names[0]
 			fun_code += self.construct_generator_for_subclass(subcls_name, fields, "ptr->", indent=1)
 
@@ -285,20 +371,19 @@ class CppClassWrapper:
 				path_to_field = f"ptr->u.{self.variant_names[i]}." if self.variant_names else ""
 				fun_code += self.construct_generator_for_subclass(self.subcls_names[i], fields, path_to_field, indent=3)
 				fun_code += [
-                	f"{ind(2)}}}",
-            	]
+					f"{ind(2)}}}",
+				]
 			fun_code += [
 				f"{ind(2)}default: {{",
 				f"{ind(3)}throw std::runtime_error(\"Unknown variant\");",
 				f"{ind(2)}}}",
 				f"{ind(1)}}}",
-        	]
+			]
 		
 		fun_code += [
-        	f"{ind(0)}}}\n",
-    	]
-
-		self.cpp_code += fun_code
+			f"{ind(0)}}}\n",
+		]
+		self.generator_code += fun_code
 
 
 class CodeWriter:
@@ -314,7 +399,7 @@ class CodeWriter:
 	def construct_cpp_classes(self):
 		for cursor in self.tu.cursor.get_children():
 			if cursor.kind == CursorKind.STRUCT_DECL and cursor.is_definition() and cursor.spelling.endswith("_"):
-				base_class = CppClassWrapper(cursor)
+				base_class = Wrapper(cursor)
 				self.base_classes.append(base_class)
 
 
@@ -327,19 +412,24 @@ class CodeWriter:
 			'#include "Absyn.h"',
 			'#include "Printer.h"'
 			'\n'
-    	]
+		]
 
 		# Write forward declarations of the classes
 		for cls in self.base_classes:
 			lines += [f"class {cls.name};"]
-			subcls_decls = ind(1)
+			subcls_decls = ""
 			line_count = 1
 
 			for subclass in cls.subclasses:
 				subcls_decls += f"class {subclass.name}; "
 				line_count += 1
+
 				if line_count % 5 == 0:
-					subcls_decls += f"\n{ind(1)}"
+					subcls_decls += "\n"
+
+				if subclass.is_list:
+					subcls_decls += f"\nstruct {subclass.name}Iterator; "
+					line_count += 1
 
 			lines += [subcls_decls]
 		
@@ -353,7 +443,13 @@ class CodeWriter:
 
 		# Write the constructed classes to the file
 		for cls in self.base_classes:
-			lines += cls.cpp_code
+			lines += cls.current_class_code
+		
+		for cls in self.base_classes:
+			lines += cls.subclass_code
+
+		for cls in self.base_classes:
+			lines += cls.generator_code
 
 		lines += ["#endif // VNNLIBWRAPPERS_HPP"]
 
@@ -368,10 +464,3 @@ if __name__ == "__main__":
 
 	# Write the constructed code to a file
 	code_writer.write_code(output_path)
-
-	
-
-
-
-
-	
