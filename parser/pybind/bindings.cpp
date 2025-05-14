@@ -17,8 +17,7 @@ PYBIND11_MODULE(vnnlib, m) {
     // --- Base ElementType Wrappers ---
     py::class_<ElementTypeWrapper> elemTypeWrapper(m, "ElementType");
     elemTypeWrapper
-        .def("to_string", &ElementTypeWrapper::to_string)
-        .def("__str__", &ElementTypeWrapper::__str__); // Assuming __str__ calls to_string
+        .def("__str__", &ElementTypeWrapper::to_string); // Assuming __str__ calls to_string
 
     // Concrete ElementTypes
     py::class_<GenericElementType, ElementTypeWrapper>(m, "GenericElementType");
@@ -45,24 +44,25 @@ PYBIND11_MODULE(vnnlib, m) {
     py::class_<ElementTypeString, ElementTypeWrapper>(m, "ElementTypeString");
 
 
-    // --- ListInt Wrappers ---
+    // --- ListInt Wrapper ---
     py::class_<ListIntWrapper> listIntWrapper(m, "ListInt");
     listIntWrapper
-        .def("to_string", &ListIntWrapper::to_string)
-        .def("__str__", &ListIntWrapper::__str__);
+        .def("__str__", &ListIntWrapper::to_string);
 
     py::class_<IntList, ListIntWrapper>(m, "IntList")
-        .def_readonly("current", &IntList::int_) // Expose the int string value
+        .def_readonly("current", &IntList::int_)
         .def_property_readonly("next", [](const IntList &obj) {
             return obj.listint_.get();
-        }, py::return_value_policy::reference_internal);
+        }, py::return_value_policy::reference_internal)
+        .def("__iter__", [](IntList &self) {
+            return py::make_iterator(self.begin(), self.end());
+        }, py::keep_alive<0, 1>()); // Keep the list alive while iterating
 
 
-    // --- ArithExpr Wrappers ---
+    // --- ArithExpr Wrapper ---
     py::class_<ArithExprWrapper> arithExprWrapper(m, "ArithExpr");
     arithExprWrapper
-        .def("to_string", &ArithExprWrapper::to_string)
-        .def("__str__", &ArithExprWrapper::__str__);
+        .def("__str__", &ArithExprWrapper::to_string);
 
     py::class_<VarExpr, ArithExprWrapper>(m, "VarExpr")
         .def_readonly("tensor_element", &VarExpr::tensorelement_);
@@ -81,11 +81,10 @@ PYBIND11_MODULE(vnnlib, m) {
             return obj.arithexpr_.get();
         }, py::return_value_policy::reference_internal);
 
-    // --- ListArithExpr Wrappers ---
+    // --- ListArithExpr Wrapper ---
     py::class_<ListArithExprWrapper> listArithExprWrapper(m, "ListArithExpr");
     listArithExprWrapper
-        .def("to_string", &ListArithExprWrapper::to_string)
-        .def("__str__", &ListArithExprWrapper::__str__);
+        .def("__str__", &ListArithExprWrapper::to_string);
 
     py::class_<ArithExprList, ListArithExprWrapper>(m, "ArithExprList")
         .def_property_readonly("current", [](const ArithExprList &obj) {
@@ -93,7 +92,11 @@ PYBIND11_MODULE(vnnlib, m) {
         }, py::return_value_policy::reference_internal)
         .def_property_readonly("next", [](const ArithExprList &obj) {
             return obj.listarithexpr_.get();
-        }, py::return_value_policy::reference_internal);
+        }, py::return_value_policy::reference_internal)
+        .def("__iter__", [](ArithExprList &self) {
+            return py::make_iterator(self.begin(), self.end());
+        }, py::keep_alive<0, 1>());
+
 
     // Concrete ArithExpr types
     py::class_<Plus, ArithExprWrapper>(m, "Plus")
@@ -115,11 +118,11 @@ PYBIND11_MODULE(vnnlib, m) {
         }, py::return_value_policy::reference_internal);
 
 
-    // --- BoolExpr Wrappers ---
+    // --- BoolExpr Wrapper ---
     py::class_<BoolExprWrapper> boolExprWrapper(m, "BoolExpr");
     boolExprWrapper
-        .def("to_string", &BoolExprWrapper::to_string)
-        .def("__str__", &BoolExprWrapper::__str__);
+        .def("__str__", &BoolExprWrapper::to_string);
+
 
     // Concrete BoolExpr types
     py::class_<GreaterThan, BoolExprWrapper>(m, "GreaterThan")
@@ -146,11 +149,11 @@ PYBIND11_MODULE(vnnlib, m) {
         .def_property_readonly("expr1", [](const Equal &obj) { return obj.arithexpr_1.get(); }, py::return_value_policy::reference_internal)
         .def_property_readonly("expr2", [](const Equal &obj) { return obj.arithexpr_2.get(); }, py::return_value_policy::reference_internal);
 
-    // --- ListBoolExpr Wrappers ---
+
+    // --- ListBoolExpr Wrapper ---
     py::class_<ListBoolExprWrapper> listBoolExprWrapper(m, "ListBoolExpr");
     listBoolExprWrapper
-        .def("to_string", &ListBoolExprWrapper::to_string)
-        .def("__str__", &ListBoolExprWrapper::__str__);
+        .def("__str__", &ListBoolExprWrapper::to_string);
 
     py::class_<BoolExprList, ListBoolExprWrapper>(m, "BoolExprList")
         .def_property_readonly("current", [](const BoolExprList &obj) {
@@ -158,10 +161,14 @@ PYBIND11_MODULE(vnnlib, m) {
         }, py::return_value_policy::reference_internal)
         .def_property_readonly("next", [](const BoolExprList &obj) {
             return obj.listboolexpr_.get();
-        }, py::return_value_policy::reference_internal);
+        }, py::return_value_policy::reference_internal)
+        .def("__iter__", [](BoolExprList &self) {
+            return py::make_iterator(self.begin(), self.end());
+        }, py::keep_alive<0, 1>());
+
 
     // And, Or use ListBoolExpr
-     py::class_<And, BoolExprWrapper>(m, "And")
+    py::class_<And, BoolExprWrapper>(m, "And")
         .def_property_readonly("operands", [](const And &obj) {
             return obj.listboolexpr_.get();
         }, py::return_value_policy::reference_internal);
@@ -172,11 +179,10 @@ PYBIND11_MODULE(vnnlib, m) {
         }, py::return_value_policy::reference_internal);
 
 
-    // --- Property Wrappers ---
+    // --- Property Wrapper ---
     py::class_<PropertyWrapper> propertyWrapper(m, "PropertyBase"); // Changed name to avoid conflict if Query is also a property
     propertyWrapper
-        .def("to_string", &PropertyWrapper::to_string)
-        .def("__str__", &PropertyWrapper::__str__);
+        .def("__str__", &PropertyWrapper::to_string);
 
     py::class_<Prop, PropertyWrapper>(m, "Property") // This is likely the main property type
         .def_property_readonly("expr", [](const Prop &obj) {
@@ -184,11 +190,10 @@ PYBIND11_MODULE(vnnlib, m) {
         }, py::return_value_policy::reference_internal);
 
 
-    // --- ListProperty Wrappers ---
+    // --- ListProperty Wrapper ---
     py::class_<ListPropertyWrapper> listPropertyWrapper(m, "ListProperty");
     listPropertyWrapper
-        .def("to_string", &ListPropertyWrapper::to_string)
-        .def("__str__", &ListPropertyWrapper::__str__);
+        .def("__str__", &ListPropertyWrapper::to_string);
 
     py::class_<PropertyList, ListPropertyWrapper>(m, "PropertyList")
         .def_property_readonly("current", [](const PropertyList &obj) { // Renamed to avoid conflict
@@ -196,14 +201,16 @@ PYBIND11_MODULE(vnnlib, m) {
         }, py::return_value_policy::reference_internal)
         .def_property_readonly("next", [](const PropertyList &obj) {
             return obj.listproperty_.get();
-        }, py::return_value_policy::reference_internal);
+        }, py::return_value_policy::reference_internal)
+        .def("__iter__", [](PropertyList &self) {
+            return py::make_iterator(self.begin(), self.end());
+        }, py::keep_alive<0, 1>());
 
 
     // --- Definition Wrappers (Input, Intermediate, Output) ---
     py::class_<InputDefinitionWrapper> inputDefWrapper(m, "InputDefinition");
     inputDefWrapper
-        .def("to_string", &InputDefinitionWrapper::to_string)
-        .def("__str__", &InputDefinitionWrapper::__str__);
+        .def("__str__", &InputDefinitionWrapper::to_string);
 
     py::class_<InputDef, InputDefinitionWrapper>(m, "InputDef")
         .def_readonly("variable_name", &InputDef::variablename_)
@@ -212,8 +219,7 @@ PYBIND11_MODULE(vnnlib, m) {
 
     py::class_<IntermediateDefinitionWrapper> intermediateDefWrapper(m, "IntermediateDefinition");
     intermediateDefWrapper
-        .def("to_string", &IntermediateDefinitionWrapper::to_string)
-        .def("__str__", &IntermediateDefinitionWrapper::__str__);
+        .def("__str__", &IntermediateDefinitionWrapper::to_string);
     
     py::class_<IntermediateDef, IntermediateDefinitionWrapper>(m, "IntermediateDef")
         .def_readonly("onnx_name", &IntermediateDef::string_) // Assuming 'string_' is a comment or similar
@@ -223,8 +229,7 @@ PYBIND11_MODULE(vnnlib, m) {
 
     py::class_<OutputDefinitionWrapper> outputDefWrapper(m, "OutputDefinition");
     outputDefWrapper
-        .def("to_string", &OutputDefinitionWrapper::to_string)
-        .def("__str__", &OutputDefinitionWrapper::__str__);
+        .def("__str__", &OutputDefinitionWrapper::to_string);
 
     py::class_<OutputDef, OutputDefinitionWrapper>(m, "OutputDef")
         .def_readonly("variable_name", &OutputDef::variablename_)
@@ -235,37 +240,58 @@ PYBIND11_MODULE(vnnlib, m) {
     // --- List Definition Wrappers ---
     py::class_<ListInputDefinitionWrapper> listInputDefWrapper(m, "ListInputDefinition");
     listInputDefWrapper
-        .def("to_string", &ListInputDefinitionWrapper::to_string)
-        .def("__str__", &ListInputDefinitionWrapper::__str__);
+        .def("__str__", &ListInputDefinitionWrapper::to_string);
 
     py::class_<InputDefinitionList, ListInputDefinitionWrapper>(m, "InputDefinitionList")
-        .def_property_readonly("current", [](const InputDefinitionList &obj) { return obj.inputdefinition_.get(); }, py::return_value_policy::reference_internal)
-        .def_property_readonly("next", [](const InputDefinitionList &obj) { return obj.listinputdefinition_.get(); }, py::return_value_policy::reference_internal);
+        .def_property_readonly("current", [](const InputDefinitionList &obj) { 
+            return obj.inputdefinition_.get(); 
+        }, py::return_value_policy::reference_internal)
+        .def_property_readonly("next", [](const InputDefinitionList &obj) { 
+            return obj.listinputdefinition_.get(); 
+        }, py::return_value_policy::reference_internal)
+        .def("__iter__", [](InputDefinitionList &self) {
+            return py::make_iterator(self.begin(), self.end());
+        }, py::keep_alive<0, 1>());
+        
 
+    // --- ListIntermediateDefinition Wrapper ---
     py::class_<ListIntermediateDefinitionWrapper> listIntermediateDefWrapper(m, "ListIntermediateDefinition");
     listIntermediateDefWrapper
-        .def("to_string", &ListIntermediateDefinitionWrapper::to_string)
-        .def("__str__", &ListIntermediateDefinitionWrapper::__str__);
+        .def("__str__", &ListIntermediateDefinitionWrapper::to_string);
 
     py::class_<IntermediateDefinitionList, ListIntermediateDefinitionWrapper>(m, "IntermediateDefinitionList")
-        .def_property_readonly("current", [](const IntermediateDefinitionList &obj) { return obj.intermediatedefinition_.get(); }, py::return_value_policy::reference_internal)
-        .def_property_readonly("next", [](const IntermediateDefinitionList &obj) { return obj.listintermediatedefinition_.get(); }, py::return_value_policy::reference_internal);
+        .def_property_readonly("current", [](const IntermediateDefinitionList &obj) { 
+            return obj.intermediatedefinition_.get(); 
+        }, py::return_value_policy::reference_internal)
+        .def_property_readonly("next", [](const IntermediateDefinitionList &obj) { 
+            return obj.listintermediatedefinition_.get(); 
+        }, py::return_value_policy::reference_internal)
+        .def("__iter__", [](IntermediateDefinitionList &self) {
+            return py::make_iterator(self.begin(), self.end());
+        }, py::keep_alive<0, 1>());
     
+    
+    // --- ListOutputDefinition Wrapper ---
     py::class_<ListOutputDefinitionWrapper> listOutputDefWrapper(m, "ListOutputDefinition");
     listOutputDefWrapper
-        .def("to_string", &ListOutputDefinitionWrapper::to_string)
-        .def("__str__", &ListOutputDefinitionWrapper::__str__);
+        .def("__str__", &ListOutputDefinitionWrapper::to_string);
 
     py::class_<OutputDefinitionList, ListOutputDefinitionWrapper>(m, "OutputDefinitionList")
-        .def_property_readonly("current", [](const OutputDefinitionList &obj) { return obj.outputdefinition_.get(); }, py::return_value_policy::reference_internal)
-        .def_property_readonly("next", [](const OutputDefinitionList &obj) { return obj.listoutputdefinition_.get(); }, py::return_value_policy::reference_internal);
+        .def_property_readonly("current", [](const OutputDefinitionList &obj) { 
+            return obj.outputdefinition_.get(); 
+        }, py::return_value_policy::reference_internal)
+        .def_property_readonly("next", [](const OutputDefinitionList &obj) { 
+            return obj.listoutputdefinition_.get(); 
+        }, py::return_value_policy::reference_internal)
+        .def("__iter__", [](OutputDefinitionList &self) {
+            return py::make_iterator(self.begin(), self.end());
+        }, py::keep_alive<0, 1>());
 
 
-    // --- NetworkDefinition Wrappers ---
+    // --- NetworkDefinition Wrapper ---
     py::class_<NetworkDefinitionWrapper> networkDefWrapper(m, "NetworkDefinition");
     networkDefWrapper
-        .def("to_string", &NetworkDefinitionWrapper::to_string)
-        .def("__str__", &NetworkDefinitionWrapper::__str__);
+        .def("__str__", &NetworkDefinitionWrapper::to_string);
 
     py::class_<NetworkDef, NetworkDefinitionWrapper>(m, "NetworkDef")
         .def_readonly("variable_name", &NetworkDef::variablename_)
@@ -274,24 +300,28 @@ PYBIND11_MODULE(vnnlib, m) {
         .def_property_readonly("outputs", [](const NetworkDef &obj) { return obj.listoutputdefinition_.get(); }, py::return_value_policy::reference_internal);
     
 
-    // --- ListNetworkDefinition Wrappers ---
+    // --- ListNetworkDefinition Wrapper ---
     py::class_<ListNetworkDefinitionWrapper> listNetworkDefWrapper(m, "ListNetworkDefinition");
     listNetworkDefWrapper
-        .def("to_string", &ListNetworkDefinitionWrapper::to_string)
-        .def("__str__", &ListNetworkDefinitionWrapper::__str__);
+        .def("__str__", &ListNetworkDefinitionWrapper::to_string);
 
     py::class_<NetworkDefinitionList, ListNetworkDefinitionWrapper>(m, "NetworkDefinitionList")
-        .def_property_readonly("current", [](const NetworkDefinitionList &obj) { return obj.networkdefinition_.get(); }, py::return_value_policy::reference_internal)
-        .def_property_readonly("next", [](const NetworkDefinitionList &obj) { return obj.listnetworkdefinition_.get(); }, py::return_value_policy::reference_internal);
+        .def_property_readonly("current", [](const NetworkDefinitionList &obj) { 
+            return obj.networkdefinition_.get(); 
+        }, py::return_value_policy::reference_internal)
+        .def_property_readonly("next", [](const NetworkDefinitionList &obj) { 
+            return obj.listnetworkdefinition_.get(); 
+        }, py::return_value_policy::reference_internal)
+        .def("__iter__", [](NetworkDefinitionList &self) {
+            return py::make_iterator(self.begin(), self.end());
+        }, py::keep_alive<0, 1>());
 
 
     // --- Query Wrapper (Top Level) ---
     // QueryWrapper is the abstract base, VNNLibQuery is the concrete one.
     py::class_<QueryWrapper> queryWrapper(m, "QueryBase"); // Renamed to avoid conflict with existing "Query"
     queryWrapper // This is the object returned by generate(Query)
-        .def("to_string", &QueryWrapper::to_string)
-        .def("__str__", &QueryWrapper::__str__);
-        // No members exposed here, as concrete type VNNLibQuery will have them.
+        .def("__str__", &QueryWrapper::to_string);
 
     py::class_<VNNLibQuery, QueryWrapper>(m, "Query") // This will be the actual object users get.
         .def_property_readonly("networks", [](const VNNLibQuery &obj) {
