@@ -1,0 +1,3 @@
+name: vnnlib-2.0.0
+include: .
+depend: standard-library-2.2
