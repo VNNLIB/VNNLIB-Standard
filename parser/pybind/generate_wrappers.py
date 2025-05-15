@@ -226,6 +226,7 @@ class Wrapper:
 		self.struct_name = struct.spelling.rstrip('_') # E.g., Query
 		self.name = self.struct_name + "Wrapper" # E.g., QueryWrapper
 		self.is_list = self.struct_name.startswith("List") # E.g., ListNetwork
+		self.is_root = self.struct_name == TOP_LEVEL_CLASS # E.g., Query
 
 		# Traverse the fields of the struct
 		for field in struct.get_children():
@@ -278,12 +279,18 @@ class Wrapper:
 			f"{ind(2)}}}"
 		]
 
+		cpp_class += [
+			f"{ind(2)}{self.struct_name} get_struct() const {{",
+			f"{ind(3)}return {struct_field};",
+			f"{ind(2)}}}",
+		]
+
 		# Destructor
 		cpp_class += [
 			f"{ind(2)}virtual ~{self.name}() {{",
 		]
 
-		if self.struct_name == TOP_LEVEL_CLASS:
+		if self.is_root:	# Add a recursive destructor for the root class
 			cpp_class += [
 				f"{ind(3)}if ({struct_field}) {{",
 				f"{ind(4)}free_{self.struct_name}({struct_field});",
