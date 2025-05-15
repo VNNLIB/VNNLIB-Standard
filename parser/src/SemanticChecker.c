@@ -488,26 +488,26 @@ int checkInputDefinition(InputDefinition p, SemanticContext *ctx)
 }
 
 
-int checkIntermediateDefinition(IntermediateDefinition p, SemanticContext *ctx)
+int checkHiddenDefinition(HiddenDefinition p, SemanticContext *ctx)
 {
     if (!p) return 1;
 	int err = 0;
 	switch(p->kind)
 	{
-        case is_IntermediateDef:
-            err |= checkVariableName(p->u.intermediatedef_.variablename_, ctx);
-            err |= checkElementType(p->u.intermediatedef_.elementtype_, ctx);
-            err |= checkString(p->u.intermediatedef_.string_, ctx);
+        case is_HiddenDef:
+            err |= checkVariableName(p->u.hiddendef_.variablename_, ctx);
+            err |= checkElementType(p->u.hiddendef_.elementtype_, ctx);
+            err |= checkString(p->u.hiddendef_.string_, ctx);
             if (err) return err;
 
             // Check for duplicate symbols
-            if (!addSymbol(ctx, p->u.intermediatedef_.variablename_, p->u.intermediatedef_.elementtype_, p->u.intermediatedef_.listint_, SYM_INTERMEDIATE)) {
+            if (!addSymbol(ctx, p->u.hiddendef_.variablename_, p->u.hiddendef_.elementtype_, p->u.hiddendef_.listint_, SYM_INTERMEDIATE)) {
                 err = 1;
             }
             break;
 
         default:
-			fprintf(stderr, "Bad kind field in IntermediateDefinition node.\n");
+			fprintf(stderr, "Bad kind field in HiddenDefinition node.\n");
 			return 1;
 	}
 	return err;
@@ -552,14 +552,14 @@ int checkListInputDefinition(ListInputDefinition p, SemanticContext *ctx)
 }
 
 
-int checkListIntermediateDefinition(ListIntermediateDefinition p, SemanticContext *ctx)
+int checkListHiddenDefinition(ListHiddenDefinition p, SemanticContext *ctx)
 {
-	if (!p) return 0; // ListIntermediateDefinition is optional
+	if (!p) return 0; // ListHiddenDefinition is optional
     int err = 0;
     while(p != 0)
     {
-        err |= checkIntermediateDefinition(p->intermediatedefinition_, ctx);
-        p = p->listintermediatedefinition_;
+        err |= checkHiddenDefinition(p->hiddendefinition_, ctx);
+        p = p->listhiddendefinition_;
     }
     return err;
 }
@@ -591,7 +591,7 @@ int checkNetworkDefinition(NetworkDefinition p, SemanticContext *ctx)
 
             // Process definitions - this populates the symbol table
             err |= checkListInputDefinition(p->u.networkdef_.listinputdefinition_, ctx);
-            err |= checkListIntermediateDefinition(p->u.networkdef_.listintermediatedefinition_, ctx);
+            err |= checkListHiddenDefinition(p->u.networkdef_.listhiddendefinition_, ctx);
             err |= checkListOutputDefinition(p->u.networkdef_.listoutputdefinition_, ctx);
             break;
 
