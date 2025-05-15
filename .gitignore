@@ -1,7 +1,6 @@
 Makefile
 *.bak
-VNNLibBNF
-VNNLibLBNF
+Syntax
 
 parser/src/bisonParser/*
 parser/bin
@@ -13,8 +12,8 @@ build
 
 .vscode
 
-VNNLIB2_standard/*.log
-VNNLIB2_standard/*.out
-VNNLIB2_standard/*.err
-VNNLIB2_standard/*.aux
-VNNLIB2_standard/*.pdf
+document/*.log
+document/*.out
+document/*.err
+document/*.aux
+document/*.pdf

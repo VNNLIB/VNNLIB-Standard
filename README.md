@@ -1,36 +1,35 @@
-# EVNNLIB
+# VNNLIB-Standard 
 
-A project to define and extend the grammar of the current VNNLIB specifications.  
-Contributors: Allen Antony, Ann Roy, Matthew Daggitt <br>
+⚠️ Work-in-Progress: This repository contains an early-stage proposal for VNNLIB-2.0, an extension and refinement of the current VNNLIB specification. 
 
-## Set up
-This project uses the BNFC package to build and test the parser.  
-The set-up instructions can be found in the official documentation linked [here](https://hackage.haskell.org/package/BNFC-2.9.5).
+## Syntax
 
-## Testing Instructions
-A build and test bash script has been provided for building & testing the generated parser for the grammar file which run the test on all the files in `test/`.  
-If the `test.sh` does not allow execution, add permissions accordingly:
+The formal syntax of the VNNLIB-2.0 language is located in `syntax.cf`. This syntax uses the [Labelled Backus Neur Formalism (LBNF)](https://bnfc.readthedocs.io/en/latest/lbnf.html)
+
+This project uses the BNFC package to build a parser for testing the grammar. For installation and usage instructions, refer to the official documentation [here](https://hackage.haskell.org/package/BNFC-2.9.5).
+
+### 1. Build the haskell-based parser
+```bash
+$ bnfc -d -m syntax.cf  &&  make
+```
+
+### 2. Test the parser
+A set of example queries are located in the `test/` folder.
+These examples are adapted from the [VNNLIB Benchmarks Repository](https://github.com/VNNLIB/Benchmarks/) or composed manually as valid queries.
+
+To run tests with the Haskell-based parser:
+```bash
+$ Syntax/Test <test-file-path>
+```
+
+A Bash script `test.sh` is provided to simplify building and testing the grammar parser. It will run tests on all files located in the test/ directory.
+If test.sh does not have execution permissions, add them with:
+
 ```bash
 $ chmod +x test.sh
 ```
 
-1. Build the parser
-```bash
-$ bnfc -d -m VNNLib_LBNF.cf  &&  make
-```
+## Parser
 
-**Note: to build the parser to C files, use the following command instead**
-```bash
-$ bnfc --c -m -o VNNLibLBNF VNNLib_LBNF.cf  &&  make -C VNNLibLBNF
-```
 
-2. Test the parser
-   - the test files must be in the `/tests` folder
-   - the examples are converted from the [VNNLIB Benchmarks Repo](https://github.com/VNNLIB/Benchmarks/) or lines of valid commands
-```bash
-$ VNNLibLBNF/Test <test-file-path>
-```
-**Note: if the C command was used, run the following command instead**
-```bash
-$ VNNLibLBNF/TestVNNLib_LBNF <test-file-path>
-```
+## Semantics
