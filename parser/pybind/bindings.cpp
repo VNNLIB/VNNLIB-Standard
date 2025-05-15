@@ -350,6 +350,21 @@ PYBIND11_MODULE(vnnlib, m) {
         return query_ast_wrapper;
     }, py::doc("Parses a VNNLib file and returns a traversable AST Query object."));
 
+
+    // --- Function for Checking Semantic Validity ---
+    m.def("check_query", [](const QueryWrapper& query, bool json) {
+        char* result = check_query(query.get_struct(), json);
+
+        if (result == nullptr) {
+            throw std::runtime_error("Failed to check query validity: C function returned null.");
+        }
+
+        std::string result_str = result ? std::string(result) : std::string();
+        free(result); 
+        return result_str;
+    }, py::arg("query"), py::arg("json") = false, py::doc("Checks the validity of a VNNLib query and returns the result as a string"));
+
+
 #ifdef VERSION_INFO
     m.attr("__version__") = VERSION_INFO;
 #else
