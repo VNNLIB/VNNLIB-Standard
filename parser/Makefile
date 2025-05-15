@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -g -fPIC -Wno-unused-parameter
-BISON_OPTS = -t -pvnn_lib_lbnf_ -d
-FLEX_OPTS = -Pvnn_lib_lbnf_
+BISON_OPTS = -t -psyntax_ -d
+FLEX_OPTS = -Psyntax_
 
 SRC_DIR = src
 OBJ_DIR = build
@@ -62,12 +62,12 @@ $(BIN_DIR):
 # Generate parser and lexer from BNF
 $(SRC_DIR)/bisonParser/Parser.c $(SRC_DIR)/bisonParser/Bison.h: 
 	cd $(SRC_DIR)/bisonParser && \
-	bison $(BISON_OPTS) VNNLib_LBNF.y -o Parser.c && \
+	bison $(BISON_OPTS) syntax.y -o Parser.c && \
 	cd ../..
 
 $(SRC_DIR)/bisonParser/Lexer.c:
 	cd $(SRC_DIR)/bisonParser && \
-	flex $(FLEX_OPTS) -o Lexer.c VNNLib_LBNF.l && \
+	flex $(FLEX_OPTS) -o Lexer.c syntax.l && \
 	cd ../..
 
 clean:

@@ -81,8 +81,8 @@ int checkListNetworkDefinition(ListNetworkDefinition listnetworkdefinition, Sema
 int checkNetworkDefinition(NetworkDefinition p, SemanticContext *ctx);
 int checkListInputDefinition(ListInputDefinition listinputdefinition, SemanticContext *ctx);
 int checkInputDefinition(InputDefinition p, SemanticContext *ctx);
-int checkListIntermediateDefinition(ListIntermediateDefinition listintermediatedefinition, SemanticContext *ctx);
-int checkIntermediateDefinition(IntermediateDefinition p, SemanticContext *ctx);
+int checkListHiddenDefinition(ListHiddenDefinition listintermediatedefinition, SemanticContext *ctx);
+int checkHiddenDefinition(HiddenDefinition p, SemanticContext *ctx);
 int checkListOutputDefinition(ListOutputDefinition listoutputdefinition, SemanticContext *ctx);
 int checkOutputDefinition(OutputDefinition p, SemanticContext *ctx);
 int checkElementType(ElementType p, SemanticContext *ctx);

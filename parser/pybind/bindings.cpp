@@ -207,7 +207,7 @@ PYBIND11_MODULE(vnnlib, m) {
         }, py::keep_alive<0, 1>());
 
 
-    // --- Definition Wrappers (Input, Intermediate, Output) ---
+    // --- Definition Wrappers (Input, Hidden, Output) ---
     py::class_<InputDefinitionWrapper> inputDefWrapper(m, "InputDefinition");
     inputDefWrapper
         .def("__str__", &InputDefinitionWrapper::to_string);
@@ -217,15 +217,15 @@ PYBIND11_MODULE(vnnlib, m) {
         .def_property_readonly("element_type", [](const InputDef &obj) { return obj.elementtype_.get(); }, py::return_value_policy::reference_internal)
         .def_property_readonly("shape", [](const InputDef &obj) { return obj.listint_.get(); }, py::return_value_policy::reference_internal);
 
-    py::class_<IntermediateDefinitionWrapper> intermediateDefWrapper(m, "IntermediateDefinition");
-    intermediateDefWrapper
-        .def("__str__", &IntermediateDefinitionWrapper::to_string);
+    py::class_<HiddenDefinitionWrapper> hiddenDefWrapper(m, "HiddenDefinition");
+    hiddenDefWrapper
+        .def("__str__", &HiddenDefinitionWrapper::to_string);
     
-    py::class_<IntermediateDef, IntermediateDefinitionWrapper>(m, "IntermediateDef")
-        .def_readonly("onnx_name", &IntermediateDef::string_) // Assuming 'string_' is a comment or similar
-        .def_readonly("variable_name", &IntermediateDef::variablename_)
-        .def_property_readonly("element_type", [](const IntermediateDef &obj) { return obj.elementtype_.get(); }, py::return_value_policy::reference_internal)
-        .def_property_readonly("shape", [](const IntermediateDef &obj) { return obj.listint_.get(); }, py::return_value_policy::reference_internal);
+    py::class_<HiddenDef, HiddenDefinitionWrapper>(m, "HiddenDef")
+        .def_readonly("onnx_name", &HiddenDef::string_) // Assuming 'string_' is a comment or similar
+        .def_readonly("variable_name", &HiddenDef::variablename_)
+        .def_property_readonly("element_type", [](const HiddenDef &obj) { return obj.elementtype_.get(); }, py::return_value_policy::reference_internal)
+        .def_property_readonly("shape", [](const HiddenDef &obj) { return obj.listint_.get(); }, py::return_value_policy::reference_internal);
 
     py::class_<OutputDefinitionWrapper> outputDefWrapper(m, "OutputDefinition");
     outputDefWrapper
@@ -254,19 +254,19 @@ PYBIND11_MODULE(vnnlib, m) {
         }, py::keep_alive<0, 1>());
         
 
-    // --- ListIntermediateDefinition Wrapper ---
-    py::class_<ListIntermediateDefinitionWrapper> listIntermediateDefWrapper(m, "ListIntermediateDefinition");
-    listIntermediateDefWrapper
-        .def("__str__", &ListIntermediateDefinitionWrapper::to_string);
+    // --- ListHiddenDefinition Wrapper ---
+    py::class_<ListHiddenDefinitionWrapper> listHiddenDefWrapper(m, "ListHiddenDefinition");
+    listHiddenDefWrapper
+        .def("__str__", &ListHiddenDefinitionWrapper::to_string);
 
-    py::class_<IntermediateDefinitionList, ListIntermediateDefinitionWrapper>(m, "IntermediateDefinitionList")
-        .def_property_readonly("current", [](const IntermediateDefinitionList &obj) { 
-            return obj.intermediatedefinition_.get(); 
+    py::class_<HiddenDefinitionList, ListHiddenDefinitionWrapper>(m, "HiddenDefinitionList")
+        .def_property_readonly("current", [](const HiddenDefinitionList &obj) { 
+            return obj.hiddendefinition_.get(); 
         }, py::return_value_policy::reference_internal)
-        .def_property_readonly("next", [](const IntermediateDefinitionList &obj) { 
-            return obj.listintermediatedefinition_.get(); 
+        .def_property_readonly("next", [](const HiddenDefinitionList &obj) { 
+            return obj.listhiddendefinition_.get(); 
         }, py::return_value_policy::reference_internal)
-        .def("__iter__", [](IntermediateDefinitionList &self) {
+        .def("__iter__", [](HiddenDefinitionList &self) {
             return py::make_iterator(self.begin(), self.end());
         }, py::keep_alive<0, 1>());
     
@@ -296,7 +296,7 @@ PYBIND11_MODULE(vnnlib, m) {
     py::class_<NetworkDef, NetworkDefinitionWrapper>(m, "NetworkDef")
         .def_readonly("variable_name", &NetworkDef::variablename_)
         .def_property_readonly("inputs", [](const NetworkDef &obj) { return obj.listinputdefinition_.get(); }, py::return_value_policy::reference_internal)
-        .def_property_readonly("intermediates", [](const NetworkDef &obj) { return obj.listintermediatedefinition_.get(); }, py::return_value_policy::reference_internal)
+        .def_property_readonly("hiddens", [](const NetworkDef &obj) { return obj.listhiddendefinition_.get(); }, py::return_value_policy::reference_internal)
         .def_property_readonly("outputs", [](const NetworkDef &obj) { return obj.listoutputdefinition_.get(); }, py::return_value_policy::reference_internal);
     
 
