@@ -30,6 +30,20 @@ $ chmod +x test.sh
 ```
 
 ## Parser
+The Parser provides tools to parse `.vnnlib` files. It consists of a core C library for parsing, C++ wrapper classes that create an object-oriented AST from the C structs, and Pybind11 bindings to expose this functionality to Python. The Python module allows users to load a VNNLib file, traverse its AST, view a string representation of each AST node, and check the semantic validity of the VNNLib file. An example script showing the usage of the library is `parser/pybind/test_vnnlib.py`.
 
+A bash script `build_parser.sh` script has been provided for simplifying the build process,
+
+If `build_parser.sh` does not have execution permissions, add them with:
+
+```bash
+$ chmod +x build_parser.sh
+```
+
+To install the `vnnlib` Python package to your local Python environment, run this command inside of `parser/pybind/`:
+
+```bash
+$ pip install .
+```
 
 ## Semantics
