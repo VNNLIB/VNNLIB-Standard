@@ -21,6 +21,7 @@ parser/src/bisonParser/*
 parser/bin
 
 VNNLIBWrappers.hpp
+*.egg-info
 
 *.so
 build
