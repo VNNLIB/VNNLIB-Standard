@@ -5,6 +5,7 @@ import os
 vnnlib_content = """
 (declare-network acc
 	(declare-input X Real 3)
+    (declare-input X Real 3)
 	(declare-output Y Real)
 )
 
@@ -34,6 +35,10 @@ try:
     print("Successfully parsed VNNLib file!")
     print(f"Query Object Type: {type(query_ast)}")
     print(f"Query AST as string:\n{str(query_ast)}\n") 
+
+    # Check validity of the query
+    check_out = vnnlib.check_query(query_ast, json=True)
+    print(f"Check Query Output: {check_out}\n")
 
     # 2. Traverse Network Definitions
     print("--- Networks ---")
