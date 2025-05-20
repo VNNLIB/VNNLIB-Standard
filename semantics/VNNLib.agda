@@ -2,12 +2,13 @@ module VNNLib where
 
 open import Data.List as List
 open import Data.String hiding (map)
-open import Data.Nat
+open import Data.Nat hiding (_<ᵇ_)
 open import Data.Integer
 open import Data.Rational as ℚ
 open import Data.Bool
 open import Data.Fin
 open import Data.Product as Product
+open import utils using (_≥ᵇ_;_>ᵇ_;_<ᵇ_;_=ᵇ_;_≠ᵇ_)
 
 -- Tensor Shape (replaces Int in syntax)
 data TensorShape : Set where
@@ -50,11 +51,11 @@ data ArithExpr (Γ : Context) : Set where
 ⟦ ε % (varOutput n i ) ⟧ₐ = GetTensorElement i ((Product.proj₁ (ε n)) (Product.proj₂ ((ε n))))
 -- Cannot simplify similar cases with fold as context is implicit
 ⟦ ε % (add []) ⟧ₐ   = 0ℚ
-⟦ ε % (add (a ∷ ax)) ⟧ₐ   = ⟦ ε % a ⟧ₐ ℚ.+ ⟦ ε % (add ax) ⟧ₐ
+⟦ ε % (add (a₀ ∷ a)) ⟧ₐ   = ⟦ ε % a₀ ⟧ₐ ℚ.+ ⟦ ε % (add a) ⟧ₐ
 ⟦ ε % (mult []) ⟧ₐ  = 1ℚ
-⟦ ε % (mult (a ∷ ax)) ⟧ₐ  = ⟦ ε % a ⟧ₐ ℚ.* ⟦ ε % (mult ax) ⟧ₐ
+⟦ ε % (mult (a₀ ∷ a)) ⟧ₐ  = ⟦ ε % a₀ ⟧ₐ ℚ.* ⟦ ε % (mult a) ⟧ₐ
 ⟦ ε % (minus []) ⟧ₐ = 0ℚ
-⟦ ε % (minus (a ∷ ax)) ⟧ₐ = ⟦ ε % a ⟧ₐ ℚ.- ⟦ ε % (minus ax) ⟧ₐ
+⟦ ε % (minus (a₀ ∷ a)) ⟧ₐ = ⟦ ε % a₀ ⟧ₐ ℚ.- ⟦ ε % (minus a) ⟧ₐ
 
 
 
@@ -77,12 +78,12 @@ data BoolExpr (Γ : Context) : Set where
 
 ⟦_%_⟧ᵇ : ∀ {Γ} → Environment Γ → BoolExpr Γ → Bool
 ⟦ ε % (literal b) ⟧ᵇ = b
-⟦ ε % (greaterThan a1 a2) ⟧ᵇ  = not ( ⟦ ε % a1 ⟧ₐ ℚ.≤ᵇ ⟦ ε % a2 ⟧ₐ )
-⟦ ε % (lessThan a1 a2) ⟧ᵇ = not (ℚ._≤ᵇ_ ⟦ ε % a2 ⟧ₐ ⟦ ε % a1 ⟧ₐ )
-⟦ ε % (greaterEqual a1 a2) ⟧ᵇ = ℚ._≤ᵇ_ ⟦ ε % a2 ⟧ₐ ⟦ ε % a1 ⟧ₐ
-⟦ ε % (lessEqual a1 a2) ⟧ᵇ = ℚ._≤ᵇ_ ⟦ ε % a1 ⟧ₐ ⟦ ε % a2 ⟧ₐ
-⟦ ε % (notEqual a1 a2) ⟧ᵇ  = not ( ℚ._≤ᵇ_ ⟦ ε % a1 ⟧ₐ ⟦ ε % a2 ⟧ₐ ∧ ℚ._≤ᵇ_ ⟦ ε % a2 ⟧ₐ ⟦ ε % a1 ⟧ₐ )
-⟦ ε % (equal a1 a2) ⟧ᵇ = ℚ._≤ᵇ_ ⟦ ε % a1 ⟧ₐ ⟦ ε % a2 ⟧ₐ ∧ ℚ._≤ᵇ_ ⟦ ε % a2 ⟧ₐ ⟦ ε % a1 ⟧ₐ
+⟦ ε % (greaterThan a1 a2) ⟧ᵇ  = ⟦ ε % a1 ⟧ₐ >ᵇ ⟦ ε % a2 ⟧ₐ
+⟦ ε % (lessThan a1 a2) ⟧ᵇ = ⟦ ε % a1 ⟧ₐ <ᵇ ⟦ ε % a2 ⟧ₐ
+⟦ ε % (greaterEqual a1 a2) ⟧ᵇ = ⟦ ε % a1 ⟧ₐ ≥ᵇ ⟦ ε % a2 ⟧ₐ
+⟦ ε % (lessEqual a1 a2) ⟧ᵇ = ⟦ ε % a1 ⟧ₐ ℚ.≤ᵇ ⟦ ε % a2 ⟧ₐ
+⟦ ε % (notEqual a1 a2) ⟧ᵇ  = ⟦ ε % a1 ⟧ₐ ≠ᵇ ⟦ ε % a2 ⟧ₐ
+⟦ ε % (equal a1 a2) ⟧ᵇ = ⟦ ε % a1 ⟧ₐ =ᵇ ⟦ ε % a2 ⟧ₐ
 ⟦ ε % (andExpr []) ⟧ᵇ  = true
 ⟦ ε % (andExpr (b ∷ xb)) ⟧ᵇ = _∧_ ⟦ ε % b ⟧ᵇ ⟦ ε % (andExpr xb) ⟧ᵇ
 ⟦ ε % (orExpr []) ⟧ᵇ = false
