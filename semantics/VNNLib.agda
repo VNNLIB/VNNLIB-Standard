@@ -7,13 +7,15 @@ open import Data.Integer
 open import Data.Rational as ℚ
 open import Data.Bool
 open import Data.Fin
-open import Data.Product
+open import Data.Product as Product
 
 -- Tensor Shape (replaces Int in syntax)
 data TensorShape : Set where
   shape : List ℕ → TensorShape
 
 postulate Tensor : TensorShape → Set
+
+postulate GetTensorElement : ∀ {shape} → (indices : List ℕ) → Tensor shape → ℚ 
 
 Context : Set
 Context = List (TensorShape × TensorShape)
@@ -29,29 +31,33 @@ Environment Γ =
 data VariableName : Set where
   SVariableName : String → VariableName
 
-{-
+
 -- Arithmetic Expressions: nary operations
 data ArithExpr (Γ : Context) : Set where
   const  : ℚ → ArithExpr Γ
-  negate : ArithExpr Γ → ArithExpr Γ 
-  var : Fin Γ → ArithExpr Γ
+  negate : ArithExpr Γ → ArithExpr Γ
+  varInput : Fin (List.length Γ) → List ℕ → ArithExpr Γ
+  varOutput : Fin (List.length Γ) → List ℕ → ArithExpr Γ
   add : List (ArithExpr Γ) → ArithExpr Γ
   minus : List (ArithExpr Γ) → ArithExpr Γ
   mult  : List (ArithExpr Γ) → ArithExpr Γ
 
 -- Arithmetic Expression Evaluation         
-⟦_%_%_⟧ₐ : (Γ : Context) → Environment (Γ) → ArithExpr (Γ) → ℚ
--- Use implicit arguments (∀ {Γ} → Environment Γ → ...)
-⟦ Γ % ε % (const a) ⟧ₐ  = a
-⟦ Γ % ε % (negate a) ⟧ₐ = 0ℚ ℚ.- ⟦ Γ % ε % a ⟧ₐ 
-⟦ Γ % ε % (var a) ⟧ₐ    = ε a
--- Can simplify similar cases with `fold`
-⟦ Γ % ε % (add []) ⟧ₐ   = 0ℚ
-⟦ Γ % ε % (add (a ∷ ax)) ⟧ₐ   = ⟦ Γ % ε % a ⟧ₐ ℚ.+ ⟦ Γ % ε % (add ax) ⟧ₐ
-⟦ Γ % ε % (mult []) ⟧ₐ  = 1ℚ
-⟦ Γ % ε % (mult (a ∷ ax)) ⟧ₐ  = ⟦ Γ % ε % a ⟧ₐ ℚ.* ⟦ Γ % ε % (mult ax) ⟧ₐ
-⟦ Γ % ε % (minus []) ⟧ₐ = 0ℚ
-⟦ Γ % ε % (minus (a ∷ ax)) ⟧ₐ = ⟦ Γ % ε % a ⟧ₐ ℚ.- ⟦ Γ % ε % (minus ax) ⟧ₐ
+⟦_%_⟧ₐ : ∀ {Γ} → Environment Γ → ArithExpr Γ → ℚ
+⟦ ε % (const a) ⟧ₐ  = a
+⟦ ε % (negate a) ⟧ₐ = 0ℚ ℚ.- ⟦ ε % a ⟧ₐ 
+⟦ ε % (varInput n i ) ⟧ₐ  = GetTensorElement i (Product.proj₂ (ε n))
+⟦ ε % (varOutput n i ) ⟧ₐ = GetTensorElement i ((Product.proj₁ (ε n)) (Product.proj₂ ((ε n))))
+-- Cannot simplify similar cases with fold as context is implicit
+⟦ ε % (add []) ⟧ₐ   = 0ℚ
+⟦ ε % (add (a ∷ ax)) ⟧ₐ   = ⟦ ε % a ⟧ₐ ℚ.+ ⟦ ε % (add ax) ⟧ₐ
+⟦ ε % (mult []) ⟧ₐ  = 1ℚ
+⟦ ε % (mult (a ∷ ax)) ⟧ₐ  = ⟦ ε % a ⟧ₐ ℚ.* ⟦ ε % (mult ax) ⟧ₐ
+⟦ ε % (minus []) ⟧ₐ = 0ℚ
+⟦ ε % (minus (a ∷ ax)) ⟧ₐ = ⟦ ε % a ⟧ₐ ℚ.- ⟦ ε % (minus ax) ⟧ₐ
+
+
+
 
 -- Boolean Expressions: Connective and Comparative Expressions
 data BoolExpr (Γ : Context) : Set where
@@ -68,26 +74,26 @@ data BoolExpr (Γ : Context) : Set where
   andExpr : List (BoolExpr Γ) → BoolExpr Γ
   orExpr  : List (BoolExpr Γ) → BoolExpr Γ
 
-⟦_%_%_⟧ᵇ : (Γ : Context) → Environment (Γ) → BoolExpr (Γ) → Bool
-⟦ Γ % ε % (literal b) ⟧ᵇ = b
--- Put undefined comparisons in utils file
-⟦ Γ % ε % (greaterThan a1 a2) ⟧ᵇ  = not ( ⟦ Γ % ε % a1 ⟧ₐ ℚ.≤ᵇ ⟦ Γ % ε % a2 ⟧ₐ )
-⟦ Γ % ε % (lessThan a1 a2) ⟧ᵇ = not (ℚ._≤ᵇ_ ⟦ Γ % ε % a2 ⟧ₐ ⟦ Γ % ε % a1 ⟧ₐ )
-⟦ Γ % ε % (greaterEqual a1 a2) ⟧ᵇ = ℚ._≤ᵇ_ ⟦ Γ % ε % a2 ⟧ₐ ⟦ Γ % ε % a1 ⟧ₐ
-⟦ Γ % ε % (lessEqual a1 a2) ⟧ᵇ = ℚ._≤ᵇ_ ⟦ Γ % ε % a1 ⟧ₐ ⟦ Γ % ε % a2 ⟧ₐ
-⟦ Γ % ε % (notEqual a1 a2) ⟧ᵇ  = not ( ℚ._≤ᵇ_ ⟦ Γ % ε % a1 ⟧ₐ ⟦ Γ % ε % a2 ⟧ₐ ∧ ℚ._≤ᵇ_ ⟦ Γ % ε % a2 ⟧ₐ ⟦ Γ % ε % a1 ⟧ₐ )
-⟦ Γ % ε % (equal a1 a2) ⟧ᵇ = ℚ._≤ᵇ_ ⟦ Γ % ε % a1 ⟧ₐ ⟦ Γ % ε % a2 ⟧ₐ ∧ ℚ._≤ᵇ_ ⟦ Γ % ε % a2 ⟧ₐ ⟦ Γ % ε % a1 ⟧ₐ
-⟦ Γ % ε % (andExpr []) ⟧ᵇ  = true
-⟦ Γ % ε % (andExpr (b ∷ xb)) ⟧ᵇ = _∧_ ⟦ Γ % ε % b ⟧ᵇ ⟦ Γ % ε % (andExpr xb) ⟧ᵇ
-⟦ Γ % ε % (orExpr []) ⟧ᵇ = false
-⟦ Γ % ε % (orExpr (b ∷ xb)) ⟧ᵇ  = _∨_ ⟦ Γ % ε % b ⟧ᵇ ⟦ Γ % ε % (orExpr xb) ⟧ᵇ
+
+⟦_%_⟧ᵇ : ∀ {Γ} → Environment Γ → BoolExpr Γ → Bool
+⟦ ε % (literal b) ⟧ᵇ = b
+⟦ ε % (greaterThan a1 a2) ⟧ᵇ  = not ( ⟦ ε % a1 ⟧ₐ ℚ.≤ᵇ ⟦ ε % a2 ⟧ₐ )
+⟦ ε % (lessThan a1 a2) ⟧ᵇ = not (ℚ._≤ᵇ_ ⟦ ε % a2 ⟧ₐ ⟦ ε % a1 ⟧ₐ )
+⟦ ε % (greaterEqual a1 a2) ⟧ᵇ = ℚ._≤ᵇ_ ⟦ ε % a2 ⟧ₐ ⟦ ε % a1 ⟧ₐ
+⟦ ε % (lessEqual a1 a2) ⟧ᵇ = ℚ._≤ᵇ_ ⟦ ε % a1 ⟧ₐ ⟦ ε % a2 ⟧ₐ
+⟦ ε % (notEqual a1 a2) ⟧ᵇ  = not ( ℚ._≤ᵇ_ ⟦ ε % a1 ⟧ₐ ⟦ ε % a2 ⟧ₐ ∧ ℚ._≤ᵇ_ ⟦ ε % a2 ⟧ₐ ⟦ ε % a1 ⟧ₐ )
+⟦ ε % (equal a1 a2) ⟧ᵇ = ℚ._≤ᵇ_ ⟦ ε % a1 ⟧ₐ ⟦ ε % a2 ⟧ₐ ∧ ℚ._≤ᵇ_ ⟦ ε % a2 ⟧ₐ ⟦ ε % a1 ⟧ₐ
+⟦ ε % (andExpr []) ⟧ᵇ  = true
+⟦ ε % (andExpr (b ∷ xb)) ⟧ᵇ = _∧_ ⟦ ε % b ⟧ᵇ ⟦ ε % (andExpr xb) ⟧ᵇ
+⟦ ε % (orExpr []) ⟧ᵇ = false
+⟦ ε % (orExpr (b ∷ xb)) ⟧ᵇ  = _∨_ ⟦ ε % b ⟧ᵇ ⟦ ε % (orExpr xb) ⟧ᵇ
 
 -- Properties: evalute to true or false
 data Property (Γ : Context) : Set where
   assert : BoolExpr Γ → Property Γ
 
-⟦_%_%_⟧ₚ : (Γ : Context) → Environment (Γ) → Property (Γ) → Bool
-⟦ Γ % ε % (assert p) ⟧ₚ = ⟦ Γ % ε % p ⟧ᵇ
+⟦_%_⟧ₚ : ∀ {Γ} → Environment Γ → Property Γ → Bool
+⟦ ε % (assert p) ⟧ₚ = ⟦ ε % p ⟧ᵇ
 
 -- Element Types
 data ElementType : Set where
@@ -118,21 +124,22 @@ data ElementType : Set where
 data InputDefinition : Set where
   declareInput : VariableName → ElementType → TensorShape → InputDefinition
 
-data IntermediateDefinition : Set where
-  declareIntermediate : VariableName → ElementType → TensorShape → String → IntermediateDefinition
+-- data IntermediateDefinition : Set where
+  -- declareIntermediate : VariableName → ElementType → TensorShape → String → IntermediateDefinition
 
 data OutputDefinition : Set where
   declareOutput : VariableName → ElementType → TensorShape → OutputDefinition
 
 -- Network Definitions
 data NetworkDefinition : Set where
-  declareNetwork : VariableName → List InputDefinition → List IntermediateDefinition → List OutputDefinition → NetworkDefinition
+  declareNetwork : VariableName → List InputDefinition → List OutputDefinition → NetworkDefinition
 
+-- Use network definitions to create the context
 mkContext : List NetworkDefinition → Context
-mkContext = {!!}
+mkContext [] = []
+mkContext (declareNetwork _ (declareInput _ _ inputShape ∷ _) (declareOutput _ _ outputShape ∷ _) ∷ networksₙ₋₁) = (inputShape , outputShape) ∷ mkContext networksₙ₋₁
+mkContext (_ ∷ networksₙ₋₁ ) = mkContext networksₙ₋₁
 
--- TODO: Does not pass type-check
--- Queries
+-- Query
 data Query : Set where
-   mkQuery : (networks : List NetworkDefinition) → List (Property (mkContext networks)) → Query
--}
+  mkQuery : (networks : List NetworkDefinition) → List (Property (mkContext networks)) → Query
