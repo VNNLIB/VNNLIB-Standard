@@ -91,8 +91,8 @@ $Z \in I^{n \times m \times p}$, we will have the following representations:
 In such a representation, \texttt{Z\_$i$-$j$-$k$} corresponds to the element $z_{i,j,k}$ of the tensor $Z$. 
 
 \paragraph{Assertion Example}
-For example, a simple Assertion might assert that for a given input range of the input neuron $X_1$, the output neuron $Y_0$ 
-is greater than another output neuron $Y_1$:
+For example, a simple Assertion might assert that for a given range of the input neuron $A_1$, the output neuron $B_0$ 
+is greater than another output neuron $B_1$:
 \begin{lstlisting}[
     caption=Network Definition Rule, 
     basicstyle=\ttfamily\footnotesize,
@@ -101,8 +101,6 @@ is greater than another output neuron $Y_1$:
     breakindent=2em,                
     postbreak=\mbox{\textcolor{red}{$\hookrightarrow$}\space} 
 ]
-(assert 
-	(and (and (>= X_0 0.0) (<= X_0 1.0)) (> Y_0 Y_1))
-)
+(assert (and (and (>= A_0 0.0) (<= B_0 1.0)) (> B_0 B_1)))}
 \end{lstlisting}
 More complex properties, including those referencing multiple networks or intermediate nodes, can be constructed using these foundational elements.
