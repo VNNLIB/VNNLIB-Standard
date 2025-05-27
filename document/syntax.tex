@@ -1,0 +1,108 @@
+The syntax of VNN-LIB 2.0 is formally defined using Labelled Backus-Naur Form (LBNF)\cite{8}. LBNF is a variant of BNF that allows for 
+annotations (labels) on productions, facilitating the automatic generation of abstract syntax trees, parsers, and other language processing tools. 
+This formal grammar provides a rigorous foundation for the language, eliminating ambiguities present in previous versions and ensuring consistent 
+parsing across different tools.
+
+The full LBNF grammar for VNN-LIB 2.0 is provided in the Appendix. The following subsections highlight key syntactic constructs introduced 
+or modified in VNN-LIB 2.0, simplified for readability.
+
+\subsection{Network Definitions}
+VNN-LIB 2.0 supports the definition of one or more neural networks within a single specification file. This is crucial for properties involving 
+multiple networks, such as checking equivalence or performing compositional verification.
+
+A network definition is introduced by the keyword \texttt{declare-network}, followed by a user-defined variable name for the network, and then its 
+associated input, intermediate (hidden), and output variable declarations, all enclosed in parentheses.
+
+The LBNF rule can be generally represented as:
+\begin{lstlisting}[
+    caption=Network Definition Rule, 
+    basicstyle=\ttfamily\footnotesize,
+    breaklines=true,               
+    breakatwhitespace=false,       
+    breakindent=2em,                
+    postbreak=\mbox{\textcolor{red}{$\hookrightarrow$}\space} 
+]
+NetworkDefinition ::= "(declare-network" VariableName InputDefinition+ IntermediateDefinition* OutputDefinition+ ")" ;
+\end{lstlisting}
+Here, \texttt{VariableName} is an identifier for the network.\texttt{InputDefinition+} indicates one or more input definitions, \texttt{IntermediateDefinition*} 
+indicates zero or more intermediate (hidden) node definitions, and \texttt{OutputDefinition+} indicates one or more output definitions. These components are detailed below.
+
+\subsection{Input and Output Variable Declarations}
+In VNN-LIB 1.0, input and output variables were implicitly defined by the first and last nodes of the ONNX model, respectively. However, this approach lacked flexibility and expressiveness,
+especially for networks with multiple inputs or outputs, or when properties needed to refer to specific nodes within the ONNX network. To support networks with multiple inputs or outputs, 
+and to provide more expressive tensor declarations, VNN-LIB 2.0 introduces explicit declarations for input and output variables.
+
+An input variable is declared using the \texttt{declare-input} keyword, followed by a variable name, its element type (e.g., \texttt{Real}, \texttt{int8}), and a space-seperated list of integers 
+representing the shape of the tensor. Similarly, an output variable uses the \texttt{declare-output} keyword.
+
+The LBNF rules are:
+\begin{lstlisting}[
+    caption=Network Definition Rule, 
+    basicstyle=\ttfamily\footnotesize,
+    breaklines=true,               
+    breakatwhitespace=false,       
+    breakindent=2em,                
+    postbreak=\mbox{\textcolor{red}{$\hookrightarrow$}\space} 
+]
+InputDefinition ::= "(declare-input" VariableName ElementType Int* ")" ;
+OutputDefinition ::= "(declare-output" VariableName ElementType Int* ")" ;
+\end{lstlisting}
+For example, \texttt{(declare-input X Real 1 28 28)} declares an input tensor named \texttt{X} of real numbers with shape $1 \times 28 \times 28$. This syntax allows for tensor-level 
+declarations directly, improving conciseness compared to VNN-LIB 1.0, where each tensor element was required to be declared individually.
+
+\myremark{By default, the declared variables correspond to the nodes in the associated ONNX model by their order of declaration. You may specify the ONNX node names explicitly
+using the \texttt{onnx-node} keyword under the condition that an ONNX name is provided for each variable.}
+
+\subsection{Intermediate (Hidden) Node Declarations}
+A significant extension in VNN-LIB 2.0 is the ability to reference internal (hidden) nodes of a neural network. This is essential for specifying properties on intermediate 
+layers, verifying composite architectures (e.g., encoder-decoder models), or for observer-controller systems.
+
+An intermediate node is declared using the \texttt{declare-intermediate} keyword. This declaration includes a variable name for use within the VNN-LIB specification, 
+its element type, its tensor shape, and crucially, a string identifier that specifies the corresponding node name in the ONNX graph.
+
+The LBNF rule is:
+\begin{lstlisting}[
+    caption=Network Definition Rule, 
+    basicstyle=\ttfamily\footnotesize,
+    breaklines=true,               
+    breakatwhitespace=false,       
+    breakindent=2em,                
+    postbreak=\mbox{\textcolor{red}{$\hookrightarrow$}\space} 
+]
+IntermediateDefinition ::= "(declare-intermediate" VariableName ElementType Int* "onnx-node" ":" String ")" ;
+\end{lstlisting}
+For example, \texttt{(declare-intermediate H1 Real 100 onnx-node:``layer3/relu\_out'')} declares an intermediate variable \texttt{H1} corresponding to the 
+ONNX tensor named ``layer3/relu\_out''.
+
+\subsection{Assertion Specification}
+VNN-LIB 2.0 continues to support first-order logic formulae as in VNNLIB-1.0. Asertions follow an SMT-LIB-like syntax, defined using parenthesised 
+\texttt{(assert\ldots)} expressions. An assertion consists of logical and arithmetic operations over one or more elements of the declared tensors.
+
+\paragraph{Matrix Notation}
+Let $X \in I$ be an $n$-dimensional tensor in some generic input domain $I = I^{d_1 \times \cdots \times d_n}$. The ``matrix notation'' represents a specific 
+element $x_{i_1, i_2, \dots, i_n}$ of the tensor $X$ as \texttt{X\_$i_1$-$i_2$-\dots-$i_n$}, where $i_1, \dots, i_n$ are the indices of the element of interest in the 
+dimensions $d_1, \dots, d_n$. To better clarify, if we consider the 1-D tensor $X \in I^n$, the 2-D tensor $Y \in I^{n \times m}$, and the 3-D tensor 
+$Z \in I^{n \times m \times p}$, we will have the following representations:
+\begin{itemize}
+    \item \texttt{X\_0}, \texttt{X\_1}, \dots, \texttt{X\_$i$}, \dots, \texttt{X\_$n$};
+    \item \texttt{Y\_0--0}, \texttt{Y\_0--1}, \dots, \texttt{Y\_$i$-$j$}, \dots, \texttt{Y\_$n$-$m$};
+    \item \texttt{Z\_0--0--0}, \texttt{Z\_0--0--1}, \dots, \texttt{Z\_$i$-$j$-$k$}, \dots, \texttt{Z\_$n$-$m$-$p$};
+\end{itemize}
+In such a representation, \texttt{Z\_$i$-$j$-$k$} corresponds to the element $z_{i,j,k}$ of the tensor $Z$. 
+
+\paragraph{Assertion Example}
+For example, a simple Assertion might assert that for a given input range of the input neuron $X_1$, the output neuron $Y_0$ 
+is greater than another output neuron $Y_1$:
+\begin{lstlisting}[
+    caption=Network Definition Rule, 
+    basicstyle=\ttfamily\footnotesize,
+    breaklines=true,               
+    breakatwhitespace=false,       
+    breakindent=2em,                
+    postbreak=\mbox{\textcolor{red}{$\hookrightarrow$}\space} 
+]
+(assert 
+	(and (and (>= X_0 0.0) (<= X_0 1.0)) (> Y_0 Y_1))
+)
+\end{lstlisting}
+More complex properties, including those referencing multiple networks or intermediate nodes, can be constructed using these foundational elements.
