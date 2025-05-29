@@ -2,30 +2,56 @@ module VNNLib where
 
 open import Data.List as List
 open import Data.String hiding (map)
-open import Data.Nat hiding (_<ᵇ_)
+open import Data.Nat as ℕ hiding (_<ᵇ_)
 open import Data.Integer
 open import Data.Rational as ℚ
 open import Data.Bool
-open import Data.Fin
+open import Data.Fin as Fin
 open import Data.Product as Product
 open import utils using (_≥ᵇ_;_>ᵇ_;_<ᵇ_;_=ᵇ_;_≠ᵇ_)
+open import Data.Vec as Vec using (Vec; []; _∷_)
 
--- Tensor Shape (replaces Int in syntax)
-data TensorShape : Set where
-  shape : List ℕ → TensorShape
 
-postulate Tensor : TensorShape → Set
+TensorShape : Set
+TensorShape = List ℕ
 
-postulate GetTensorElement : ∀ {shape} → (indices : List ℕ) → Tensor shape → ℚ 
+data TensorIndices : TensorShape → Set where
+ empty : TensorIndices []
+ non-empty : {head : ℕ} → {tail : List ℕ} → Fin head →  TensorIndices tail → TensorIndices (head ∷ tail) 
+
+test : TensorIndices (5 ∷ 2 ∷ [])
+test = non-empty ( # 4) ( non-empty ( # 1)  empty)
+
+-- Tensor
+data Tensor (Σ : Set) : TensorShape → Set where
+  scalar : Σ → Tensor Σ []
+  vector : {head : ℕ} → {tail : List ℕ} → Vec (Tensor Σ tail) head → Tensor Σ (head ∷ tail)
+
+TensorElement : ∀ {shape} → TensorIndices shape → Tensor ℚ shape → ℚ
+TensorElement {[]} empty (scalar x) = x
+TensorElement {dim ∷ shape} (non-empty idx idxs) (vector x) = TensorElement idxs (Vec.lookup x idx)
+
+record NetworkType : Set where
+  constructor
+    networkType
+  field
+    inputShape : TensorShape
+    outputShape : TensorShape
+    
 
 Context : Set
-Context = List (TensorShape × TensorShape)
+Context = List (NetworkType)
+
+record NetworkImplementation (networkType : NetworkType) : Set where
+  constructor
+    network
+  field
+    networkFunction : Tensor ℚ (NetworkType.inputShape networkType) → Tensor ℚ (NetworkType.outputShape networkType)
+    inputTensor : Tensor ℚ (NetworkType.inputShape networkType)
 
 Environment : Context → Set
 Environment Γ =
-  (i : Fin (List.length Γ)) →
-  let (inputShape , outputShape) = List.lookup Γ i in
-  (Tensor inputShape → Tensor outputShape) × Tensor inputShape
+  (i : Fin (List.length Γ)) → let networkType = List.lookup Γ i in NetworkImplementation networkType
 
 -- -- Naming/referencing
 
@@ -37,8 +63,8 @@ data VariableName : Set where
 data ArithExpr (Γ : Context) : Set where
   const  : ℚ → ArithExpr Γ
   negate : ArithExpr Γ → ArithExpr Γ
-  varInput : Fin (List.length Γ) → List ℕ → ArithExpr Γ
-  varOutput : Fin (List.length Γ) → List ℕ → ArithExpr Γ
+  varInput : (i : Fin (List.length Γ)) → TensorIndices (NetworkType.inputShape (List.lookup Γ i)) → ArithExpr Γ
+  varOutput : (i : Fin (List.length Γ)) → TensorIndices (NetworkType.outputShape (List.lookup Γ i)) → ArithExpr Γ
   add : List (ArithExpr Γ) → ArithExpr Γ
   minus : List (ArithExpr Γ) → ArithExpr Γ
   mult  : List (ArithExpr Γ) → ArithExpr Γ
@@ -47,8 +73,8 @@ data ArithExpr (Γ : Context) : Set where
 ⟦_%_⟧ₐ : ∀ {Γ} → Environment Γ → ArithExpr Γ → ℚ
 ⟦ ε % (const a) ⟧ₐ  = a
 ⟦ ε % (negate a) ⟧ₐ = 0ℚ ℚ.- ⟦ ε % a ⟧ₐ 
-⟦ ε % (varInput n i ) ⟧ₐ  = GetTensorElement i (Product.proj₂ (ε n))
-⟦ ε % (varOutput n i ) ⟧ₐ = GetTensorElement i ((Product.proj₁ (ε n)) (Product.proj₂ ((ε n))))
+⟦ ε % (varInput i n ) ⟧ₐ  = TensorElement n (NetworkImplementation.inputTensor (ε i))
+⟦ ε % (varOutput i n ) ⟧ₐ = TensorElement n (NetworkImplementation.networkFunction (ε i) (NetworkImplementation.inputTensor ((ε i))))
 -- Cannot simplify similar cases with fold as context is implicit
 ⟦ ε % (add []) ⟧ₐ   = 0ℚ
 ⟦ ε % (add (a₀ ∷ a)) ⟧ₐ   = ⟦ ε % a₀ ⟧ₐ ℚ.+ ⟦ ε % (add a) ⟧ₐ
@@ -138,7 +164,7 @@ data NetworkDefinition : Set where
 -- Use network definitions to create the context
 mkContext : List NetworkDefinition → Context
 mkContext [] = []
-mkContext (declareNetwork _ (declareInput _ _ inputShape ∷ _) (declareOutput _ _ outputShape ∷ _) ∷ networksₙ₋₁) = (inputShape , outputShape) ∷ mkContext networksₙ₋₁
+mkContext (declareNetwork _ (declareInput _ _ inputShape ∷ _) (declareOutput _ _ outputShape ∷ _) ∷ networksₙ₋₁) = (networkType inputShape outputShape) ∷ mkContext networksₙ₋₁
 mkContext (_ ∷ networksₙ₋₁ ) = mkContext networksₙ₋₁
 
 -- Query
