@@ -27,7 +27,7 @@
 \newcommand{\mytodo}[1]{\todo[inline,color=lightgreen]{TODO:#1}}
 \newcommand{\myremark}[1]{\todo[inline, color=lightgreen]{\textbf{Remark:} #1}}
 
-\title{The VNN-LIB-2.0 standard for benchmarks\\2025}
+\title{The VNN-LIB standard for benchmarks\\2025}
 
 \author[1]{Stefano Demarchi}
 \author[2]{Dario Guidotti}
@@ -47,13 +47,11 @@
 \maketitle
 
 \begin{abstract}
-This document presents VNN-LIB 2.0, an enhanced standard for specifying neural network properties and 
-interfacing with verification tools. It builds upon the foundation of VNN-LIB 1.0, which combined the 
-Open Neural Network Exchange (ONNX) format for model description and the Satisfiability Modulo Theories Library (SMT-LIB) 
-format for property specification. Key among the changes are a rigorously defined formal syntax using Labelled Backus-Naur Form (LBNF), 
-and extended expressiveness to support multiple networks, multiple input/output nodes, and references to internal hidden layer nodes. 
-Furthermore, VNN-LIB 2.0 aims to provide standard parser libraries and utilities as well as define a standardized interface for invoking verifiers. 
-The goal is to foster greater robustness and interoperability in the neural network verification landscape.
+This document presents VNN-LIB, a standard that formalises the query language for neural network verifiers. The standard uses the 
+Open Neural Network Exchange (ONNX) format for model description and builds upon the Satisfiability Modulo Theories Library (SMT-LIB) 
+format for query specification. Key among the standard is a formally defined syntax and semantics, complimentary tooling, as well as a 
+command-line interface for verifiers. The goal is to foster greater robustness and interoperability in the neural network verification 
+landscape.
 \end{abstract}
 
 
@@ -63,22 +61,17 @@ As neural networks become increasingly integral to safety-critical and high soci
 the need for robust verification of their properties is paramount. While neural networks have shown exceptional performance, 
 they are susceptible to issues like adversarial examples\cite{3} and discriminatory behaviour\cite{4}.
 
-Since 2023, the VNN-LIB standard\cite{5} has served as a de facto specification language for properties in the neural network verification 
+Since 2023, the VNN-LIB standard\cite{5} has served as a de facto specification language for queries in the neural network verification 
 community, notably supporting the annual VNN-COMP\cite{7}. It was conceived to facilitate the standardisation of solver interfaces and 
-enable the collection of benchmarks in a common format. However, the original VNN-LIB (referred to herein as VNN-LIB 1.0) has exhibited 
-limitations in expressiveness, conciseness, and formal rigour\cite{5, 7}. For instance, VNN-LIB 1.0 lacks a formal syntax definition, 
-cannot inherently specify properties over multiple networks or reference hidden layer neurons, and does not offer standard parsing tools, 
-thereby hindering broader adoption and the development of more complex verification tasks. 
-
-This document introduces VNN-LIB 2.0, a significant evolution of the standard designed to address these shortcomings. VNN-LIB 2.0 aims 
-to provide a formally defined, extensible, and expressive standard for neural network verification.
+enable the collection of benchmarks in a common format. This document introduces a new version of the VNN-LIB standard which addresses 
+shortcomings in expressiveness, conciseness, and formal rigour\cite{5, 7}.
 
 This document is structured as follows. Chapter~\ref{sec:model} revisits the guidelines for model specification using ONNX.\@
-Chapter~\ref{sec:specification_language} details the VNN-LIB 2.0 query specification language, with Section~\ref{sec:smtlib} describing the 
-SMT-LIB first-order logic specification language which VNN-LIB is inspired from, Section~\ref{sec:syntax} describing the formal syntax of VNN-LIB 2.0 and 
+Chapter~\ref{sec:specification_language} details the VNN-LIB query specification language, with Section~\ref{sec:smtlib} describing the 
+SMT-LIB first-order logic specification language which VNN-LIB is inspired from, Section~\ref{sec:syntax} describing the formal syntax of VNN-LIB and 
 Section~\ref{sec:semantics} discussing its semantics. Chapter~\ref{sec:query_categories} outlines different characteristics of queries, namely linearity, 
-reachability, and normality. Chapter~\ref{sec:solver_interface} introduces a standard command  line interface for verifiers. Finally, Chapter~\ref{sec:examples} 
-presents examples illustrating how to use VNN-LIB 2.0 to specify constraints.
+reachability, and normality. Chapter~\ref{sec:solver_interface} introduces a standard command line interface for verifiers. Finally, Chapter~\ref{sec:examples} 
+presents examples illustrating how to use VNN-LIB to specify constraints.
 
 \chapter{Network Representation}\label{sec:model}
 \input{onnx_modelzoo_report}
@@ -106,20 +99,17 @@ presents examples illustrating how to use VNN-LIB 2.0 to specify constraints.
 % ---------------------------------------------------------------
 
 \chapter{Solver Interface}\label{sec:solver_interface}
+\section{Functionalities}\label{sec:functionalities}
 \input{verifier_interface}
 
-\section{Functionalities}\label{sec:functionalities}
-
-\section{Counterexamples}\label{sec:counterexamples}
-
-\section{Proof Certificates}\label{sec:proof_certificates}
+\section{Satisfying Assignments}\label{sec:satisfying_assignments}
 
 % ---------------------------------------------------------------
 
 \chapter{Examples}\label{sec:examples}
 
 \appendix
-\chapter{VNN-LIB 2.0 LBNF Grammar}\label{app:lbnf_grammar}
+\chapter{VNN-LIB LBNF Grammar}\label{app:lbnf_grammar}
 \myremark{The full LBNF grammar, as developed using BNFC, should be included here.}
 
 \begin{thebibliography}{9} 
