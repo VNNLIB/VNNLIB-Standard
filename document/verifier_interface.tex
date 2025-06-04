@@ -47,84 +47,11 @@ vnn_verifier [global-options] <command> [command-options]
 These options are applicable to the main \texttt{vnn\_verifier} executable and potentially to all commands.
 \begin{itemize}
     \item \texttt{--help}, \texttt{-h}: Display help information for the CLI or for a specific command if used like \texttt{vnn\_verifier <command> --help}.
-    \item \texttt{--version}, \texttt{-v}: Display the verifier's name and version.
+    \item \texttt{--name}, \texttt{-v}: Display the verifier's name.
+    \item \texttt{--version}, \texttt{-V}: Display the verifier's version.
 \end{itemize}
 
 \section{Commands}
-
-\subsection{\texttt{list-onnx-ops}}
-\begin{itemize}
-    \item \textbf{Description}: Prints a newline-separated list of ONNX operator types (e.g., ``Conv'', ``Relu'', ``Gemm'') that are supported by the verifier. 
-	This helps users determine if their ONNX model is compatible with the verifier.
-    \item \textbf{Usage}:
-    \begin{lstlisting}[style=bash]
-vnn_verifier list-onnx-ops \end{lstlisting}
-    \item \textbf{Example Output}:
-    \begin{lstlisting}[style=bash, numbers=none, frame=none, backgroundcolor=\color{white}]
-Conv
-Relu
-MatMul
-Gemm
-Add
-Flatten
-...
-    \end{lstlisting}
-\end{itemize}
-
-\subsection{\texttt{capabilities}}
-\begin{itemize}
-    \item \textbf{Description}: Displays a comprehensive summary of the verifier's capabilities, features, and limitations in a structured format.
-    \item \textbf{Usage}:
-    \begin{lstlisting}[style=bash]
-vnn_verifier capabilities [--format <text|json|yaml>] \end{lstlisting}
-    \item \textbf{Options}:
-    \begin{itemize}
-        \item \texttt{--format <format>}: Specifies the output format. Supported formats are \texttt{text} (human-readable, default), \texttt{json}, and \texttt{yaml} (machine-readable).
-    \end{itemize}
-    \item \textbf{Example JSON Output} (\texttt{vnn\_verifier capabilities --format json}):
-    \begin{lstlisting}[style=bash, caption=Example JSON output for capabilities command]
-{
-  "verifier_name": "ExampleVerifier",
-  "verifier_version": "1.2.3",
-  "description": "ExampleVerifier is a neural network verifier that supports VNNLIB 2.0.",
-  "vnnlib_support": {
-		"multiple_networks": true,
-		"multiple_io": true,
-		"hidden_nodes": false
-  },
-  "assertion_support": {
-		"disjunction": true,
-		"conjunction": true,
-		"required_normal_form": "DNF",
-		%* (May be "DNF", "CNF", "NNF", or "None") *
-		"boolean_operators": ["<=", ">=", "==", "!="],
-		"arithmetic_operators": ["+", "-", "*"],
-		"arithmetic_complexity": "Linear"
-		%* (May be "Linear", "Polynomial", "GeneralNonLinear") *
-  },
-  "query_support": {
-    	"query_format": ["VNNLIB", "Marabou"]
-  },
-  "reachability_constraints":{
-		"reachability_based": true,
-		"input_domains": ["Box", "Zonotope", "Polytope"],
-		"output_constraints": ["Linear", "Polyhedral"]
-  }
-  "model_support": {
-		"max_layers": 128,
-		"max_nodes_per_layer": 1024,
-		"supported_types": ["float16"],
-		"onnx_operators": ["Conv", "Relu", "Gemm", "MatMul"]
-  },
-  "artifact_support": {
-		"counterexample": true,
-		"proof_certificate": true,
-		"counterexample_format": ["VNNLIB", "Marabou"],
-		"proof_certificate_format": ["VNNLIB", "Marabou"]
-  }
-}
-    \end{lstlisting}
-\end{itemize}
 
 \subsection{\texttt{verify}}
 \begin{itemize}
@@ -147,52 +74,119 @@ vnn_verifier verify
         \texttt{--network} & \texttt{-n} & \texttt{<name>:<path>} & \textbf{(Required)} Identifier for the network and path to the ONNX model file. \\
         \texttt{--property} & \texttt{-p} & \texttt{<path>} & \textbf{(Required)} Path to the VNNLIB 2.0 property file. \\
         \texttt{--timeout} & \texttt{-t} & \texttt{<seconds>} & Maximum verification time in integer seconds. \\
-        \texttt{--counterexample} & \texttt{-cex} & \texttt{<path>} & Path to save the counterexample if property is violated. \\
-        \texttt{--proof} & \texttt{-pf} & \texttt{<path>} & Path to save the proof certificate if property holds. \\
+        \texttt{--dataset} & \texttt{-d} & \texttt{<path>} & Path to a dataset file (optional, for models that require input data).\\
+        \texttt{--output} & \texttt{-o} & \texttt{<path>} & Path to save the satisfying assignment (if applicable). \\
     \end{longtable}
     \item \textbf{Standard Output/Error}:
     \begin{itemize}
-        \item The primary result is printed to \texttt{stdout} (e.g., \texttt{SAT}, \texttt{UNSAT}, \texttt{TIMEOUT}, \texttt{UNKNOWN}, \texttt{ERROR:\@<message>}).
-        \item If \texttt{UNSAT} and a counterexample is generated, it will be printed to \texttt{stdout} or saved to the specified file.
+        \item The primary result is printed to \texttt{stdout}: \texttt{SAT}, \texttt{UNSAT}, \texttt{TIMEOUT}, \texttt{UNKNOWN}.
+        \item If \texttt{SAT}, the generated satisfying assignment will be printed to \texttt{stdout} or saved to the specified file.
         \item Detailed logs or error messages are sent to \texttt{stderr}.
-    \end{itemize}
-    \item \textbf{Exit Codes}:
-    \begin{itemize}
-        \item \texttt{0}: Property is satisfied (SAT).
-        \item \texttt{1}: Property is violated (UNSAT).
-        \item \texttt{2}: Verification timed out (TIMEOUT).
-        \item \texttt{3}: Result of verification is unknown (UNKNOWN).
-        \item \texttt{4}: An error occurred during setup or verification (e.g., file not found, unsupported ONNX operator, malformed VNNLIB specification, internal verifier error).
-        \item \texttt{5}: Invalid command-line arguments provided to the verifier.
     \end{itemize}
 \end{itemize}
 
-\subsection{\texttt{supports}}
+\myremark{The \texttt{<name>} in the \texttt{--network} option is a user-defined identifier for the network, which is used in the VNNLIB property file to refer to this specific network.}
+
+\section{Granular Capability Options}
+This section details additional global options for querying individual verifier capabilities. These options provide a convenient way to check for specific features of the verifier.
+
+\subsection{\texttt{supports-multiple-networks}}
 \begin{itemize}
-    \item \textbf{Description}: Checks if the verifier supports a specific named feature. This provides a quick way to query individual capabilities without parsing the full \texttt{capabilities} output.
-    \item \textbf{Usage}:
-    \begin{lstlisting}[style=bash]
-vnn_verifier supports --feature <feature_name> \end{lstlisting}
-    \item \textbf{Required Options}:
-    \begin{itemize}
-        \item \texttt{--feature <feature\_name>}: The name of the feature to query.
-    \end{itemize}
-    \item \textbf{Output}:
-    \begin{itemize}
-        \item Prints ``true'' to \texttt{stdout} if the feature is supported.
-        \item Prints ``false'' to \texttt{stdout} if the feature is not supported or the feature name is unrecognized.
-    \end{itemize}
-    \item \textbf{Exit Codes}:
-    \begin{itemize}
-        \item \texttt{0}: Feature is supported (and ``true'' is printed).
-        \item \texttt{1}: Feature is not supported (and ``false'' is printed).
-        \item \texttt{2}: Invalid or unrecognized \texttt{<feature\_name>}.
-    \end{itemize}
-    \item \textbf{Supported \texttt{<feature\_name>} values} (these should align with keys in the \texttt{capabilities} JSON output where applicable):
-    \begin{itemize}
-        \item \texttt{multiple-networks}
-        \item \texttt{multiple-io}
-        \item \texttt{hidden-nodes}
-    \end{itemize}
-    Note: The above provides common examples, but is incomplete
+    \item \textbf{Shorthand}: \texttt{mn}
+    \item \textbf{Description}: Checks if the verifier supports properties defined over multiple neural networks. 
+    \item \textbf{Usage}: \texttt{vnn\_verifier --supports-multiple-networks}
+    \item \textbf{Output}: Prints "true" or "false" to stdout.
+\end{itemize}
+
+\subsection{\texttt{supports-multiple-input-output}}
+\begin{itemize}
+    \item \textbf{Shorthand}: \texttt{mio}
+    \item \textbf{Description}: Checks if the verifier supports models with multiple input and/or output tensors. 
+    \item \textbf{Usage}: \texttt{vnn\_verifier --supports-multiple-io}
+    \item \textbf{Output}: Prints "true" or "false" to stdout.
+\end{itemize}
+
+\subsection{\texttt{supports-hidden-nodes}}
+\begin{itemize}
+    \item \textbf{Shorthand}: \texttt{hn}
+    \item \textbf{Description}: Checks if the verifier supports referencing hidden layer nodes in VNNLIB properties. 
+    \item \textbf{Usage}: \texttt{vnn\_verifier --supports-hidden-nodes}
+    \item \textbf{Output}: Prints "true" or "false" to stdout.
+\end{itemize}
+
+\subsection{\texttt{requires-dnf}}
+\begin{itemize}
+    \item \textbf{Shorthand}: \texttt{dnf}
+    \item \textbf{Description}: Checks if the verifier requires assertions to be in Disjunctive Normal Form (DNF). 
+    \item \textbf{Usage}: \texttt{vnn\_verifier --requires-dnf}
+    \item \textbf{Output}: Prints "true" or "false" to stdout.
+\end{itemize}
+
+\subsection{\texttt{supports-strict-comparison}}
+\begin{itemize}
+    \item \textbf{Shorthand}: \texttt{sc}
+    \item \textbf{Description}: Checks if the verifier supports strict inequalities (\texttt{<}, \texttt{>}). 
+    \item \textbf{Usage}: \texttt{vnn\_verifier --supports-strict-comparison}
+    \item \textbf{Output}: Prints "true" or "false" to stdout.
+\end{itemize}
+
+\subsection{\texttt{requires-linear-complexity}}
+\begin{itemize}
+    \item \textbf{Shorthand}: \texttt{lc}
+    \item \textbf{Description}: Checks if the verifier's supported assertions are limited to linear arithmetic. 
+    \item \textbf{Usage}: \texttt{vnn\_verifier --requires-linear-complexity}
+    \item \textbf{Output}: Prints "true" or "false" to stdout.
+\end{itemize}
+
+\subsection{\texttt{is-reachability-based}}
+\begin{itemize}
+    \item \textbf{Shorthand}: \texttt{rb}
+    \item \textbf{Description}: Checks if the verifier is a reachability-based tool. 
+    \item \textbf{Usage}: \texttt{vnn\_verifier --is-reachability-based}
+    \item \textbf{Output}: Prints "true" or "false" to stdout.
+\end{itemize}
+
+\subsection{\texttt{supported-domains}}
+\begin{itemize}
+    \item \textbf{Shorthand}: \texttt{sd}
+    \item \textbf{Description}: Prints a newline-separated list of the abstract input domain representations supported by the verifier. 
+    \item \textbf{Usage}: \texttt{vnn\_verifier --list-input-domains}
+    \item \textbf{Example Output}:
+    \begin{lstlisting}[style=bash, numbers=none, frame=none, backgroundcolor=\color{white}]
+Box
+Zonotope
+Polytope
+...
+    \end{lstlisting}
+\end{itemize}
+
+\subsection{\texttt{supported-types}}
+\begin{itemize}
+    \item \textbf{Shorthand}: \texttt{st}
+    \item \textbf{Description}: Prints a newline-separated list of supported ONNX data types.
+    \item \textbf{Usage}: \texttt{vnn\_verifier --list-supported-types}
+    \item \textbf{Example Output}:
+    \begin{lstlisting}[style=bash, numbers=none, frame=none, backgroundcolor=\color{white}]
+float16
+float32
+...
+    \end{lstlisting}
+\end{itemize}
+
+\subsection{\texttt{supported-onnx-ops}}
+\begin{itemize}
+    \item \textbf{Shorthand}: \texttt{so}
+    \item \textbf{Description}: Prints a newline-separated list of ONNX operator types (e.g., ``Conv'', ``Relu'', ``Gemm'') that are supported by the verifier. 
+	This helps users determine if their ONNX model is compatible with the verifier.
+    \item \textbf{Usage}: \texttt{vnn\_verifier --list-onnx-ops}
+    \item \textbf{Example Output}:
+    \begin{lstlisting}[style=bash, numbers=none, frame=none, backgroundcolor=\color{white}]
+Conv
+Relu
+MatMul
+Gemm
+Add
+Flatten
+...
+    \end{lstlisting}
 \end{itemize}
