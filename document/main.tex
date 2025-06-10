@@ -12,6 +12,11 @@
 \usepackage{listings}
 \usepackage{authblk}
 \usepackage{algorithm, algpseudocode}
+\usepackage{geometry}
+\usepackage{booktabs} 
+\usepackage{longtable} 
+\usepackage{array}
+
 
 \newcommand{\ie}{\textit{i.e.}}
 %customized todo
@@ -19,64 +24,71 @@
 \definecolor{red}{rgb}{0.8,0,0}
 \definecolor{green}{rgb}{0,0.8,0}
 \definecolor{blue}{rgb}{0,0,1}
-\newcommand{\mytodo}[1]{\todo[inline,color=lightgreen]{TODO: #1}}
+\newcommand{\mytodo}[1]{\todo[inline,color=lightgreen]{TODO:#1}}
 \newcommand{\myremark}[1]{\todo[inline, color=lightgreen]{\textbf{Remark:} #1}}
 
-\title{The VNN-LIB standard for benchmarks\\2022}
+\title{The VNN-LIB standard for benchmarks\\2025}
 
 \author[1]{Stefano Demarchi}
 \author[2]{Dario Guidotti}
 \author[2]{Luca Pulina}
 \author[1]{Armando Tacchella}
 
+\author[3]{Ann Roy}
+\author[3]{Allen Antony}
+\author[3]{Matthew Daggitt}
+
 \affil[1]{University of Genoa, Viale Causa 13, 16145 Genoa, Italy}
 \affil[2]{University of Sassari, Via Roma 151, 07100 Sassari, Italy}
+\affil[3]{University of Western Australia, 35 Stirling Hwy, Crawley WA 6009, Australia}
   
 \begin{document}
 
 \maketitle
 
 \begin{abstract}
-  The purpose of this document is to present the first version of the
-  standard for neural network verification benchmarks, expressed as
-  VNN-LIB. This standard builds on the Open Neural Network Exchange 
-  (ONNX) format for model description, and on the Satisfiabily Modulo
-  Theories Library (SMT-LIB) format for the property specification. 
-  Throughout the document we will refer to the combination of model 
-  and property description formats as the \emph{VNN-LIB format}.
+This document presents VNN-LIB, a standard that formalises the query language for neural network verifiers. The standard uses the 
+Open Neural Network Exchange (ONNX) format for model description and builds upon the Satisfiability Modulo Theories Library (SMT-LIB) 
+format for query specification. Key among the standard is a formally defined syntax and semantics, complimentary tooling, as well as a 
+command-line interface for verifiers. The goal is to foster greater robustness and interoperability in the neural network verification 
+landscape.
 \end{abstract}
 
 
 \section*{Introduction}
 
-In the last years the community of neural networks verification has
-been growing larger and larger: after three years of the official
-competition VNN-COMP we identified the needs and patterns that can
-help people designing and improving their benchmarks.
+As neural networks become increasingly integral to safety-critical and high societal impact applications\cite{1, 2, 3}, 
+the need for robust verification of their properties is paramount. While neural networks have shown exceptional performance, 
+they are susceptible to issues like adversarial examples\cite{3} and discriminatory behaviour\cite{4}.
 
-This document is structured as follows. In Chapter~\ref{sec:model} we
-present the guidelines for the model specification language, i.e., how
-to describe the neural network for verification purposes and which 
-operators are either supported, to be supported or discouraged; in
-Chapter~\ref{sec:specification_language} we present the guidelines for the property
-specification language, i.e., how to specify the requirements that the
-neural network ought to satisfy. Finally, in Section~\ref{sec:examples} 
-we present some examples of benchmarks to further illustrate the
-capabilities and the limitations of the VNN-LIB format.
+Since 2023, the VNN-LIB standard\cite{5} has served as a de facto specification language for queries in the neural network verification 
+community, notably supporting the annual VNN-COMP\cite{7}. It was conceived to facilitate the standardisation of solver interfaces and 
+enable the collection of benchmarks in a common format. This document introduces a new version of the VNN-LIB standard which addresses 
+shortcomings in expressiveness, conciseness, and formal rigour\cite{5, 7}.
 
-\chapter{Network Representation}
-\label{sec:model}
+This document is structured as follows. Chapter~\ref{sec:model} revisits the guidelines for model specification using ONNX.\@
+Chapter~\ref{sec:specification_language} details the VNN-LIB query specification language, with Section~\ref{sec:smtlib} describing the 
+SMT-LIB first-order logic specification language which VNN-LIB is inspired from, Section~\ref{sec:syntax} describing the formal syntax of VNN-LIB and 
+Section~\ref{sec:semantics} discussing its semantics. Chapter~\ref{sec:query_categories} outlines different characteristics of queries, namely linearity, 
+reachability, and normality. Chapter~\ref{sec:solver_interface} introduces a standard command line interface for verifiers. Finally, Chapter~\ref{sec:examples} 
+presents examples illustrating how to use VNN-LIB to specify constraints.
+
+\chapter{Network Representation}\label{sec:model}
 \input{onnx_modelzoo_report}
 
 \chapter{Query Specification Language}\label{sec:specification_language}
 
+\section{SMT-LIB Property Language}\label{sec:smtlib}
+\input{smtlib_property}
+
 \section{Syntax}\label{sec:syntax}
+\input{syntax}
 
 \section{Semantics}\label{sec:semantics}
 
 % ---------------------------------------------------------------
 
-\chapter{Query Categories}
+\chapter{Query Categories}\label{sec:query_categories}
 
 \section{Linearity}\label{sec:linearity}
 
@@ -87,16 +99,45 @@ capabilities and the limitations of the VNN-LIB format.
 % ---------------------------------------------------------------
 
 \chapter{Solver Interface}\label{sec:solver_interface}
-
 \section{Functionalities}\label{sec:functionalities}
+\input{verifier_interface}
 
-\section{Counterexamples}\label{sec:counterexamples}
-
-\section{Proof Certificates}\label{sec:proof_certificates}
+\section{Satisfying Assignments}\label{sec:satisfying_assignments}
 
 % ---------------------------------------------------------------
 
 \chapter{Examples}\label{sec:examples}
-\input{examples}
+
+\appendix
+\chapter{VNN-LIB LBNF Grammar}\label{app:lbnf_grammar}
+\myremark{The full LBNF grammar, as developed using BNFC, should be included here.}
+
+\begin{thebibliography}{9} 
+
+\bibitem{1} 
+D. Tang, B. Qin, and T. Liu, ``Document modelling with gated recurrent neural network for sentiment classification,'' in \emph{Proceedings of the 2015 Conference on Empirical Methods in Natural Language Processing}, 2015, pp. 1422--1432.
+
+\bibitem{2} 
+M. Bojarski, et al., ``End to end learning for self-driving cars,'' \emph{arXiv preprint arXiv:1604.07316}, 2016.
+
+\bibitem{3} 
+C. Szegedy, et al., ``Intriguing properties of neural networks,'' \emph{arXiv preprint arXiv:1312.6199}, 2013.
+
+\bibitem{4} 
+P. Zhang et al., ``White-box fairness testing through adversarial sampling,'' in \emph{2020 IEEE/ACM 42nd International Conference on Software Engineering (ICSE)}, New York, NY, USA:\@ ACM, 2020, pp. 949--960.\'doi: \href{https://doi.org/10.1145/3377811.3380331}{10.1145/3377811.3380331}.
+
+\bibitem{5} 
+S. Demarchi, D. Guidotti, L. Pulina, and A. Tacchella, ``Supporting Standardization of Neural Networks Verification with VNN-LIB and CoCoNet,'' in \emph{Proc. 6th Int. Workshop on Formal Methods for ML-Enabled Autonomous Systems (FoMLAS 2023)}, 2023, pp. 47--58.
+
+\bibitem{6} 
+C. Brix, S. Bak, C. Liu, and T. T. Johnson, ``The Fourth International Verification of Neural Networks Competition (VNN-COMP 2023): Summary and Results,'' 2023, doi: \href{https://doi.org/10.48550/arxiv.2312.16760}{10.48550/arxiv.2312.16760}.
+
+\bibitem{7} 
+L. C. Cordeiro et al., ``Neural Network Verification is a Programming Language Challenge,'' 2025, doi: \href{https://doi.org/10.48550/arxiv.2501.05867}{10.48550/arxiv.2501.05867}.
+
+\bibitem{8} 
+M. Forsberg and A. Ranta, ``The Labelled BNF Grammar Formalism,'' Department of Computing Science, Chalmers University of Technology and the University of Gothenburg, Gothenburg, Sweden, Feb. 11, 2005. [Online]. Available: \url{https://bnfc.digitalgrammars.com/LBNF-report.pdf}
+
+\end{thebibliography}
 
 \end{document}
