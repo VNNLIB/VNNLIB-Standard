@@ -1,0 +1,105 @@
+;  VNN-Lib Test Specification for the `linearise` function
+; This file covers various edge cases to ensure correctness and robustness.
+
+(declare-network test
+    (declare-input X Real 3)
+    (declare-output Y Real)
+)
+
+; --- GROUP 1: Basic Operations & Constants ---
+
+; Expected LHS: 1 * X_0 + 5
+(assert (<= (+ X_0 5.0) 10.0))
+
+; Expected LHS: -1 * X_0
+(assert (<= (- X_0) 0.0))
+
+; Expected LHS: 1 * X_0 - 5
+(assert (<= (- X_0 5) 0.0))
+
+; Expected LHS: -1 * X_0 + 5
+(assert (<= (- 5 X_0) 0.0))
+
+; Expected LHS: 3.5 * X_0
+(assert (<= (* X_0 3.5) 7.0))
+
+; Expected LHS: -2 * X_0
+(assert (<= (* -2.0 X_0) 0.0))
+
+
+; --- GROUP 2: Term Simplification & Combination ---
+
+; Expected LHS: 2 * X_0 + 5
+(assert (<= (+ X_0 5 X_0) 10.0))
+
+; Expected LHS: 0
+(assert (<= (- X_0 X_0) 0.0))
+
+; Expected LHS: -1 * X_0 - 1 * X_1 + 3
+(assert (<= (+ (- X_0 X_1) 3) 0.0))
+
+; Expected LHS: 1 * X_0 - 1 * X_1 - 1 * X_2
+(assert (<= (- X_0 X_1 X_2) 0.0))
+
+; Expected LHS: -1 * X_0 - 1 * X_1 + 5
+(assert (<= (+ 5 (* -1 X_0) (- X_1)) 0.0))
+
+
+; --- GROUP 3: Zero, One, and Constant-Only Expressions ---
+
+; Expected LHS: 0
+(assert (<= (* X_0 0.0) 0.0))
+
+; Expected LHS: 1 * X_0
+(assert (<= (* X_0 1.0) 5.0))
+
+; Expected LHS: 1 * X_0
+(assert (<= (+ X_0 0) 5.0))
+
+; Expected LHS: 15
+(assert (<= (* 2 3.0 2.5) 20.0))
+
+; Expected LHS: 8
+(assert (<= (+ 1 2 5) 10.0))
+
+
+; --- GROUP 4: Complex Nested Expressions ---
+
+; Expected LHS: -1 * X_0 + 1 * X_1 + 3
+(assert (<= (- (+ X_1 5) (+ X_0 2)) 0.0))
+
+; Expected LHS: 6 * X_0 + 2
+(assert (<= (+ (* 2 (* X_0 3)) 2) 20.0))
+
+; Expected LHS: 1 * X_0 - 1 * X_1 - 1 * X_2 + 10
+(assert (>= (+ (- 10 X_1) (- X_2 X_0)) 0.0)) ; Test reordering
+
+
+; --- GROUP 5: Boolean Structure & Multiple Properties ---
+
+(assert (and
+    ; Expected LHS: 1 * X_0
+    (>= X_0 0.0)
+    ; Expected LHS: 1 * X_1
+    (<= X_1 100.0)
+))
+
+(assert (or
+    ; Expected LHS: 1 * Y_0
+    (<= Y_0 -5.0)
+    ; Expected LHS: 1 * Y_0
+    (>= Y_0 5.0)
+))
+
+
+; --- GROUP 6: Non-Linear Expressions (Error Handling) ---
+; These assertions should cause the linearise function to fail and print an error.
+
+; Test Case: Variable multiplied by Variable
+; Expected: Error "Multiple variables detected in multiplication"
+(assert (<= (* X_0 X_1) 10.0))
+
+; Test Case: Variable multiplied by a non-constant expression
+; This is equivalent to (* X_0 (+ X_1 2)) which is X_0*X_1 + 2*X_0
+; Expected: Error "Multiple variables detected in multiplication"
+(assert (<= (* X_0 (+ X_1 2)) 25.0))
