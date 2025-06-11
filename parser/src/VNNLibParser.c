@@ -8,6 +8,7 @@
 #include "Parser.h"
 #include "Absyn.h"
 #include "Printer.h"
+#include "ExtendedAbsyn.h"
 
 
 // Program Information
@@ -39,7 +40,8 @@ static struct argp_option options[] = {
 // Mode Types
 typedef enum {
     MODE_NONE,
-    MODE_CHECK 
+    MODE_CHECK,
+    MODE_CONVERT
 } parser_mode_t;
 
 
@@ -83,6 +85,8 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
             if (state->arg_num == 0) {
                 if (strcmp(arg, "check") == 0) {
                     arguments->mode = MODE_CHECK;
+                } else if (strcmp(arg, "convert") == 0) {
+                    arguments->mode = MODE_CONVERT;
                 } else {
                     fprintf(stderr, "Error: Unknown or unsupported mode '%s'. Only 'check' is currently supported.\n", arg);
                     argp_usage(state);
@@ -154,6 +158,17 @@ int do_check(Query parse_tree, int verbose, int json, FILE *out) {
 }
 
 
+/**
+ * @brief Executes the convert command: converts 
+ * @param args Parsed command line arguments.
+ * @return int 0 on success (parsing and semantic checks passed), 1 on failure.
+ */
+int do_convert(Query parse_tree, int verbose, int json, FILE *out) {
+    debugQuery(parse_tree); // Check if the linearisation works
+    return 0; 
+}
+
+
 static struct argp argp = {options, parse_opt, args_doc, usage_message, 0, 0, 0};
 
 
@@ -204,7 +219,15 @@ int main(int argc, char **argv) {
         if (do_check(parse_tree, arguments.verbose, arguments.json, arguments.out) != 0) {
             exit_status = EXIT_FAILURE;
         }
-    } 
+    } else if (arguments.mode == MODE_CONVERT) {
+        // Placeholder for convert mode
+        if (do_convert(parse_tree, arguments.verbose, arguments.json, arguments.out) != 0) {
+            exit_status = EXIT_FAILURE;
+        }
+    } else {
+        fprintf(stderr, "Error: No valid mode specified. Use 'check' or 'convert'.\n");
+        exit_status = EXIT_FAILURE;
+    }
 
     // 4. Clean up the AST
     free_Query(parse_tree);
