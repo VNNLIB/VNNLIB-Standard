@@ -1,3 +1,15 @@
+
+\chapter{Logics}
+\label{sec:query_categories}
+
+\mnote{I've been looking at the SMT-LIB standard (a really useful document! You should definitely have a browse!) and what these really are \emph{logics}: https://smt-lib.org/logics.shtml
+
+We should have a similar, much smaller tree, but should cover all possible combinations of these.}
+
+\section{Linearity}\label{sec:linearity}
+
+\section{Reachability}\label{sec:reachability}
+
 Inputs and outputs of operators are \emph{tensors}, i.e.,
 multidimensional arrays over some domain, usually numerical. 
 If we let $\mathbb{D}$ be any such domain, a $k$-dimensional 
@@ -52,11 +64,5 @@ bounds the variables that are fed to the network, and the
 \textit{post-}condition defines the safe zone, outside which the 
 verification task fails.
 
-The SMT-LIB language is a well-known language used to formalize 
-Satisfiability Modulo Theories problems, and is expressive enough to
-represent the verification properties of interest. In this language, 
-it is possible to define both the \textit{pre-} and 
-\textit{post-}conditions at once, by defining the variables for the
-input and the output of the neural network. In the following we
-show some examples of networks and corresponding properties in the
-SMT-LIB language.
+\section{Disjunctive Normal Form}\label{sec:dnf}
+

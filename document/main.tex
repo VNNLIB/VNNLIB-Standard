@@ -24,10 +24,71 @@
 \definecolor{red}{rgb}{0.8,0,0}
 \definecolor{green}{rgb}{0,0.8,0}
 \definecolor{blue}{rgb}{0,0,1}
+% Define some colors for listings
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+\definecolor{keywordblue}{rgb}{0.13,0.13,1}
+\definecolor{stringred}{rgb}{0.8,0,0}
+
+% Listings style for BNFC commands
+\lstdefinestyle{lbnf}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{keywordblue}\bfseries,
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{stringred},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=1,
+    frame=lines,
+    xleftmargin=2em,
+    framexleftmargin=1.5em,
+    escapeinside={\%*}{*} 
+}
+
+% Listings style for Bash/CLI commands
+\lstdefinestyle{bash}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{keywordblue}\bfseries,
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{stringred},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2,
+    frame=lines,
+    xleftmargin=2em,
+    framexleftmargin=1.5em,
+    escapeinside={\%*}{*} 
+}
+
+
 \newcommand{\mytodo}[1]{\todo[inline,color=lightgreen]{TODO:#1}}
+\newcommand{\mnote}[2][]{\todo[inline,color=blue!10,#1]{Matthew: #2}}
 \newcommand{\myremark}[1]{\todo[inline, color=lightgreen]{\textbf{Remark:} #1}}
 
-\title{The VNN-LIB standard for benchmarks\\2025}
+\title{
+	The VNN-LIB Standard \\ 
+	Version 2.0 (draft)
+}
 
 \author[1]{Stefano Demarchi}
 \author[2]{Dario Guidotti}
@@ -54,59 +115,16 @@ command-line interface for verifiers. The goal is to foster greater robustness a
 landscape.
 \end{abstract}
 
+\input{chapters/introduction.tex}
+\input{chapters/models.tex}
+\input{chapters/query_language.tex}
+\input{chapters/logics.tex}
+\input{chapters/verifier_interface}
 
-\section*{Introduction}
+\chapter{Examples}
+\label{sec:examples}
 
-As neural networks become increasingly integral to safety-critical and high societal impact applications\cite{1, 2, 3}, 
-the need for robust verification of their properties is paramount. While neural networks have shown exceptional performance, 
-they are susceptible to issues like adversarial examples\cite{3} and discriminatory behaviour\cite{4}.
-
-Since 2023, the VNN-LIB standard\cite{5} has served as a de facto specification language for queries in the neural network verification 
-community, notably supporting the annual VNN-COMP\cite{7}. It was conceived to facilitate the standardisation of solver interfaces and 
-enable the collection of benchmarks in a common format. This document introduces a new version of the VNN-LIB standard which addresses 
-shortcomings in expressiveness, conciseness, and formal rigour\cite{5, 7}.
-
-This document is structured as follows. Chapter~\ref{sec:model} revisits the guidelines for model specification using ONNX.\@
-Chapter~\ref{sec:specification_language} details the VNN-LIB query specification language, with Section~\ref{sec:smtlib} describing the 
-SMT-LIB first-order logic specification language which VNN-LIB is inspired from, Section~\ref{sec:syntax} describing the formal syntax of VNN-LIB and 
-Section~\ref{sec:semantics} discussing its semantics. Chapter~\ref{sec:query_categories} outlines different characteristics of queries, namely linearity, 
-reachability, and normality. Chapter~\ref{sec:solver_interface} introduces a standard command line interface for verifiers. Finally, Chapter~\ref{sec:examples} 
-presents examples illustrating how to use VNN-LIB to specify constraints.
-
-\chapter{Network Representation}\label{sec:model}
-\input{onnx_modelzoo_report}
-
-\chapter{Query Specification Language}\label{sec:specification_language}
-
-\section{SMT-LIB Property Language}\label{sec:smtlib}
-\input{smtlib_property}
-
-\section{Syntax}\label{sec:syntax}
-\input{syntax}
-
-\section{Semantics}\label{sec:semantics}
-
-% ---------------------------------------------------------------
-
-\chapter{Query Categories}\label{sec:query_categories}
-
-\section{Linearity}\label{sec:linearity}
-
-\section{Reachability}\label{sec:reachability}
-
-\section{Disjunctive Normal Form}\label{sec:dnf}
-
-% ---------------------------------------------------------------
-
-\chapter{Solver Interface}\label{sec:solver_interface}
-\section{Functionalities}\label{sec:functionalities}
-\input{verifier_interface}
-
-\section{Satisfying Assignments}\label{sec:satisfying_assignments}
-
-% ---------------------------------------------------------------
-
-\chapter{Examples}\label{sec:examples}
+\mnote{Examples should be included throughout. I don't think we need a specific chapter for them.}
 
 \appendix
 \chapter{VNN-LIB LBNF Grammar}\label{app:lbnf_grammar}
