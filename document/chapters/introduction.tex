@@ -1,0 +1,21 @@
+\chapter{Introduction}
+\label{sec:intro}
+
+As neural networks become increasingly integral to safety-critical and high societal impact applications\cite{1, 2, 3}, 
+the need for robust verification of their properties is paramount. While neural networks have shown exceptional performance, 
+they are susceptible to issues like adversarial examples\cite{3} and discriminatory behaviour\cite{4}.
+
+Since 2023, the VNN-LIB standard\cite{5} has served as a de facto specification language for queries in the neural network verification 
+community, notably supporting the annual VNN-COMP\cite{7}. It was conceived to facilitate the standardisation of solver interfaces and 
+enable the collection of benchmarks in a common format. 
+
+This document is structured as follows:
+\begin{itemize}
+\item Chapter~\ref{sec:model} discusses how neural networks models should be represented using the ONNX format.
+\item Chapter~\ref{sec:specification_language} details the VNN-LIB query language, including its syntax, scoping rules, typing rules and formal semantics.
+\item Chapter~\ref{sec:query_categories} outlines different characteristics of queries, namely linearity, 
+reachability, and normality.
+\item  Chapter~\ref{sec:solver_interface} introduces a standard command line interface for verifiers.
+\item Finally, Chapter~\ref{sec:examples} 
+presents examples illustrating how to use VNN-LIB to specify constraints.
+\end{itemize}

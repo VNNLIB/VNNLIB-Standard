@@ -16,6 +16,7 @@ document/*.out
 document/*.err
 document/*.aux
 document/*.pdf
+document/*.synctex.gz
 
 parser/src/bisonParser/*
 parser/bin
