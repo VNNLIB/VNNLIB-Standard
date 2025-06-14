@@ -49,8 +49,8 @@ record NetworkType : Set where
   constructor
     networkType
   field
-    inputShape : TensorShape
-    outputShape : TensorShape
+    inputShape : List TensorShape
+    outputShape : List TensorShape
     
 
 Context : Set
@@ -60,8 +60,8 @@ record NetworkImplementation (networkType : NetworkType) : Set where
   constructor
     network
   field
-    networkFunction : Tensor ℚ (NetworkType.inputShape networkType) → Tensor ℚ (NetworkType.outputShape networkType)
-    inputTensor : Tensor ℚ (NetworkType.inputShape networkType)
+    networkFunction : {!!} (Tensor ℚ) (NetworkType.inputShape networkType) → {!!} (Tensor ℚ) (NetworkType.outputShape networkType)
+    inputTensors : {!!} (Tensor ℚ) (NetworkType.inputShape networkType)
 
 Environment : Context → Set
 Environment Γ =
@@ -77,8 +77,10 @@ data VariableName : Set where
 data ArithExpr (Γ : Context) : Set where
   const  : ℚ → ArithExpr Γ
   negate : ArithExpr Γ → ArithExpr Γ
-  varInput : (i : Fin (List.length Γ)) → TensorIndices (NetworkType.inputShape (List.lookup Γ i)) → ArithExpr Γ
-  varOutput : (i : Fin (List.length Γ)) → TensorIndices (NetworkType.outputShape (List.lookup Γ i)) → ArithExpr Γ
+  varInput : (i : Fin (List.length Γ)) → (j : Fin ( List.length (NetworkType.inputShape (List.lookup Γ i)) ) ) →
+    TensorIndices (List.lookup (NetworkType.inputShape (List.lookup Γ i)) j ) → ArithExpr Γ
+  varOutput : (i : Fin (List.length Γ)) →  (j : Fin ( List.length (NetworkType.outputShape (List.lookup Γ i)) ) ) →
+    TensorIndices (List.lookup (NetworkType.outputShape (List.lookup Γ i)) j)  → ArithExpr Γ
   add : List (ArithExpr Γ) → ArithExpr Γ
   minus : List (ArithExpr Γ) → ArithExpr Γ
   mult  : List (ArithExpr Γ) → ArithExpr Γ
@@ -87,8 +89,8 @@ data ArithExpr (Γ : Context) : Set where
 ⟦_%_⟧ₐ : ∀ {Γ} → Environment Γ → ArithExpr Γ → ℚ
 ⟦ ε % (const a) ⟧ₐ  = a
 ⟦ ε % (negate a) ⟧ₐ = 0ℚ ℚ.- ⟦ ε % a ⟧ₐ 
-⟦ ε % (varInput i n ) ⟧ₐ  = TensorElement n (NetworkImplementation.inputTensor (ε i))
-⟦ ε % (varOutput i n ) ⟧ₐ = TensorElement n (NetworkImplementation.networkFunction (ε i) (NetworkImplementation.inputTensor ((ε i))))
+⟦ ε % (varInput i j n ) ⟧ₐ  = TensorElement n (List.lookup (NetworkImplementation.inputTensors (ε i)) j)
+⟦ ε % (varOutput i j n ) ⟧ₐ = TensorElement n (List.lookup (NetworkImplementation.networkFunction (ε i) (NetworkImplementation.inputTensors ((ε i)))) j)
 -- Cannot simplify similar cases with fold as context is implicit
 ⟦ ε % (add []) ⟧ₐ   = 0ℚ
 ⟦ ε % (add (a₀ ∷ a)) ⟧ₐ   = ⟦ ε % a₀ ⟧ₐ ℚ.+ ⟦ ε % (add a) ⟧ₐ
@@ -96,7 +98,6 @@ data ArithExpr (Γ : Context) : Set where
 ⟦ ε % (mult (a₀ ∷ a)) ⟧ₐ  = ⟦ ε % a₀ ⟧ₐ ℚ.* ⟦ ε % (mult a) ⟧ₐ
 ⟦ ε % (minus []) ⟧ₐ = 0ℚ
 ⟦ ε % (minus (a₀ ∷ a)) ⟧ₐ = ⟦ ε % a₀ ⟧ₐ ℚ.- ⟦ ε % (minus a) ⟧ₐ
-
 
 
 
@@ -178,8 +179,11 @@ data NetworkDefinition : Set where
 -- Use network definitions to create the context
 mkContext : List NetworkDefinition → Context
 mkContext [] = []
-mkContext (declareNetwork _ (declareInput _ _ inputShape ∷ _) (declareOutput _ _ outputShape ∷ _) ∷ networksₙ₋₁) = (networkType inputShape outputShape) ∷ mkContext networksₙ₋₁
-mkContext (_ ∷ networksₙ₋₁ ) = mkContext networksₙ₋₁
+mkContext (declareNetwork _ inputs outputs ∷ tail) =
+  networkType
+    (List.map (λ { (declareInput _ _ shape) → shape }) inputs)
+    (List.map (λ { (declareOutput _ _ shape) → shape }) outputs)
+  ∷ mkContext tail
 
 -- Query
 data Query : Set where
