@@ -19,9 +19,6 @@ data TensorIndices : TensorShape → Set where
  empty : TensorIndices []
  non-empty : {head : ℕ} → {tail : List ℕ} → Fin head →  TensorIndices tail → TensorIndices (head ∷ tail) 
 
-test : TensorIndices (5 ∷ 2 ∷ [])
-test = non-empty ( # 4) ( non-empty ( # 1)  empty)
-
 -- Tensor
 data Tensor (Σ : Set) : TensorShape → Set where
   scalar : Σ → Tensor Σ []
@@ -30,6 +27,23 @@ data Tensor (Σ : Set) : TensorShape → Set where
 TensorElement : ∀ {shape} → TensorIndices shape → Tensor ℚ shape → ℚ
 TensorElement {[]} empty (scalar x) = x
 TensorElement {dim ∷ shape} (non-empty idx idxs) (vector x) = TensorElement idxs (Vec.lookup x idx)
+
+testSide₁ : Tensor ℚ (2 ∷ 2 ∷ [])
+testSide₁ = vector (vector (scalar 1ℚ ∷ scalar 1ℚ ∷ []) ∷
+                 vector (scalar 1ℚ ∷ scalar 1ℚ ∷ []) ∷ [])
+
+testSide₂ : Tensor ℚ (2 ∷ 2 ∷ [])
+testSide₂ = vector (vector (scalar 1ℚ ∷ scalar 1ℚ ∷ []) ∷
+                 vector (scalar 1ℚ ∷ scalar 1ℚ ∷ []) ∷ [])
+
+testTensor : Tensor ℚ (2 ∷ 2 ∷ 2 ∷ [])
+testTensor = vector (testSide₁ ∷ testSide₂ ∷ [])
+
+testIndex : TensorIndices (2 ∷ 2 ∷ 2 ∷ [])
+testIndex = non-empty (# 1) (non-empty (# 1) (non-empty ((# 1)) empty))
+
+testElement : ℚ
+testElement = TensorElement testIndex testTensor
 
 record NetworkType : Set where
   constructor
