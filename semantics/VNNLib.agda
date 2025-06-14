@@ -1,0 +1,190 @@
+module VNNLib where
+
+open import Data.List as List
+open import Data.String hiding (map)
+open import Data.Nat as ℕ hiding (_<ᵇ_)
+open import Data.Integer
+open import Data.Rational as ℚ
+open import Data.Bool
+open import Data.Fin as Fin
+open import Data.Product as Product
+open import utils using (_≥ᵇ_;_>ᵇ_;_<ᵇ_;_=ᵇ_;_≠ᵇ_)
+open import Data.Vec as Vec using (Vec; []; _∷_)
+
+
+TensorShape : Set
+TensorShape = List ℕ
+
+data TensorIndices : TensorShape → Set where
+ empty : TensorIndices []
+ non-empty : {head : ℕ} → {tail : List ℕ} → Fin head →  TensorIndices tail → TensorIndices (head ∷ tail) 
+
+-- Tensor
+data Tensor (Σ : Set) : TensorShape → Set where
+  scalar : Σ → Tensor Σ []
+  vector : {head : ℕ} → {tail : List ℕ} → Vec (Tensor Σ tail) head → Tensor Σ (head ∷ tail)
+
+TensorElement : ∀ {shape} → TensorIndices shape → Tensor ℚ shape → ℚ
+TensorElement {[]} empty (scalar x) = x
+TensorElement {dim ∷ shape} (non-empty idx idxs) (vector x) = TensorElement idxs (Vec.lookup x idx)
+
+testSide₁ : Tensor ℚ (2 ∷ 2 ∷ [])
+testSide₁ = vector (vector (scalar 1ℚ ∷ scalar 1ℚ ∷ []) ∷
+                 vector (scalar 1ℚ ∷ scalar 1ℚ ∷ []) ∷ [])
+
+testSide₂ : Tensor ℚ (2 ∷ 2 ∷ [])
+testSide₂ = vector (vector (scalar 1ℚ ∷ scalar 1ℚ ∷ []) ∷
+                 vector (scalar 1ℚ ∷ scalar 1ℚ ∷ []) ∷ [])
+
+testTensor : Tensor ℚ (2 ∷ 2 ∷ 2 ∷ [])
+testTensor = vector (testSide₁ ∷ testSide₂ ∷ [])
+
+testIndex : TensorIndices (2 ∷ 2 ∷ 2 ∷ [])
+testIndex = non-empty (# 1) (non-empty (# 1) (non-empty ((# 1)) empty))
+
+testElement : ℚ
+testElement = TensorElement testIndex testTensor
+
+record NetworkType : Set where
+  constructor
+    networkType
+  field
+    inputShape : List TensorShape
+    outputShape : List TensorShape
+    
+
+Context : Set
+Context = List (NetworkType)
+
+record NetworkImplementation (networkType : NetworkType) : Set where
+  constructor
+    network
+  field
+    networkFunction : {!!} (Tensor ℚ) (NetworkType.inputShape networkType) → {!!} (Tensor ℚ) (NetworkType.outputShape networkType)
+    inputTensors : {!!} (Tensor ℚ) (NetworkType.inputShape networkType)
+
+Environment : Context → Set
+Environment Γ =
+  (i : Fin (List.length Γ)) → let networkType = List.lookup Γ i in NetworkImplementation networkType
+
+-- -- Naming/referencing
+
+data VariableName : Set where
+  SVariableName : String → VariableName
+
+
+-- Arithmetic Expressions: nary operations
+data ArithExpr (Γ : Context) : Set where
+  const  : ℚ → ArithExpr Γ
+  negate : ArithExpr Γ → ArithExpr Γ
+  varInput : (i : Fin (List.length Γ)) → (j : Fin ( List.length (NetworkType.inputShape (List.lookup Γ i)) ) ) →
+    TensorIndices (List.lookup (NetworkType.inputShape (List.lookup Γ i)) j ) → ArithExpr Γ
+  varOutput : (i : Fin (List.length Γ)) →  (j : Fin ( List.length (NetworkType.outputShape (List.lookup Γ i)) ) ) →
+    TensorIndices (List.lookup (NetworkType.outputShape (List.lookup Γ i)) j)  → ArithExpr Γ
+  add : List (ArithExpr Γ) → ArithExpr Γ
+  minus : List (ArithExpr Γ) → ArithExpr Γ
+  mult  : List (ArithExpr Γ) → ArithExpr Γ
+
+-- Arithmetic Expression Evaluation         
+⟦_%_⟧ₐ : ∀ {Γ} → Environment Γ → ArithExpr Γ → ℚ
+⟦ ε % (const a) ⟧ₐ  = a
+⟦ ε % (negate a) ⟧ₐ = 0ℚ ℚ.- ⟦ ε % a ⟧ₐ 
+⟦ ε % (varInput i j n ) ⟧ₐ  = TensorElement n (List.lookup (NetworkImplementation.inputTensors (ε i)) j)
+⟦ ε % (varOutput i j n ) ⟧ₐ = TensorElement n (List.lookup (NetworkImplementation.networkFunction (ε i) (NetworkImplementation.inputTensors ((ε i)))) j)
+-- Cannot simplify similar cases with fold as context is implicit
+⟦ ε % (add []) ⟧ₐ   = 0ℚ
+⟦ ε % (add (a₀ ∷ a)) ⟧ₐ   = ⟦ ε % a₀ ⟧ₐ ℚ.+ ⟦ ε % (add a) ⟧ₐ
+⟦ ε % (mult []) ⟧ₐ  = 1ℚ
+⟦ ε % (mult (a₀ ∷ a)) ⟧ₐ  = ⟦ ε % a₀ ⟧ₐ ℚ.* ⟦ ε % (mult a) ⟧ₐ
+⟦ ε % (minus []) ⟧ₐ = 0ℚ
+⟦ ε % (minus (a₀ ∷ a)) ⟧ₐ = ⟦ ε % a₀ ⟧ₐ ℚ.- ⟦ ε % (minus a) ⟧ₐ
+
+
+
+-- Boolean Expressions: Connective and Comparative Expressions
+data BoolExpr (Γ : Context) : Set where
+  literal : Bool → BoolExpr Γ
+  -- Comparative Expressions: 2-ary operations
+  greaterThan    : ArithExpr Γ → ArithExpr Γ → BoolExpr Γ
+  -- Come up with consistent length names
+  lessThan       : ArithExpr Γ → ArithExpr Γ → BoolExpr Γ
+  greaterEqual   : ArithExpr Γ → ArithExpr Γ → BoolExpr Γ
+  lessEqual      : ArithExpr Γ → ArithExpr Γ → BoolExpr Γ
+  notEqual       : ArithExpr Γ → ArithExpr Γ → BoolExpr Γ
+  equal          : ArithExpr Γ → ArithExpr Γ → BoolExpr Γ
+  -- Connective Expressions
+  andExpr : List (BoolExpr Γ) → BoolExpr Γ
+  orExpr  : List (BoolExpr Γ) → BoolExpr Γ
+
+
+⟦_%_⟧ᵇ : ∀ {Γ} → Environment Γ → BoolExpr Γ → Bool
+⟦ ε % (literal b) ⟧ᵇ = b
+⟦ ε % (greaterThan a1 a2) ⟧ᵇ  = ⟦ ε % a1 ⟧ₐ >ᵇ ⟦ ε % a2 ⟧ₐ
+⟦ ε % (lessThan a1 a2) ⟧ᵇ = ⟦ ε % a1 ⟧ₐ <ᵇ ⟦ ε % a2 ⟧ₐ
+⟦ ε % (greaterEqual a1 a2) ⟧ᵇ = ⟦ ε % a1 ⟧ₐ ≥ᵇ ⟦ ε % a2 ⟧ₐ
+⟦ ε % (lessEqual a1 a2) ⟧ᵇ = ⟦ ε % a1 ⟧ₐ ℚ.≤ᵇ ⟦ ε % a2 ⟧ₐ
+⟦ ε % (notEqual a1 a2) ⟧ᵇ  = ⟦ ε % a1 ⟧ₐ ≠ᵇ ⟦ ε % a2 ⟧ₐ
+⟦ ε % (equal a1 a2) ⟧ᵇ = ⟦ ε % a1 ⟧ₐ =ᵇ ⟦ ε % a2 ⟧ₐ
+⟦ ε % (andExpr []) ⟧ᵇ  = true
+⟦ ε % (andExpr (b ∷ xb)) ⟧ᵇ = _∧_ ⟦ ε % b ⟧ᵇ ⟦ ε % (andExpr xb) ⟧ᵇ
+⟦ ε % (orExpr []) ⟧ᵇ = false
+⟦ ε % (orExpr (b ∷ xb)) ⟧ᵇ  = _∨_ ⟦ ε % b ⟧ᵇ ⟦ ε % (orExpr xb) ⟧ᵇ
+
+-- Properties: evalute to true or false
+data Property (Γ : Context) : Set where
+  assert : BoolExpr Γ → Property Γ
+
+⟦_%_⟧ₚ : ∀ {Γ} → Environment Γ → Property Γ → Bool
+⟦ ε % (assert p) ⟧ₚ = ⟦ ε % p ⟧ᵇ
+
+-- Element Types
+data ElementType : Set where
+  real         : ElementType
+  float16      : ElementType
+  float32      : ElementType
+  float64      : ElementType
+  bfloat16     : ElementType
+  float8e4m3fn : ElementType
+  float8e5m2   : ElementType
+  float8e4m3fnuz : ElementType
+  float8e5m2fnuz : ElementType
+  float4e2m1   : ElementType
+  int8         : ElementType
+  int16        : ElementType
+  int32        : ElementType
+  int64        : ElementType
+  uint8        : ElementType
+  uint16       : ElementType
+  uint32       : ElementType
+  uint64       : ElementType
+  complex64    : ElementType
+  complex128   : ElementType
+  boolType     : ElementType
+  stringType   : ElementType
+
+-- Tensor Definitions
+data InputDefinition : Set where
+  declareInput : VariableName → ElementType → TensorShape → InputDefinition
+
+-- data IntermediateDefinition : Set where
+  -- declareIntermediate : VariableName → ElementType → TensorShape → String → IntermediateDefinition
+
+data OutputDefinition : Set where
+  declareOutput : VariableName → ElementType → TensorShape → OutputDefinition
+
+-- Network Definitions
+data NetworkDefinition : Set where
+  declareNetwork : VariableName → List InputDefinition → List OutputDefinition → NetworkDefinition
+
+-- Use network definitions to create the context
+mkContext : List NetworkDefinition → Context
+mkContext [] = []
+mkContext (declareNetwork _ inputs outputs ∷ tail) =
+  networkType
+    (List.map (λ { (declareInput _ _ shape) → shape }) inputs)
+    (List.map (λ { (declareOutput _ _ shape) → shape }) outputs)
+  ∷ mkContext tail
+
+-- Query
+data Query : Set where
+  mkQuery : (networks : List NetworkDefinition) → List (Property (mkContext networks)) → Query
