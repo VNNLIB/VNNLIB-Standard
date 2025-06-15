@@ -1,3 +1,5 @@
+% TODO: \mnote{I'm not sure I like the name vnn\_verifier. Can we make it into a macro via latex \textbackslash{}newcommand so we can change it everywhere at once? As for the name, maybe just verifier or $<$executable$>$?}
+
 \chapter{Solver Interface}
 \label{sec:solver_interface}
 
@@ -5,60 +7,52 @@ This chapter specifies the command-line interface (CLI) for neural network verif
 predictable interface for users and automated tools to interact with different verifiers. The CLI supports querying verifier capabilities, listing supported operations, 
 and invoking the verification process with various configurations.
 
-All verifiers adhering to this specification should be an executable invokable by the command line, referred to in this document as \texttt{vnn\_verifier}. The general syntax for interacting with the verifier via the CLI is:
+All verifiers adhering to this specification should be an executable invokable by the command line, referred to in this document as \texttt{verifier}. The general syntax for interacting with the verifier via the CLI is:
 \begin{lstlisting}[style=bash, numbers=none, frame=none, backgroundcolor=\color{white}]
-vnn_verifier [global-options] <command> [command-options] 
+verifier [global-options] <command> [command-options] 
 	[arguments] 
 \end{lstlisting}
 
-\mnote{I'm not sure I like the name vnn\_verifier. Can we make it into a macro via latex \textbackslash{}newcommand so we can change it everywhere at once? As for the name, maybe just verifier or $<$executable$>$?}
-
-\section{Basic global Options}
-These options are applicable to the main \texttt{vnn\_verifier} executable and potentially to all commands.
+\section{Global Options}
+These options are applicable to the main \texttt{verifier} executable.
 \begin{itemize}
-    \item \texttt{--name}, \texttt{-v}: Print the verifier's full name. This can be different from the executable's name.
-    \item \texttt{--version}, \texttt{-V}: Print the verifier's version.
-    \item \texttt{--help}, \texttt{-h}: Display help information for the CLI or for a specific command if used like \texttt{vnn\_verifier <command> --help}.
+    \item \texttt{--name}: Print the verifier's full name. This can be different from the executable's name.
+    \item \texttt{--version}: Print the verifier's version string.
 \end{itemize}
-\mnote{I think we can probably remove the --help command. a) there's not a standard format for it and we won't be able to parse it, b) not terribly useful to other verifiers.}
 
 \section{Commands}
 
 \subsection{\texttt{verify}}
 \begin{itemize}
     \item \textbf{Description}: Invokes the verification process on a given neural network model and a VNNLIB property specification.
-    \item \textbf{Example usage}:
+
+    \item \textbf{Usage}:
     \begin{lstlisting}[style=bash]
-vnn_verifier verify
-	 --network <name1>:<net1_path> 
-	[--network <name2>:<net2_path> ...] 
-	 --property <vnnlib_filepath> [options] \end{lstlisting}
+verifier verify <query_filepath> 
+--network <name1>:<net1_path> 
+[--network <name2>:<net2_path> ...] 
+[--timeout <seconds>]
+    \end{lstlisting}
+
     \item \textbf{Options}:
-    \begin{longtable}{@{}>{\raggedright\arraybackslash\ttfamily}p{0.15\textwidth}% Option column
-                    >{\raggedright\arraybackslash\ttfamily}p{0.12\textwidth}% Shorthand column
-                    >{\raggedright\arraybackslash\ttfamily}p{0.20\textwidth}% Argument column
-                    >{\raggedright\arraybackslash}p{0.4\textwidth}@{}}% Description column (normal font for readability)
+    \begin{longtable}{@{}>{\raggedright\arraybackslash\ttfamily}p{0.15\textwidth}   % Option column
+                    >{\raggedright\arraybackslash\ttfamily}p{0.12\textwidth}        % Shorthand column
+                    >{\raggedright\arraybackslash\ttfamily}p{0.20\textwidth}        % Argument column
+                    >{\raggedright\arraybackslash}p{0.4\textwidth}@{}}              % Description column (normal font for readability)
         \toprule
         Option & Shorthand & Argument & Description \\
         \midrule
         \bottomrule
         \texttt{--network} & \texttt{-n} & \texttt{<name>:<path>} & \textbf{(Required)} Identifier for the network and path to the ONNX model file. \\
-        \texttt{--property} & \texttt{-p} & \texttt{<path>} & \textbf{(Required)} Path to the VNNLIB 2.0 property file. \\
         \texttt{--timeout} & \texttt{-t} & \texttt{<seconds>} & Maximum time to spend on verification in integer seconds. \\
-        \texttt{--dataset} & \texttt{-d} & \texttt{<path>} & Path to a dataset file (optional, for models that require input data).\\
-        \texttt{--output} & \texttt{-o} & \texttt{<path>} & Path to save the satisfying assignment (if applicable). \\
     \end{longtable}
-    \mnote{Can we rename --property to --query}
-	\mnote{--dataset isn't needed as the dataset will be folded into the query.}   
-	\mnote{Again I think --output isn't needed as we can capture stdin/stdout from the command line and pipe it.} 
-	\mnote{Can we rearrange these both in the example usage and the table so that --query comes before --network? The query determines which network arguments come first! Because you can only ever pass exactly one query in, we perhaps don't even need to have it as a keyword option.}
     
     \item \textbf{Standard Output/Error}:
     \begin{itemize}
         \item The primary result is printed to \texttt{stdout}: \texttt{SAT}, \texttt{UNSAT}, \texttt{TIMEOUT}, \texttt{UNKNOWN}.
-        \item If \texttt{SAT}, the generated satisfying assignment will be printed to \texttt{stdout} or saved to the specified file.
-        \mnote{Need to discuss what this is or forward link to the section where we do so. Remove reference to the specified file.}
-        \item Detailed logs or error messages are sent to \texttt{stderr}.
+        \item If \texttt{SAT}, the generated satisfying assignment will be printed to \texttt{stdout} immediately following the result line. 
+        The format of the satisfying assignment is detailed in Section~\ref{sec:satisfying_assignments}.
+        \item Detailed logs, warnings, or error messages should be sent to \texttt{stderr}.
     \end{itemize}
 \end{itemize}
 
@@ -70,84 +64,42 @@ This section details additional global options for querying individual verifier 
 
 \subsection{\texttt{supports-multiple-networks}}
 \begin{itemize}
-    \item \textbf{Shorthand}: \texttt{mn}
-    \item \textbf{Description}: Checks if the verifier supports properties defined over multiple neural networks. 
-    \item \textbf{Usage}: \texttt{vnn\_verifier --supports-multiple-networks}
-    \item \textbf{Output}: Prints "true" or "false" to stdout.
-    \mnote{Can we use an inline code environment for the outputs everywhere?}
+    \item \textbf{Description}: Checks if the verifier supports properties defined over multiple neural networks. See Section~\ref{sec:multi-network-declarations} for details on how to declare and use multiple networks in VNNLIB.
+    \item \textbf{Usage}: \texttt{verifier --supports-multiple-networks}
+    \item \textbf{Output}: \texttt{true} or \texttt{false}.
 \end{itemize}
-\mnote{To be honest, I don't think we need short-hands for the capability options. They are not going to be written by users primarily, but instead will be called automatically.}
 
-\subsection{\texttt{supports-multiple-input-output}}
+\subsection{\texttt{supports-multiple-io}}
 \begin{itemize}
-    \item \textbf{Shorthand}: \texttt{mio}
-    \item \textbf{Description}: Checks if the verifier supports models with multiple input and/or output tensors. 
-    \item \textbf{Usage}: \texttt{vnn\_verifier --supports-multiple-io}
-    \item \textbf{Output}: Prints "true" or "false" to stdout.
+    \item \textbf{Description}: Checks if the verifier supports models with multiple input and/or output tensors. See Section~\ref{sec:input-output-declarations} for details on how to declare and use multiple I/O tensors in VNNLIB.
+    \item \textbf{Usage}: \texttt{verifier --supports-multiple-io}
+    \item \textbf{Output}: \texttt{true} or \texttt{false}.
 \end{itemize}
-\mnote{Backlinks to the relevant section where we discuss each option would be fantastic. (e.g. See Section~X)}
 
 \subsection{\texttt{supports-hidden-nodes}}
 \begin{itemize}
-    \item \textbf{Shorthand}: \texttt{hn}
-    \item \textbf{Description}: Checks if the verifier supports referencing hidden layer nodes in VNNLIB properties. 
-    \item \textbf{Usage}: \texttt{vnn\_verifier --supports-hidden-nodes}
-    \item \textbf{Output}: Prints "true" or "false" to stdout.
+    \item \textbf{Description}: Checks if the verifier supports referencing hidden layer nodes in VNNLIB properties. See Section~\ref{sec:hidden-node-declarations} for details on how to declare and use hidden nodes in VNNLIB.
+    \item \textbf{Usage}: \texttt{verifier --supports-hidden-nodes}
+    \item \textbf{Output}: \texttt{true} or \texttt{false}.
 \end{itemize}
 
-\subsection{\texttt{requires-dnf}}
+\subsection{\texttt{supported-logics}}
 \begin{itemize}
-    \item \textbf{Shorthand}: \texttt{dnf}
-    \item \textbf{Description}: Checks if the verifier requires assertions to be in Disjunctive Normal Form (DNF). 
-    \item \textbf{Usage}: \texttt{vnn\_verifier --requires-dnf}
-    \item \textbf{Output}: Prints "true" or "false" to stdout.
-\end{itemize}
-
-\mnote{This and --requires-linear-complexity, --is-reachability-based, --supported-domains should all be replaced with a single command --supported-logics that lists all the logics it supports (see my note in Section 4)}
-
-\subsection{\texttt{supports-strict-comparison}}
-\begin{itemize}
-    \item \textbf{Shorthand}: \texttt{sc}
-    \item \textbf{Description}: Checks if the verifier supports strict inequalities (\texttt{<}, \texttt{>}). 
-    \item \textbf{Usage}: \texttt{vnn\_verifier --supports-strict-comparison}
-    \item \textbf{Output}: Prints "true" or "false" to stdout.
-\end{itemize}
-
-\subsection{\texttt{requires-linear-complexity}}
-\begin{itemize}
-    \item \textbf{Shorthand}: \texttt{lc}
-    \item \textbf{Description}: Checks if the verifier's supported assertions are limited to linear arithmetic. 
-    \item \textbf{Usage}: \texttt{vnn\_verifier --requires-linear-complexity}
-    \item \textbf{Output}: Prints "true" or "false" to stdout.
-\end{itemize}
-
-\subsection{\texttt{is-reachability-based}}
-\begin{itemize}
-    \item \textbf{Shorthand}: \texttt{rb}
-    \item \textbf{Description}: Checks if the verifier is a reachability-based tool. 
-    \item \textbf{Usage}: \texttt{vnn\_verifier --is-reachability-based}
-    \item \textbf{Output}: Prints "true" or "false" to stdout.
-\end{itemize}
-
-\subsection{\texttt{supported-domains}}
-\begin{itemize}
-    \item \textbf{Shorthand}: \texttt{sd}
-    \item \textbf{Description}: Prints a newline-separated list of the abstract input domain representations supported by the verifier. 
-    \item \textbf{Usage}: \texttt{vnn\_verifier --list-input-domains}
+    \item \textbf{Description}: Prints a list of supported VNN-LIB logics, indicating the scope of theoretical support. See Section~\ref{sec:query_categories} for 
+    details on each of the logics (e.g., NRA for non-linear real arithmetic support) that may be represented in VNN-LIB.
     \item \textbf{Example Output}:
     \begin{lstlisting}[style=bash, numbers=none, frame=none, backgroundcolor=\color{white}]
-Box
-Zonotope
-Polytope
+BR
+ARCH_FRA
+FRA_BOX
 ...
     \end{lstlisting}
 \end{itemize}
 
-\subsection{\texttt{supported-types}}
+\subsection{\texttt{supported-theories}}
 \begin{itemize}
-    \item \textbf{Shorthand}: \texttt{st}
-    \item \textbf{Description}: Prints a newline-separated list of supported ONNX data types.
-    \item \textbf{Usage}: \texttt{vnn\_verifier --list-supported-types}
+    \item \textbf{Description}: Prints a newline-separated list of the ONNX data types (e.g., ``float16'', ``float32'', ``int32'') that the verifier supports.
+    \item \textbf{Usage}: \texttt{verifier --supported-theories}
     \item \textbf{Example Output}:
     \begin{lstlisting}[style=bash, numbers=none, frame=none, backgroundcolor=\color{white}]
 float16
@@ -155,15 +107,13 @@ float32
 ...
     \end{lstlisting}
 \end{itemize}
-\mnote{In the SMT-Lib these are called supported theories}
 
-
-\subsection{\texttt{supported-onnx-ops}}
+\subsection{\texttt{supported-onnx-operators}}
 \begin{itemize}
     \item \textbf{Shorthand}: \texttt{so}
     \item \textbf{Description}: Prints a newline-separated list of ONNX operator types (e.g., ``Conv'', ``Relu'', ``Gemm'') that are supported by the verifier. 
-	This helps users determine if their ONNX model is compatible with the verifier.
-    \item \textbf{Usage}: \texttt{vnn\_verifier --list-onnx-ops}
+	This helps users determine if their ONNX model is compatible with the verifier. See Section~\ref{sec:model} for more details on the ONNX standard and its operators.
+    \item \textbf{Usage}: \texttt{verifier --supported-onnx-operators}
     \item \textbf{Example Output}:
     \begin{lstlisting}[style=bash, numbers=none, frame=none, backgroundcolor=\color{white}]
 Conv
@@ -175,8 +125,17 @@ Flatten
 ...
     \end{lstlisting}
 \end{itemize}
-\mnote{Given all the other names are spelt out in full, could we call this supported-onnx-operators. Link to https://onnx.ai/onnx/operators/}
 
-\mnote{We should also get them to report what range of versions of ONNX the verifier supports!}
+\subsection{\texttt{supported-onnx-opsets}}
+\begin{itemize}
+    \item \textbf{Description}: Prints a newline-separated list of supported ONNX opset versions.
+    \item \textbf{Usage}: \texttt{verifier --supported-onnx-opsets}
+    \item \textbf{Example Output}:
+    \begin{lstlisting}[style=bash, numbers=none, frame=none, backgroundcolor=\color{white}]
+13
+14
+15
+    \end{lstlisting}
+\end{itemize}
 
 \section{Satisfying Assignments}\label{sec:satisfying_assignments}
