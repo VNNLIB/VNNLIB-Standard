@@ -16,9 +16,13 @@
 \usepackage{booktabs} 
 \usepackage{longtable} 
 \usepackage{array}
+\usepackage{geometry}
+\usepackage{tikz}
+\usepackage{caption} 
 
-
+\renewcommand{\lstlistingname}{Example}
 \newcommand{\ie}{\textit{i.e.}}
+
 %customized todo
 \definecolor{lightgreen}{rgb}{0.8,1.0,0.8}
 \definecolor{red}{rgb}{0.8,0,0}
@@ -80,7 +84,6 @@
     escapeinside={\%*}{*} 
 }
 
-
 \newcommand{\mytodo}[1]{\todo[inline,color=lightgreen]{TODO:#1}}
 \newcommand{\mnote}[2][]{\todo[inline,color=blue!10,#1]{Matthew: #2}}
 \newcommand{\myremark}[1]{\todo[inline, color=lightgreen]{\textbf{Remark:} #1}}
@@ -119,16 +122,10 @@ landscape.
 \input{chapters/models.tex}
 \input{chapters/query_language.tex}
 \input{chapters/logics.tex}
-\input{chapters/verifier_interface}
-
-\chapter{Examples}
-\label{sec:examples}
-
-\mnote{Examples should be included throughout. I don't think we need a specific chapter for them.}
+\input{chapters/verifier_interface.tex}
 
 \appendix
 \chapter{VNN-LIB LBNF Grammar}\label{app:lbnf_grammar}
-\myremark{The full LBNF grammar, as developed using BNFC, should be included here.}
 
 \begin{thebibliography}{9} 
 
