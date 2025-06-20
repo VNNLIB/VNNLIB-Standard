@@ -2,13 +2,7 @@
 \chapter{Logics}
 \label{sec:query_categories}
 
-\mnote{I've been looking at the SMT-LIB standard (a really useful document! You should definitely have a browse!) and what these really are \emph{logics}: https://smt-lib.org/logics.shtml
-
-We should have a similar, much smaller tree, but should cover all possible combinations of these.}
-
-\section{Linearity}\label{sec:linearity}
-
-\section{Reachability}\label{sec:reachability}
+\section{Introduction}
 
 Inputs and outputs of operators are \emph{tensors}, i.e.,
 multidimensional arrays over some domain, usually numerical. 
@@ -48,7 +42,100 @@ the input of $\nu$ and $y_1, \ldots, y_p$ denote the outputs of the
 operators $f_1, \ldots, f_p$ --- therefore $y_p$ is also the output
 $y$ of $\nu$. We assume that, in general, a \emph{property} is a first
 order formula $P(x, y_1, \ldots y_p)$ which should be satisfied given 
-$\nu$. More formally, given $p$ bounded sets $X_1, \ldots, X_p$ in $I$ 
+$\nu$.
+
+
+\usetikzlibrary{
+    arrows.meta,    % For arrow styles
+    positioning,    % For relative positioning of nodes (e.g., below=of)
+    shapes.geometric, % For shapes like rounded rectangles
+    trees           % For drawing tree structures
+}
+
+\tikzset{
+    % Style for the logic identifiers - reduced padding and height
+    logic/.style={
+        draw, 
+        thick, 
+        rectangle, 
+        rounded corners=2pt, 
+        fill=blue!10, 
+        align=center, 
+        minimum height=2.3em, %<-- Reduced height
+        inner sep=3pt,       %<-- Reduced internal padding
+        font=\small\ttfamily
+    },
+    % Style for the main category titles
+    category/.style={
+        font=\bfseries,
+        align=center
+    },
+    % Style for the connecting arrows
+    arrow/.style={
+        ->,
+        thick,
+        >=Stealth
+    }
+}
+
+\begin{figure}
+    \centering
+    \caption{The VNN-LIB Capability Hierarchy}
+    \label{fig:vnnlib_capabilities}
+    
+    % This command scales the content to the text width, maintaining aspect ratio
+    \resizebox{\textwidth}{!}{%
+        \begin{tikzpicture}[
+            node distance=1cm and 1cm % Vertical and horizontal spacing
+        ]
+    
+        % --- Define the four main category titles in a 2x2 grid ---
+        
+        % --- TOP ROW ---
+        \node (theories_title) [category] at (0,0) {Theories};
+        \node (arch_title)     [category] at (8,0) {Architecture};
+        
+        % --- BOTTOM ROW ---
+        \node (arith_title)    [category] at (0,-7cm) {Arithmetic Complexity};
+        \node (ortho_title)    [category] at (8,-7cm) {Orthogonal Logic};
+
+        % --- Draw the tree for Theories (Flowing UP) ---
+        \node (float_cat) [logic, below=of theories_title, xshift=1.5cm]  {FLOAT};
+        \node (f16)       [logic, below=of float_cat, xshift=-1.2cm] {FLOAT16};
+        \node (f32)       [logic, below=of float_cat, xshift=1.2cm] {FLOAT32};
+        \node (real)      [logic, left=of float_cat] {REAL};
+        % Arrows
+        \draw[arrow] (f16.north) -- (float_cat.south);
+        \draw[arrow] (f32.north) -- (float_cat.south);
+
+        % --- Draw the tree for Architecture (Flowing UP) ---
+        \node (csp) [logic, below=of arch_title] {[CSP] (Constraint Satisfaction)};
+        \node (fra) [logic, below=of csp]  {[FRA] (Forward Reachability)};
+        % Arrow
+        \draw [arrow] (fra) -- (csp);
+
+        % --- Draw the tree for Arithmetic Complexity (Flowing UP) ---
+        \node (poly)     [logic, below=of arith_title] {POLY};
+        \node (linear)   [logic, below=of poly] {LINEAR};
+        \node (bounds)   [logic, below=of linear]   {BOUNDS};
+        % Arrows
+        \draw [arrow] (bounds) -- (linear);
+        \draw [arrow] (linear) -- (poly);
+
+        % --- Draw the tree for Orthogonal Logic ---
+        \node (strict) [logic, below=of ortho_title] {SI (Strict Inequality)};
+        
+        \end{tikzpicture}
+    }%
+\end{figure}
+
+\section{Verifier Architecture}\label{sec:arch}
+
+\subsection*{Constraint Satisfaction Problems}\label{sec:csp}
+
+\subsection*{Forward Reachability Analysis}\label{sec:fra}
+
+More formally, given $p$ bounded sets $X_1, \ldots, X_p$ in $I$ 
 such that $\Pi = \bigcup_{i=1}^p X_i$ and $s$ bounded sets $Y_1, 
 \ldots, Y_s$ in $O$ such that $\Sigma = \bigcup_{i=1}^s Y_i$, we wish
 to prove that  
@@ -64,5 +151,21 @@ bounds the variables that are fed to the network, and the
 \textit{post-}condition defines the safe zone, outside which the 
 verification task fails.
 
-\section{Disjunctive Normal Form}\label{sec:dnf}
+\section{Theories}
+
+\subsection*{Floating Point Arithmetic}
+
+\subsection*{Real Arithmetic}
+
+\section{Arithmetic Complexity}
+
+\subsection*{Polynomial Complexity}
+
+\subsection*{Linear Complexity}
+
+\subsection*{Bounds}
+
+\section{Orthogonal Logic}
+
+\subsection*{Strict Inequality}
 
