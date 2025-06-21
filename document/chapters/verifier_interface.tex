@@ -23,6 +23,7 @@ These options are applicable to the main \texttt{verifier} executable.
 \section{Commands}
 
 \subsection{\texttt{verify}}
+\label{sec:verify_command}
 \begin{itemize}
     \item \textbf{Description}: Invokes the verification process on a given neural network model and a VNNLIB property specification.
 
@@ -59,6 +60,7 @@ verifier verify <query_filepath>
 The \texttt{<name>} in the \texttt{--network} option is a user-defined identifier for the network, which is used in the VNNLIB property file to refer to this specific network.
 
 \section{Global Capability Options}
+\label{sec:global_capabilities}
 
 This section details additional global options for querying individual verifier capabilities. These options provide a convenient way for higher-level tools to automatically assess the capabilities of the verifier.
 
@@ -89,28 +91,25 @@ This section details additional global options for querying individual verifier 
     details on each of the logics (e.g., NRA for non-linear real arithmetic support) that may be represented in VNN-LIB.
     \item \textbf{Example Output}:
     \begin{lstlisting}[style=bash, numbers=none, frame=none, backgroundcolor=\color{white}]
-BR
-ARCH_FRA
-FRA_BOX
-...
+FRA
+LINEAR
+R
     \end{lstlisting}
 \end{itemize}
 
-\subsection{\texttt{supported-theories}}
+\subsection{\texttt{supported-onnx-types}}
 \begin{itemize}
     \item \textbf{Description}: Prints a newline-separated list of the ONNX data types (e.g., ``float16'', ``float32'', ``int32'') that the verifier supports.
     \item \textbf{Usage}: \texttt{verifier --supported-theories}
     \item \textbf{Example Output}:
     \begin{lstlisting}[style=bash, numbers=none, frame=none, backgroundcolor=\color{white}]
-float16
-float32
-...
+FLOAT
+FLOAT16
     \end{lstlisting}
 \end{itemize}
 
 \subsection{\texttt{supported-onnx-operators}}
 \begin{itemize}
-    \item \textbf{Shorthand}: \texttt{so}
     \item \textbf{Description}: Prints a newline-separated list of ONNX operator types (e.g., ``Conv'', ``Relu'', ``Gemm'') that are supported by the verifier. 
 	This helps users determine if their ONNX model is compatible with the verifier. See Section~\ref{sec:model} for more details on the ONNX standard and its operators.
     \item \textbf{Usage}: \texttt{verifier --supported-onnx-operators}
@@ -122,7 +121,6 @@ MatMul
 Gemm
 Add
 Flatten
-...
     \end{lstlisting}
 \end{itemize}
 

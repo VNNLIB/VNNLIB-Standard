@@ -4,6 +4,14 @@
 
 \section{Introduction}
 
+The \textit{logic} heirarchy of VNN-LIB is a classification of the logics used to 
+express a query, such as the mathematical theories, the arithmetic complexities, 
+and the different semantic structures. This heirarchy is aimed at providing a clear understanding 
+of the different capabilities that may be supported by verification tools. The heirarchy 
+is expressed in Figure~\ref{fig:vnnlib_capabilities}.
+
+\section{Neural Network Verification Queries}
+
 Inputs and outputs of operators are \emph{tensors}, i.e.,
 multidimensional arrays over some domain, usually numerical. 
 If we let $\mathbb{D}$ be any such domain, a $k$-dimensional 
@@ -40,10 +48,26 @@ Given a neural network $\nu : \mathbb{D}^{n_{1} \times n_h} \to
 \ldots, f_p\}$, let $x \in \mathbb{D}^{n_{1} \times n_h}$ denote
 the input of $\nu$ and $y_1, \ldots, y_p$ denote the outputs of the
 operators $f_1, \ldots, f_p$ --- therefore $y_p$ is also the output
-$y$ of $\nu$. We assume that, in general, a \emph{property} is a first
-order formula $P(x, y_1, \ldots y_p)$ which should be satisfied given 
+$y$ of $\nu$. We assume that, in general, a \emph{query} is a quantifier-free
+first order formula $P(x, y_1, \ldots y_p)$ which should be satisfied given 
 $\nu$.
 
+More formally, given $p$ bounded sets $X_1, \ldots, X_p$ in $I$ 
+such that $\Pi = \bigcup_{i=1}^p X_i$ and $s$ bounded sets $Y_1, 
+\ldots, Y_s$ in $O$ such that $\Sigma = \bigcup_{i=1}^s Y_i$, we wish
+to prove that  
+\begin{equation}
+	\label{eq:verif}
+	\forall x \in \Pi \rightarrow \nu(x) \in \Sigma.
+\end{equation}
+
+The definition of the query given in equation (\ref{eq:verif})
+consists of a \textit{pre-}condition $x \in \Pi$ and a 
+\textit{post-}condition $\nu(x) \in \Sigma$. The 
+\textit{pre-}condition encodes the bounds of the input space, i.e.,
+bounds the variables that are fed to the network, and the 
+\textit{post-}condition defines the safe zone, outside which the 
+verification task fails.
 
 \usetikzlibrary{
     arrows.meta,    % For arrow styles
@@ -100,10 +124,10 @@ $\nu$.
         \node (ortho_title)    [category] at (8,-7cm) {Orthogonal Logic};
 
         % --- Draw the tree for Theories (Flowing UP) ---
-        \node (float_cat) [logic, below=of theories_title, xshift=1.5cm]  {FLOAT};
-        \node (f16)       [logic, below=of float_cat, xshift=-1.2cm] {FLOAT16};
-        \node (f32)       [logic, below=of float_cat, xshift=1.2cm] {FLOAT32};
-        \node (real)      [logic, left=of float_cat] {REAL};
+        \node (float_cat) [logic, below=of theories_title, xshift=1.5cm]  {FP};
+        \node (f16)       [logic, below=of float_cat, xshift=-1.2cm] {FP16};
+        \node (f32)       [logic, below=of float_cat, xshift=1.2cm] {FP32};
+        \node (real)      [logic, left=of float_cat] {R};
         % Arrows
         \draw[arrow] (f16.north) -- (float_cat.south);
         \draw[arrow] (f32.north) -- (float_cat.south);
@@ -127,45 +151,81 @@ $\nu$.
         
         \end{tikzpicture}
     }%
+    \label{fig:vnnlib_capabilities}
 \end{figure}
 
 \section{Verifier Architecture}\label{sec:arch}
 
-\subsection*{Constraint Satisfaction Problems}\label{sec:csp}
+\subsection*{Constraint Satisfaction Problems (CSP)}\label{sec:csp}
+In the context of neural network verification, a Constraint Satisfaction Problem (CSP) is a mathematical problem 
+defined by a set of variables, their corresponding domains, and a set of constraints. The variables may represent
+the network's inputs, hidden neuron activations, and outputs. The domains specify the possible values for these 
+variables, such as an input perturbation range. The constraints encode the network's architecture, including 
+transformations applied by each layer, activation functions, and the constraints imposed by the verification query itself.
 
-\subsection*{Forward Reachability Analysis}\label{sec:fra}
+The verification task is then to find an assignment of values to all variables that is both complete 
+(all variables are assigned) and consistent (all constraints are satisfied). If such a solution exists, 
+it represents a satisfying assignment for the query. 
 
-More formally, given $p$ bounded sets $X_1, \ldots, X_p$ in $I$ 
-such that $\Pi = \bigcup_{i=1}^p X_i$ and $s$ bounded sets $Y_1, 
-\ldots, Y_s$ in $O$ such that $\Sigma = \bigcup_{i=1}^s Y_i$, we wish
-to prove that  
-\begin{equation}
-	\label{eq:verif}
-	\forall x \in \Pi \rightarrow \nu(x) \in \Sigma.
-\end{equation}
-The definition of the property given in equation (\ref{eq:verif})
-consists of a \textit{pre-}condition $x \in \Pi$ and a 
-\textit{post-}condition $\nu(x) \in \Sigma$. The 
-\textit{pre-}condition encodes the bounds of the input space, i.e.,
-bounds the variables that are fed to the network, and the 
-\textit{post-}condition defines the safe zone, outside which the 
-verification task fails.
+\subsection*{Forward Reachability Analysis (FRA)}\label{sec:fra}
+Forward Reachability Analysis (FRA) is a verification technique that computes an over-approximation 
+of the set of all possible outputs of a neural network given a set of inputs. Formally, for a network $\nu$ 
+and an input set $\Pi$, FRA aims to compute a set $\mathcal{R}$ such that the true set of all reachable outputs, 
+$\nu(\Pi) = \{\nu(x) | x \in \Pi\}$, is a subset of $\mathcal{R}$. The verification property, 
+$\forall x \in \Pi \rightarrow \nu(x) \in \Sigma$, is proven to be true if the computed reachable set $\mathcal{R}$ 
+is entirely contained within the safe output set $\Sigma$, i.e., $\mathcal{R} \subseteq \Sigma$.
+
+This method propagates the input set layer by layer through the network. Since computing the exact reachable set is often 
+intractable, especially for networks with non-linear activation functions, FRA employs over-approximation techniques. 
+These techniques use geometric shapes like hyper-rectangles (interval arithmetic), zonotopes, star sets, or polyhedra to represent 
+the set of neuron activations at each layer. While computationally more efficient than exact methods, these over-approximations 
+can lead to the "wrapping effect," where the computed set $\mathcal{R}$ is larger than the true reachable set, potentially causing 
+the verification to fail even if the property holds, and leading to an UNKNOWN result (see Section~\ref{sec:verify_command}).
+
+Another limitation of FRA is that it does not provide a way to encode properties that contain both pre- and post-conditions, As such, 
+FRA is considered a subset of the more general Constraint Satisfaction Problem (CSP) approach, which encodes all variables and constraints 
+in a single satisfiability problem.
 
 \section{Theories}
 
-\subsection*{Floating Point Arithmetic}
+\subsection*{Floating Point Arithmetic (FP)}
+Floating-point arithmetic is a computational model that uses a finite number of bits to approximate real numbers, as standardized by IEEE 754. 
+In neural network verification, this theory acknowledges that the network's weights, biases, and activations are subject to rounding errors 
+after each operation. These small, cumulative errors can lead to behaviors not predicted by idealized mathematical models. For instance, due to 
+the non-associativity of floating-point addition, the order of operations can affect the final output.
 
-\subsection*{Real Arithmetic}
+Verification under the theory of floating-point arithmetic is therefore crucial for providing guarantees about the actual behavior of a neural 
+network deployed on physical hardware. Verification tools must soundly model these finite-precision effects by tracking the propagation of rounding errors. 
+This ensures that the verification result is robust to the discrepancies between the mathematical ideal and the practical implementation.
+
+\subsection*{Real Arithmetic (R)}
+Real arithmetic serves as an idealized mathematical representation for neural network verification, where all numerical values and computations are 
+assumed to have infinite precision. Under this theory, numbers are treated as true real numbers, and operations like addition and multiplication 
+are perfectly associative and distributive, with no rounding or approximation errors. This abstraction simplifies the formal analysis of a neural 
+network's properties, allowing verifiers to reason about the network's behavior without the complexities of hardware-specific implementations.
+
+However, due to the accumulation of numerical errors in real-world neural network inference (which is done on finite-precision floating-point arithmetic), 
+the guarantees obtained from verification under this theory may not directly transfer to a network's deployment. 
 
 \section{Arithmetic Complexity}
 
 \subsection*{Polynomial Complexity}
+Polynomial complexity in neural network verification arises when the relationships between variables in the verification problem can be expressed as polynomial inequalities. 
+This occurs when when the VNN-LIB involves polynomial arithmetic expressions of the network's nodes. Verifying properties of such networks involves solving systems of polynomial constraints.
 
 \subsection*{Linear Complexity}
+Linear complexity pertains to verification problems where the arithmetic formulae of the query are limited to linear equations. In the case of CSP problems, the verification task can be reduced 
+to checking linear inequalities, which can be efficiently solved using linear programming techniques such as MILP (Mixed Integer Linear Programming). For FRA problems, linear complexity allows 
+for the use of linear over-approximations of the reachable sets, such as hyper-rectangles or zonotopes, to represent the activations of neurons in the network.
 
 \subsection*{Bounds}
+The most fundamental level of arithmetic complexity is the bounds logic, which deals with verifying properties that can be expressed as simple inequalities that bound the values of the network's 
+inputs, outputs, or hidden nodes. In the case of FRA, input bounds are propagated through the network to determine the range of possible values for each neuron.
 
 \section{Orthogonal Logic}
 
 \subsection*{Strict Inequality}
+The use of strict inequalities (e.g., $y > c$) in a verification property introduces specific formal and computational challenges. While non-strict inequalities ($\ge$) define closed sets, 
+strict inequalities define open sets. In verification, this distinction is critical, especially at decision boundaries. To prove a property like $\forall x \in \Pi, \nu(x) > c$, the verifier 
+must show that the output can never be equal to $c$.
 
