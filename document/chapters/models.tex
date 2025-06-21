@@ -1,38 +1,90 @@
 \chapter{Network model representation}
 \label{sec:model}
 
-\mnote{This section needs entirely rewriting. I think it should read something like as follows:
+\section{Introduction}
+\label{sec:model_intro}
+At a high level, networks can be seen as functions 
+$\nu : I^n \to O^m$, mapping one or more $n$-dimensional \emph{input domains}
+$I^n$ ($n > 0$) to one or more $m$-dimensional \emph{output domains} $O^m$ ($m>0$). 
+We argue that this representation captures most cases of practical
+interest.
 
-1. Brief description of neural networks, e.g. in general neural networks are a graph structure with multiple inputs and outputs.
+For instance, a network computing an approximation
+of some function $f: \mathbb{R}^n \to \mathbb{R}$ would have $I = O =
+\mathbb{R}$, whereas a network classifying 8-bit images of size $h \times v$ in
+two classes would be defined as ${\nu: \{0,\ldots,255\}^{h \cdot v}
+\to \{0, 1\}}$ with $I=\{0, \ldots, 255\}$ and $O = \{0,1\}$.
 
-2. There are many different neural network formats (e.g. ..., ONNX).
+At a lower level, neural networks can be described as a computational graph, specifically a directed acyclic graph (DAG), where nodes represent operations 
+(e.g., addition, multiplication, activation functions) and edges represent the flow of data (tensors) between these operations. The DAG receives (one or more) input tensors, 
+processes them through a series of operations, and produces (one or more) output tensors.
 
-3. ONNX was chosen because ...
+\section{Network Formats}
+\label{sec:model_formats}
+Neural networks are represented in serialized formats that allow for model saving, sharing, and deployment. Framework-native formats (e.g., TensorFlow's .ckpt, PyTorch's .pth) are 
+designed for integration with a single deployment environment, while interoperable formats are developed to facilitate cross-framework compatibility. 
 
-4. Very briefly describe the ONNX format (e.g. discuss but do not exhausitively list numeric types and data types). Add links to official ONNX documentations.
+\subsection{Interoperable Network Formats}
+Interoperable formats are designed to allow neural networks to be shared and executed across different frameworks and hardware platforms. Some of the most notable formats include:
+\begin{itemize}
+	\item \textbf{ONNX (Open Neural Network Exchange)}: A widely adopted format that supports a variety of neural network architectures and operations, enabling models to be shared across different frameworks.
+	\item \textbf{NNEF (Neural Network Exchange Format)}: A format developed by the Khronos Group, designed for efficient deployment of neural networks across different hardware platforms.
+	\item \textbf{Safetensors}: A format that ensures the security and integrity of neural network models, preventing tampering and ensuring safe loading.
+	\item \textbf{GGUF}: A format originating from the Llama project, which is designed for efficient execution of quantised models on low-power hardware. 
+\end{itemize}
 
-5. The standard supports \emph{all} ONNX graphs, but in practice different verifiers may support different subsets of node types and multiple and/or inputs. Forward link to relevant sections of the verifier interface.
+\subsection{Justification for ONNX}
+ONNX is chosen as the standard format for VNN-LIB for several reasons:
+\begin{itemize}
+	\item \textbf{Widespread Industry Adoption}: ONNX conversion is supported by frameworks such as PyTorch, and Tensorflow, making it ideal for framework-agnostic model representation.
+	\item \textbf{Rich Operator Set}: ONNX supports a wide range of operators, enabling the representation of complex neural network architectures.
+	\item \textbf{Neural Network Verification Adoption}: ONNX has an established presence in NNV research, since VNN-COMP has used ONNX as the standard format for benchmarks.
+	\item \textbf{Rigorous Specification}: ONNX models are rigorously specified computation graphs with strongly-typed data tensors and versioned (via opsets) operators, eliminating ambiguity.
+\end{itemize}
 
-Most of the text below can then go.
-}
+\section{ONNX Format Overview}
+\label{sec:onnx_overview}
+ONNX is a standardized format for representing neural networks as directed acyclic graphs (DAGs). An ONNX model is serialized into a single binary file (with a .onnx extension) using Google's Protocol Buffers 
+(Protobuf), a language and platform-neutral mechanism for serializing structured data
 
-Here we describe the operators that are officially supported, i.e.,
-those operators supplied by the ONNX model 
-zoo~\footnote{https://github.com/onnx/models} that allow to represent
-the majority of the models in the zoo limiting as much as possible the
-variety. We consider the model zoo as representative enough for the 
-kind of model architectures, and operators, that are commonly used in
-the Machine Learning community.
+\subsection{ONNX Model Structure}
+The ONNX model \texttt{GraphProto} contains the following key components:
+\begin{itemize}
+	\item \textbf{Node}: Each node has an operation (e.g., convolution, activation), a type (e.g., Conv, Relu) and attributes 
+	(e.g., kernel size, stride), and contains a list of inputs and outputs, representing the tensors that flow into and out of the operation.
+	\item \textbf{Initializer}: These are tensors that are used as constants in the model, such as weights and biases.
+	\item \textbf{Metadata}: This describes attributes of the model such as model version, author, and description.
+	\item \textbf{Input/Output}: These specify the external inputs and outputs of the model, including their names, datatypes, and shapes.
+\end{itemize}
 
+\subsection{ONNX Tensors}
+Data within ONNX models is strongly typed, with each tensor having a specific numeric type and shape. The supported properties for a tensor include:
+\begin{itemize}
+	\item \textbf{Element Type}: ONNX defines a standard set of numeric types \href{https://onnx.ai/onnx/intro/concepts.html#element-type}{here}. 
+	The most commonly used types for neural network verification are: 32-bit floating point (FLOAT), and 16-bit floating point (FLOAT16). Signed and unsigned integers (e.g., INT32, UINT8) are also supported, 
+	but less common in neural networks.
+	\item \textbf{Shape}: The shape of a tensor is defined as a list of integers, where each integer represents the size of the corresponding dimension. For example, a tensor with shape [3, 224, 224] 
+	represents an image with 3 color channels (RGB) and dimensions 224x224 pixels.
+	\item \textbf{Values}: A contiguous block of memory containing data of a specific numeric type.
+\end{itemize}
+
+\subsection{ONNX Opsets}
+ONNX uses a versioning system called \emph{opsets} to manage the evolution of operators. Each operator is associated with a specific opset version, which defines its semantics and attributes.
+This ensures that the precise mathematical definition and behaviour of each operator is well-defined and can evolve over time without breaking existing models. The ONNX model file declares the opset
+version used.
+	
+\section{VNN-LIB Support for ONNX}
+\label{sec:onnx_support}
+VNN-LIB supports query specification for any abritary ONNX model that is sequential. In practice however, most verifiers support a subset of ONNX operators and datatypes. Additionally, verifiers may not support
+models with multiple inputs and/or outputs. To ensure clarity, transparency, and interoperability, VNN-LIB defines as part of its verifier interface (Section~\ref{sec:solver_interface}), a capability query 
+mechanism that allows users to determine the ONNX operators, datatypes, and model structures supported by a specific verifier. This is detailed in Section~\ref{sec:global_capabilities}.
+
+\section{ONNX Operators}
+\label{sec:supported_operators}
 The following operators cover almost every benchmark provided in the
 VNN-COMP repositories for sequential networks; other kinds of networks
 (ResNet, Recurrent, etc.) are often based on ``exotic'' and, in general,
 peculiar operators that do not lie in this list.
-
-\myremark{While the standard supports the operators, it is strongly 
-	unadvised to include pre-processing in the benchmark model, e.g., 
-	normalization and flattening, since the properties should match
-	the first node with the same input dimension.}
 
 \begin{itemize}
 	\item \emph{Add (Add)} operator performs the element-wise sum of
@@ -101,15 +153,5 @@ peculiar operators that do not lie in this list.
 	  \emph{Inception2}.
 \end{itemize}
 
-%% At a high level, networks can be seen as functions 
-%% $\nu : I^n \to O^m$, mapping an $n$-dimensional \emph{input domain}
-%% $I^n$ ($n > 0$) to a $m$-dimensional \emph{output domain} $O^m$ ($m
-%% >0$). We argue that this representation captures most cases of practical
-%% interest.
-%% For instance, a network computing an approximation
-%% of some function $f: \mathbb{R}^n \to \mathbb{R}$ would have $I = O =
-%% \mathbb{R}$, whereas a network classifying 8-bit images of size $h \times v$ in
-%%  two classes would be defined as ${\nu: \{0,\ldots,255\}^{h \cdot v}
-%%    \to \{0, 1\}}$ with $I=\{0, \ldots, 255\}$ and $O = \{0,1\}$.
 
 
