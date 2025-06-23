@@ -1,22 +1,22 @@
 (declare-network acc 
-	(declare-input X Real 3)
-	(declare-output Y Real 4)
+	(declare-input X Real [3])
+	(declare-output Y Real [4])
 )
 
-(assert (<= (* -1.0 X_0) 0.0))
-(assert (<= X_0 50.0))
-(assert (<= (* -1.0 X_1) 50.0))
-(assert (<= X_1 50.0))
-(assert (<= (* -1.0 X_2) 0.0))
-(assert (<= X_2 150.0))
-(assert (<= (- (* 1.5 X_1) X_2) -5.0))
+(assert (<= (* -1.0 X[0]) 0.0))
+(assert (<= X[0] 50.0))
+(assert (<= (* -1.0 X[1]) 50.0))
+(assert (<= X[1] 50.0))
+(assert (<= (* -1.0 X[2]) 0.0))
+(assert (<= X[2] 150.0))
+(assert (<= (- (* 1.5 X[1]) X[2]) -5.0))
 
-(assert (<= (* -1.0 Y_0) 0.0))
-(assert (<= Y_0 1.0))
+(assert (<= (* -1.0 Y[0]) 0.0))
+(assert (<= Y[0] 1.0))
 
 ; weak left is minimal or COC is minimal
 (assert (and
-    (or (<= Y_2 Y_0) (<= Y_2 Y_1))
-    (or (<= Y_3 Y_0) (<= Y_3 Y_1))
-    (or (<= Y_4 Y_0) (<= Y_4 Y_1))
+    (or (<= Y[2] Y[0]) (<= Y[2] Y[1]))
+    (or (<= Y[3] Y[0]) (<= Y[3] Y[1]))
+    (or (<= Y[4] Y[0]) (<= Y[4] Y[1]))
 ))
