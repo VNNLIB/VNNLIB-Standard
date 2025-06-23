@@ -80,14 +80,19 @@ ElementTypeString. ElementType ::= "string" ;
 
 -- A tensor definition is a declaration of a tensor variable with a shape and an element type
 InputDef. InputDefinition ::= "(declare-input" VariableName ElementType TensorShape ")" ;
-HiddenDef. HiddenDefinition ::= "(declare-hidden" VariableName ElementType TensorShape "onnx-node" ":" String ")" ;
+HiddenDef. HiddenDefinition ::= "(declare-hidden" VariableName ElementType TensorShape String ")" ;
 OutputDef. OutputDefinition ::= "(declare-output" VariableName ElementType TensorShape ")" ;
+InputOnnxDef. InputOnnxDefinition ::= "(declare-input" VariableName ElementType TensorShape String ")" ;
+OutputOnnxDef. OutputOnnxDefinition ::= "(declare-output" VariableName ElementType TensorShape String ")" ;
 
 separator nonempty InputDefinition "" ;
 separator HiddenDefinition "" ;
 separator nonempty OutputDefinition "" ;
+separator nonempty InputOnnxDefinition "" ;
+separator nonempty OutputOnnxDefinition "" ;
 
 NetworkDef. NetworkDefinition ::= "(declare-network" VariableName [InputDefinition] [HiddenDefinition] [OutputDefinition] ")" ;
+NetworkOnnxDef. NetworkDefinition ::= "(declare-network" VariableName [InputOnnxDefinition] [HiddenDefinition] [OutputOnnxDefinition] ")" ;
 separator nonempty NetworkDefinition "" ;
 
 -- A query is a series of network definitions followed by a series of properties
