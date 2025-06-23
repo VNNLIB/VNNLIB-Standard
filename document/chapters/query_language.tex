@@ -11,36 +11,26 @@ The syntax of \vnnlib{} is formally defined as Labelled Backus-Naur Form~\cite{8
 \subsection{Network declarations}
 \label{sec:network-declarations}
 A network declaration is introduced by the keyword \texttt{declare-network}, followed by a user-defined variable name for the network, 
-and then its associated input, hidden, and output variable declarations. Figure~\ref{fig:simple_net} shows a simple network declaration along with its ONNX
-model representation.
+and then its associated input, hidden, and output variable declarations. Example~\ref{lst:simple_net} shows a simple network declaration.
 
 \begin{figure}[h!]
     \begin{minipage}[c]{0.6\textwidth}
         \begin{lstlisting}[
             style=lbnf,
-            label={lst:network_definition}
+            label={lst:simple_net},
+            caption={A \vnnlib{} network declaration of a simple network with a single input and output. The ONNX model is shown on the right.}
         ]
 (declare-network simple_net
     (declare-input X Real [1,10])
     (declare-output Y Real [1,2])
-)\end{lstlisting}
+)
+        \end{lstlisting}
     \end{minipage}%
     \begin{minipage}[c]{0.45\textwidth}
         \centering
-        \includegraphics[height=6cm]{imgs/simple_net.onnx.png}
+        \includegraphics[height=5cm]{imgs/simple_net.onnx.png}
     \end{minipage}
-    \caption{A simple \vnnlib{} network declaration.}
-    \label{fig:simple_net}
 \end{figure}
-\mnote{The diagrams look really good, but in all of them please can you:
-
-1) make the networks match as closely as possible in height to the query next to them. For example in 3.1, can you remove one of the two hidden nodes? 
-
-2) avoid naming the I/O nodes in the picture the same as the names used in the query. We don't want to give the impression that they need to be the same!
-
-3) Render the input and output dimensions of the input and output nodes on the image. Those are really important as they do have to match. You can definitely see them on Netron.
-
-4) Can you update all the queries to the syntax proposed in Issue \#63? }
 
 All variables are declared inside of network declarations.  The network name (e.g., \texttt{simple\_net} below) is used by the verifier to 
 associate the declared network with a specific ONNX file provided via the command line (as described in Chapter~\ref{sec:solver_interface}) while the variable names 
@@ -70,10 +60,10 @@ input and output variables can be declared within a single network declaration. 
         label={lst:ordered_mapping}
     ]
 (declare-network multi_io_net
-    (declare-input image Real 1 3 224 224)
-    (declare-input metadata Real 1 10)
-    (declare-output logits Real 1 1000)
-    (declare-output bbox Real 1 4)
+    (declare-input image Real [1,3,224,224])
+    (declare-input metadata Real [1,10])
+    (declare-output logits Real [1,1000])
+    (declare-output bbox Real [1 4])
 )
     \end{lstlisting}
     \begin{lstlisting}[
@@ -82,16 +72,14 @@ input and output variables can be declared within a single network declaration. 
         label={lst:named_mapping}
     ]
 (declare-network multi_io_net
-    (declare-input image Real 1 3 224 224 onnx-node:"image")
-    (declare-input metadata Real 1 10 onnx-node:"metadata")
-    (declare-output logits Real 1 1000 onnx-node:"logits")
-    (declare-output bbox Real 1 4 onnx-node:"bbox")
+    (declare-input image Real [1,3,224,224] "image_in")
+    (declare-input metadata Real [1,10] "metadata_in")
+    (declare-output logits Real [1,1000] "logits_out")
+    (declare-output bbox Real [1,4] "bbox_out")
 )
     \end{lstlisting}
     \vspace{0.5cm}
     \includegraphics[height=10cm]{imgs/multi_io_net.onnx.png}
-    \caption{A \vnnlib{} network declaration with multiple inputs and outputs. The first example uses ordered mapping, while the second uses explicit ONNX node names.}
-    \label{fig:multi_io_net}
 \end{figure}
 
 
@@ -100,56 +88,58 @@ input and output variables can be declared within a single network declaration. 
 In some verification applications is necessary to reason about the result of intermediate computation results at hidden nodes within the network, such as encoding features, attention mechanisms, or other internal states.
 This can be achieved by declaring hidden nodes is declared using the \texttt{declare-hidden} keyword. This declaration includes a variable name for use within the \vnnlib{} specification, 
 its element type, its tensor shape, and crucially, a string identifier that specifies the corresponding node name in the ONNX graph.  Multiple
-hidden nodes can be trivially declared within a single network declaration. Figure~\ref{fig:hidden_node} shows an example of a \vnnlib{} network declaration with a hidden node.
+hidden nodes can be trivially declared within a single network declaration. Example~\ref{lst:hidden_node} shows a \vnnlib{} network declaration with a hidden node.
 
 \begin{figure}[h!]
     \begin{minipage}[c]{0.55\textwidth}
         \begin{lstlisting}[
             style=lbnf,
-            label={lst:hidden_node}
-        ]
+            label={lst:hidden_node},
+            caption={\vnnlib{} network declaration that declares a hidden node}
+        ]   
 (declare-network encoder
-    (declare-input X Real 1 28 28)
-    (declare-hidden feature_embedding Real 1 128 onnx-node:"encoder_layer4/output")
-    (declare-output Y Real 1 10)
+    (declare-input X Real [1,28,28])
+    (declare-hidden feature_embedding Real [1,128] "encoder_output")
+    (declare-output Y Real [1,10])
 )
         \end{lstlisting}
     \end{minipage}%
     \begin{minipage}[c]{0.45\textwidth}
         \centering
-        \includegraphics[height=8cm]{imgs/encoder_net.onnx.png}
+        \includegraphics[height=6cm]{imgs/encoder_net.onnx.png}
     \end{minipage}
-    \caption{A \vnnlib{} network declaration with a hidden node. The hidden node \texttt{feature\_embedding} corresponds to the ONNX node \texttt{encoder\_layer4/output}.}
-    \label{fig:hidden_node}
 \end{figure}
 
 \subsubsection*{Multiple networks}
 \label{sec:multi-network-declarations}
 \vnnlib{} supports defining multiple networks in a single file by including multiple `(declare-network ...)` expressions. This is essential for properties that compare networks, 
-such as checking for equivalence between two models or verifying properties of a composite system, like an observer-controller architecture. Figure~\ref{fig:multi_network} 
-shows an example of a \vnnlib{} file that declares two networks, \texttt{teacher\_net} and \texttt{student\_net}.
+such as checking for equivalence between two models or verifying properties of a composite system, like an observer-controller architecture. Example~\ref{lst:multi_network} 
+shows a snippet from a \vnnlib{} file that declares two networks, \texttt{teacher\_net} and \texttt{student\_net}.
 
 \begin{figure}[h!]
-    \begin{minipage}[c]{0.57\textwidth}
-        \begin{lstlisting}[style=lbnf]
+    \begin{minipage}[c]{0.6\textwidth}
+        \begin{lstlisting}[
+            style=lbnf,
+            caption={Two networks declared in \vnnlib{}: \texttt{teacher\_net} and \texttt{student\_net}.},
+            label={lst:multi_network}
+        ]
 (declare-network teacher
-    (declare-input  x Real [1,32])
-    (declare-output y Real [1,2])
+    (declare-input tX Real [1,32])
+    (declare-output tY Real [1,2])
 )
 
 (declare-network student
-    (declare-input  a Real [1,32])
-    (declare-output b Real [1,2])
-)\end{lstlisting}
+    (declare-input sX Real [1,32])
+    (declare-output sY Real [1,2])
+)
+        \end{lstlisting}
     \end{minipage}
-    \begin{minipage}[c]{0.43\textwidth}
+    \begin{minipage}[c]{0.4\textwidth}
         \centering
-        \includegraphics[height=8cm]{imgs/teacher_net.onnx.png}
+        \includegraphics[height=5cm]{imgs/teacher_net.onnx.png}
         \vspace{0.5cm} 
-        \includegraphics[height=8cm]{imgs/student_net.onnx.png}
+        \includegraphics[height=5cm]{imgs/student_net.onnx.png}
     \end{minipage}
-    \caption{Two networks declared in \vnnlib{}: \texttt{teacher\_net} and \texttt{student\_net}.}
-    \label{fig:multi_network}
 \end{figure}
 
 \subsection{Assertion Example}
@@ -230,4 +220,3 @@ TODO Ann
 \label{sec:semantics}
 
 TODO Ann
-
