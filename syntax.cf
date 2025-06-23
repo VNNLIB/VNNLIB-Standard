@@ -5,15 +5,21 @@ token SDouble '-'? digit+ '.' digit+ ('e' '-'? digit+)? ;
 token SInt '-' digit+ ;
 token Int digit+ ;
 
--- The regular expression for an element of a tensor variable
-token TensorElement letter (letter|digit|'@')* '_' digit+ ('-' digit+)* ;
-
 -- The regular expression for a tensor variable
-token VariableName letter (letter|digit|'@')* ;
+token VariableName letter (letter|digit|'_')* ;
 
--- Production to represent a Tensor shape as a sequence of integers
-[]. [Int] ::= ;
-(:). [Int] ::= Int [Int] ;
+-- Sequence of integers to represent Tensor shape/indicies
+separator nonempty Int "," ;
+
+-- Production of Tensor Shape (empty shape is allowed for scalar tensors)
+ScalarTensShape. TensorShape ::= ;
+GenericTensShape. TensorShape ::= "[" [Int] "]" ;
+
+-- Production of Tensor indicies
+TensorInd. TensorIndices ::= "[" [Int] "]" ;
+
+-- A tensor element is constructed with the associated varaible name and tensor indicies
+TensElem. TensorElement ::= VariableName TensorIndices ;
 
 -- ArithExpr is a numeric value that may be a paramater, a tensor element, 
 -- or an arithmetic operation
@@ -73,9 +79,9 @@ ElementTypeBool. ElementType ::= "bool" ;
 ElementTypeString. ElementType ::= "string" ;
 
 -- A tensor definition is a declaration of a tensor variable with a shape and an element type
-InputDef. InputDefinition ::= "(declare-input" VariableName ElementType [Int] ")" ;
-HiddenDef. HiddenDefinition ::= "(declare-hidden" VariableName ElementType [Int] "onnx-node" ":" String ")" ;
-OutputDef. OutputDefinition ::= "(declare-output" VariableName ElementType [Int] ")" ;
+InputDef. InputDefinition ::= "(declare-input" VariableName ElementType TensorShape ")" ;
+HiddenDef. HiddenDefinition ::= "(declare-hidden" VariableName ElementType TensorShape "onnx-node" ":" String ")" ;
+OutputDef. OutputDefinition ::= "(declare-output" VariableName ElementType TensorShape ")" ;
 
 separator nonempty InputDefinition "" ;
 separator HiddenDefinition "" ;
