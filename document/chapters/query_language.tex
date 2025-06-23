@@ -1,103 +1,60 @@
-\chapter{Query Language}\label{sec:specification_language}
+\chapter{\vnnlib{} Query Language}\label{sec:specification_language}
 
-The SMT-LIB language is a well-known language used to formalize 
-Satisfiability Modulo Theories problems, and is expressive enough to
-represent the verification properties of interest. In this language, 
-it is possible to define both the \textit{pre-} and 
-\textit{post-}conditions at once, by defining the variables for the
-input and the output of the neural network. In the following we
-show some examples of networks and corresponding properties in the
-SMT-LIB language.
+At the heart of the \vnnlib{} standard is the \vnnlib{} query language. Heavily influenced by SMT-LIB, this language is designed as a standardised computer-readable format for defining a wide range of satisfiability queries over neural networks. This chapter describes the syntax, scoping, typing and semantics of the query language.
 
 \section{Syntax}
 \label{sec:syntax}
 
-The syntax of VNN-LIB is formally defined using Labelled Backus-Naur Form (LBNF)\cite{8}. LBNF is a variant of BNF that allows for 
-annotations (labels) on productions, facilitating the automatic generation of abstract syntax trees, parsers, and other language processing tools. 
-This formal grammar provides a rigorous foundation for the language, eliminating ambiguities present in previous versions and ensuring consistent 
-parsing across different tools.
+The syntax of \vnnlib{} is formally defined as Labelled Backus-Naur Form~\cite{8} (LBNF) grammar which can be found in Appendix~\ref{app:lbnf_grammar}. Instead of going over the production rules in gory detail, we will now highlight key syntactic constructs of the language via examples illustrating their usage.
+\vnnlib{} queries are split into two parts: network declarations and assertions.
 
-The full LBNF grammar for VNN-LIB is provided in the Appendix~\ref{app:lbnf_grammar}. The following subsections highlight key syntactic constructs of the language,
-with examples illustrating their usage.
-
-\subsubsection*{Comments}
-Comments in VNN-LIB are denoted by a semicolon (\texttt{;}) and extend to the end of the line. They are used for annotation, explaining logic, or providing additional context.
-
-\subsubsection*{Variable Names}
-All variable names follow the same syntax conventions. Variable names in VNN-LIB are case-sensitive, must start with a letter, and may only contain letters, digits and underscores. All variable names must
-be unique across the scope of the VNN-LIB query. The \texttt{@} character is a reserved character which is used to denote multiple applications of the same network, for the purpose of defining 
-hyperproperties such as monotonicity. For example \texttt{(declare-network acasXu@1 ...)} and \texttt{(declare-network acasXu@2 ...)} define two networks that are both instances of the same ONNX model, 
-denoted as \texttt{acasXu} in the command line interface of the verifier (See Chapter~\ref{sec:solver_interface} for more details).
-
-\subsubsection*{Whitespace}
-Whitespace in VNN-LIB is used to separate tokens and improve readability. It can include spaces, tabs, and newlines. Whitespace is ignored by the parser, except where it is necessary to separate tokens.
-
-\subsubsection*{Network declarations}
+\subsection{Network declarations}
 \label{sec:network-declarations}
 A network declaration is introduced by the keyword \texttt{declare-network}, followed by a user-defined variable name for the network, 
-and then its associated input, hidden, and output variable declarations. All variables are declared inside of network declarations and variable 
-names must be unique within the scope of the entire VNN-LIB specification.  The network name (e.g., \texttt{simple\_net} below) is used by the verifier to 
-associate the declared network with a specific ONNX file provided via the command line (as described in Chapter~\ref{sec:solver_interface}) while the variable names 
-(e.g., \texttt{X}, \texttt{Y}) are used to reference nodes inside of the ONNX graph. Figure~\ref{fig:simple_net} shows a simple network declaration along with its ONNX
+and then its associated input, hidden, and output variable declarations. Figure~\ref{fig:simple_net} shows a simple network declaration along with its ONNX
 model representation.
 
-\begin{figure}[htbp]
-    \begin{minipage}[c]{0.55\textwidth}
+\begin{figure}[h!]
+    \begin{minipage}[c]{0.6\textwidth}
         \begin{lstlisting}[
             style=lbnf,
             label={lst:network_definition}
         ]
 (declare-network simple_net
-    (declare-input X Real 1 10)
-    (declare-output Y Real 1 2)
-) 
-        \end{lstlisting}
+    (declare-input X Real [1,10])
+    (declare-output Y Real [1,2])
+)\end{lstlisting}
     \end{minipage}%
     \begin{minipage}[c]{0.45\textwidth}
         \centering
-        \includegraphics[height=8cm]{imgs/simple_net.onnx.png}
+        \includegraphics[height=6cm]{imgs/simple_net.onnx.png}
     \end{minipage}
-    \caption{A simple VNN-LIB network declaration.}
+    \caption{A simple \vnnlib{} network declaration.}
     \label{fig:simple_net}
 \end{figure}
+\mnote{The diagrams look really good, but in all of them please can you:
 
-\subsubsection*{Multiple networks}
-\label{sec:multi-network-declarations}
-VNN-LIB supports defining multiple networks in a single file by including multiple `(declare-network ...)` expressions. This is essential for properties that compare networks, 
-such as checking for equivalence between two models or verifying properties of a composite system, like an observer-controller architecture. Figure~\ref{fig:multi_network} 
-shows an example of a VNN-LIB file that declares two networks, \texttt{teacher\_net} and \texttt{student\_net}.
+1) make the networks match as closely as possible in height to the query next to them. For example in 3.1, can you remove one of the two hidden nodes? 
 
-\begin{figure}[htbp]
-    \begin{minipage}[c]{0.55\textwidth}
-        \begin{lstlisting}[
-            style=lbnf,
-            label={lst:multi_network}
-        ]
-(declare-network teacher_net
-    (declare-input x_teacher Real 1 32)
-    (declare-output y_teacher Real 1 2)
-)
+2) avoid naming the I/O nodes in the picture the same as the names used in the query. We don't want to give the impression that they need to be the same!
 
-(declare-network student_net
-    (declare-input x_student Real 1 32)
-    (declare-output y_student Real 1 2)
-)
-        \end{lstlisting}
-    \end{minipage}
-    \begin{minipage}[c]{0.45\textwidth}
-        \centering
-        \includegraphics[height=8cm]{imgs/teacher_net.onnx.png}
-        \vspace{0.5cm} 
-        \includegraphics[height=8cm]{imgs/student_net.onnx.png}
-    \end{minipage}
-    \caption{Two networks declared in VNN-LIB: \texttt{teacher\_net} and \texttt{student\_net}.}
-    \label{fig:multi_network}
-\end{figure}
+3) Render the input and output dimensions of the input and output nodes on the image. Those are really important as they do have to match. You can definitely see them on Netron.
+
+4) Can you update all the queries to the syntax proposed in Issue \#63? }
+
+All variables are declared inside of network declarations.  The network name (e.g., \texttt{simple\_net} below) is used by the verifier to 
+associate the declared network with a specific ONNX file provided via the command line (as described in Chapter~\ref{sec:solver_interface}) while the variable names 
+(e.g., \texttt{X}, \texttt{Y}) are used to reference nodes inside of the ONNX graph. 
+
+All variable names follow the same syntax conventions. Variable names in \vnnlib{} are case-sensitive, must start with a letter, and may only contain letters, digits and underscores. All variable names must
+be unique across the scope of the \vnnlib{} query. 
+
+% The \texttt{@} character is a reserved character which is used to denote multiple applications of the same network, for the purpose of defining  hyperproperties such as monotonicity. For example \texttt{(declare-network acasXu@1 ...)} and \texttt{(declare-network acasXu@2 ...)} define two networks that are both instances of the same ONNX model,  denoted as \texttt{acasXu} in the command line interface of the verifier (See Chapter~\ref{sec:solver_interface} for more details).
 
 \subsubsection*{Input and Output Variable Declarations}
 \label{sec:input-output-declarations}
 An input variable is declared using the \texttt{declare-input} keyword, followed by a variable name, its element type (e.g., \texttt{Real}, \texttt{int8}), 
-and a space-seperated list of integers representing the shape of the tensor. Similarly, an output variable uses the \texttt{declare-output} keyword. Multiple 
+and a list of integers representing the shape of the tensor. Similarly, an output variable uses the \texttt{declare-output} keyword. Multiple 
 input and output variables can be declared within a single network declaration. There are two ways to map these declared variables to the nodes in the ONNX model:
 \begin{enumerate}
     \item \textbf{Ordered Mapping (Default):} The variables are mapped to the ONNX graph's inputs/outputs based on their order of declaration. This is demonstrated in Example~\ref{lst:ordered_mapping}
@@ -105,7 +62,7 @@ input and output variables can be declared within a single network declaration. 
         variables within that network declaration must be given an explicit ONNX node name. This is demonstrated in Example~\ref{lst:named_mapping}.
 \end{enumerate}
 
-\begin{figure}[htbp]
+\begin{figure}[h!]
     \centering
     \begin{lstlisting}[
         caption={A network with multiple inputs/outputs, mapped by declaration order.},
@@ -133,18 +90,19 @@ input and output variables can be declared within a single network declaration. 
     \end{lstlisting}
     \vspace{0.5cm}
     \includegraphics[height=10cm]{imgs/multi_io_net.onnx.png}
-    \caption{A VNN-LIB network declaration with multiple inputs and outputs. The first example uses ordered mapping, while the second uses explicit ONNX node names.}
+    \caption{A \vnnlib{} network declaration with multiple inputs and outputs. The first example uses ordered mapping, while the second uses explicit ONNX node names.}
     \label{fig:multi_io_net}
 \end{figure}
 
-\subsubsection*{Hidden Node Declarations}
-\label{sec:hidden-node-declarations}
-A hidden node is declared using the \texttt{declare-hidden} keyword. This declaration includes a variable name for use within the VNN-LIB specification, 
-its element type, its tensor shape, and crucially, a string identifier that specifies the corresponding node name in the ONNX graph. The ability to declare hidden nodes
-allows for properties to reference key intermediate computations within the network, such as encoding features, attention mechanisms, or other internal states. Multiple
-hidden nodes can be trivially declared within a single network declaration. Figure~\ref{fig:hidden_node} shows an example of a VNN-LIB network declaration with a hidden node.
 
-\begin{figure}[htbp]
+\paragraph{Hidden Node Declarations}
+\label{sec:hidden-node-declarations}
+In some verification applications is necessary to reason about the result of intermediate computation results at hidden nodes within the network, such as encoding features, attention mechanisms, or other internal states.
+This can be achieved by declaring hidden nodes is declared using the \texttt{declare-hidden} keyword. This declaration includes a variable name for use within the \vnnlib{} specification, 
+its element type, its tensor shape, and crucially, a string identifier that specifies the corresponding node name in the ONNX graph.  Multiple
+hidden nodes can be trivially declared within a single network declaration. Figure~\ref{fig:hidden_node} shows an example of a \vnnlib{} network declaration with a hidden node.
+
+\begin{figure}[h!]
     \begin{minipage}[c]{0.55\textwidth}
         \begin{lstlisting}[
             style=lbnf,
@@ -161,13 +119,44 @@ hidden nodes can be trivially declared within a single network declaration. Figu
         \centering
         \includegraphics[height=8cm]{imgs/encoder_net.onnx.png}
     \end{minipage}
-    \caption{A VNN-LIB network declaration with a hidden node. The hidden node \texttt{feature\_embedding} corresponds to the ONNX node \texttt{encoder\_layer4/output}.}
+    \caption{A \vnnlib{} network declaration with a hidden node. The hidden node \texttt{feature\_embedding} corresponds to the ONNX node \texttt{encoder\_layer4/output}.}
     \label{fig:hidden_node}
 \end{figure}
 
+\subsubsection*{Multiple networks}
+\label{sec:multi-network-declarations}
+\vnnlib{} supports defining multiple networks in a single file by including multiple `(declare-network ...)` expressions. This is essential for properties that compare networks, 
+such as checking for equivalence between two models or verifying properties of a composite system, like an observer-controller architecture. Figure~\ref{fig:multi_network} 
+shows an example of a \vnnlib{} file that declares two networks, \texttt{teacher\_net} and \texttt{student\_net}.
+
+\begin{figure}[h!]
+    \begin{minipage}[c]{0.57\textwidth}
+        \begin{lstlisting}[style=lbnf]
+(declare-network teacher
+    (declare-input  x Real [1,32])
+    (declare-output y Real [1,2])
+)
+
+(declare-network student
+    (declare-input  a Real [1,32])
+    (declare-output b Real [1,2])
+)\end{lstlisting}
+    \end{minipage}
+    \begin{minipage}[c]{0.43\textwidth}
+        \centering
+        \includegraphics[height=8cm]{imgs/teacher_net.onnx.png}
+        \vspace{0.5cm} 
+        \includegraphics[height=8cm]{imgs/student_net.onnx.png}
+    \end{minipage}
+    \caption{Two networks declared in \vnnlib{}: \texttt{teacher\_net} and \texttt{student\_net}.}
+    \label{fig:multi_network}
+\end{figure}
+
+\subsection{Assertion Example}
+
 \subsubsection*{Assertion declarations}
 \label{sec:assertion-declarations}
-VNN-LIB supports quantifier-free logical formulas as \textit{assertions}. Assertions are defined using parenthesized \texttt{(assert\ldots)} expressions, and following an SMT-LIB-like syntax with the 
+\vnnlib{} supports quantifier-free logical formulas as \textit{assertions}. Assertions are defined using parenthesized \texttt{(assert\ldots)} expressions, and following an SMT-LIB-like syntax with the 
 operator preceding its operands. An assertion is a logical formula that may include logical connectives, relational comparisons, and arithmetic expressions over declared tensors and constants.
 
 \subsubsection*{Variables and Indexing}
@@ -207,7 +196,6 @@ Boolean expressions are defined as expressions that produce a Boolean (\texttt{t
     \end{itemize}
 \end{itemize}
 
-\subsection*{Assertion Example}
 \begin{lstlisting}[
     caption={An assertion stating that if the input $A_0$ is between 0 and 1, the output $B_0$ must be greater than $B_1$ and their sum must be non-negative.},
     style=lbnf,
@@ -221,8 +209,15 @@ Boolean expressions are defined as expressions that produce a Boolean (\texttt{t
 )
 \end{lstlisting}
 
+\subsection{Comments and whitespace}
+
+Comments in \vnnlib{} are denoted by a semicolon (\texttt{;}) and extend to the end of the line. They are used for annotation, explaining logic, or providing additional context. Whitespace in \vnnlib{} is used to separate tokens and improve readability. It can include spaces, tabs, and newlines. Whitespace is ignored by the parser, except where it is necessary to separate tokens.
+
+
 \section{Scoping}
 \label{sec:scoping}
+
+Variable names must be unique within the scope of the entire \vnnlib{} specification.
 
 TODO Ann
 

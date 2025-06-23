@@ -34,7 +34,7 @@ Interoperable formats are designed to allow neural networks to be shared and exe
 \end{itemize}
 
 \subsection{Justification for ONNX}
-ONNX is chosen as the standard format for VNN-LIB for several reasons:
+ONNX is chosen as the standard format for \vnnlib{} for several reasons:
 \begin{itemize}
 	\item \textbf{Widespread Industry Adoption}: ONNX conversion is supported by frameworks such as PyTorch, and Tensorflow, making it ideal for framework-agnostic model representation.
 	\item \textbf{Rich Operator Set}: ONNX supports a wide range of operators, enabling the representation of complex neural network architectures.
@@ -73,10 +73,10 @@ ONNX uses a versioning system called \emph{opsets} to manage the evolution of op
 This ensures that the precise mathematical definition and behaviour of each operator is well-defined and can evolve over time without breaking existing models. The ONNX model file declares the opset
 version used.
 	
-\section{VNN-LIB Support for ONNX}
+\section{\vnnlib{} Support for ONNX}
 \label{sec:onnx_support}
-VNN-LIB supports query specification for any abritary ONNX model that is sequential. In practice however, most verifiers support a subset of ONNX operators and datatypes. Additionally, verifiers may not support
-models with multiple inputs and/or outputs. To ensure clarity, transparency, and interoperability, VNN-LIB defines as part of its verifier interface (Section~\ref{sec:solver_interface}), a capability query 
+\vnnlib{} supports query specification for any abritary ONNX model that is sequential. In practice however, most verifiers support a subset of ONNX operators and datatypes. Additionally, verifiers may not support
+models with multiple inputs and/or outputs. To ensure clarity, transparency, and interoperability, \vnnlib{} defines as part of its verifier interface (Section~\ref{sec:solver_interface}), a capability query 
 mechanism that allows users to determine the ONNX operators, datatypes, and model structures supported by a specific verifier. This is detailed in Section~\ref{sec:global_capabilities}.
 
 \section{ONNX Operators}

@@ -1,139 +1,231 @@
 % TODO: \mnote{I'm not sure I like the name vnn\_verifier. Can we make it into a macro via latex \textbackslash{}newcommand so we can change it everywhere at once? As for the name, maybe just verifier or $<$executable$>$?}
 
-\chapter{Solver Interface}
+\newcommand{\clOutputOption}[3]{
+\paragraph{\texttt{#1}}
+\begin{itemize}
+    \item \textbf{Description}: #2
+    \item \textbf{Output}: #3
+    \item \textbf{Example usage}:
+\end{itemize}
+}
+
+\newcommand{\clOption}[3]{
+\paragraph{\texttt{#1}}
+\begin{itemize}
+    \item \textbf{Description}: #2
+    \item \textbf{Example usage}: \texttt{#3}
+\end{itemize}
+}
+
+\lstdefinestyle{bashcommand}{
+	style=bash,
+    numbers=none,
+    frame=none,
+    backgroundcolor=\color{white}
+}
+
+\newcommand{\exampleVerifier}{checkNN}
+
+\chapter{Verifier Command-line Interface}
 \label{sec:solver_interface}
 
-This chapter specifies the command-line interface (CLI) for neural network verifiers compliant with the VNNLIB-2.0 standard. The goal is to provide a consistent and 
-predictable interface for users and automated tools to interact with different verifiers. The CLI supports querying verifier capabilities, listing supported operations, 
-and invoking the verification process with various configurations.
+With the growing number of neural network verifiers and their increasing integration into larger toolchains, there is a clear need for a consistent and predictable way to invoke them. A standardised command-line interface (CLI) therefore enables interoperability between verifiers and higher-level tools, facilitates benchmarking and automation, and reduces the burden on users adapting to multiple systems.
 
-All verifiers adhering to this specification should be an executable invokable by the command line, referred to in this document as \texttt{verifier}. The general syntax for interacting with the verifier via the CLI is:
-\begin{lstlisting}[style=bash, numbers=none, frame=none, backgroundcolor=\color{white}]
-verifier [global-options] <command> [command-options] 
-	[arguments] 
+This chapter defines the CLI for neural network verifiers that conform to the \vnnlib{} standard. The interface supports querying verifier capabilities, listing supported operations, and running verification tasks with configurable options.
+
+\section{Basic Invocation}
+
+All verifiers adhering to the \vnnlib{} specification should be an executable invokable by the command line, referred to in this document as \texttt{<verifier>}. The general syntax for interacting with the verifier via the CLI is:
+\begin{lstlisting}[style=bash]
+<verifier>
+    [global-options] 
+    <command> 
+    [command-options] 
+    [arguments] 
+\end{lstlisting}
+Throughout the following sections, \texttt{<...>} is used to indicate required values and \texttt{[...]} is used to indicate optional values. To illustrate the example usages, we will  use an imaginary verifier called \texttt{\exampleVerifier}.
+
+Naturally invoking the verifier will produce output in the format described in the rest of this section. Unless stated otherwise all output should be printed on \texttt{stdout}. Detailed logs, warnings, or error messages must be printed on \texttt{stderr}.
+At the moment, the \vnnlib{} standard contains two commands: \emph{verify} and \emph{capabilities}. Compliant verifiers can provide additional other non-standard functionality under different commands.
+
+\section{Global options}
+
+\vnnlib{} compliant verifiers should implement the following global options:
+
+\clOutputOption
+{--name}
+{Print the verifier's full name. This can be different from the executable's name and may contain spaces, special characters etc.}
+{A string.}
+\begin{lstlisting}[style=bash]
+%*\exampleVerifier* --name
+CheckNeuralNetworks!
 \end{lstlisting}
 
-\section{Global Options}
-These options are applicable to the main \texttt{verifier} executable.
-\begin{itemize}
-    \item \texttt{--name}: Print the verifier's full name. This can be different from the executable's name.
-    \item \texttt{--version}: Print the verifier's version string.
-\end{itemize}
+\clOutputOption
+{--version}
+{Print the verifier's version string. It is strongly recommended that verifiers conform to \href{https://semver.org/}{semantic versioning}}{A version string.}
+\begin{lstlisting}[style=bash]
+%*\exampleVerifier* --version
+1.0.1
+\end{lstlisting}
 
-\section{Commands}
 
-\subsection{\texttt{verify}}
+\section{The \texttt{verify} command}
 \label{sec:verify_command}
+
+When invoked with the \texttt{verify} command  the verifier should attempt to determine whether a satisfiable assignment of variables exist for the provided \vnnlib{} query and neural network models.
+
+The general pattern of usage is as follows:
+\begin{lstlisting}[style=bash]
+<verifier> verify 
+  <filepath>
+  [--network <name>=<filepath>]
+  [--timeout <seconds>]
+\end{lstlisting}
+The first argument should be the path to the \vnnlib{} query file (see Section~\ref{sec:specification_language}), and the verifier should support the following additional options:
+
+\clOption{--network}{This option maps the name of one of the networks declared in the provided \vnnlib{} query file to its implementation as an ONNX model file. When a query refers to multiple networks, this option should be used more than once.}{--network classifier=/a/path/to/a/model.onnx}
+
+\clOption{--timeout}{Maximum time to spend on processing on the query in an integer number of seconds.}{--timeout 10}
+
+\noindent The initial output of the command should be reported on \texttt{stdout} and should be a single line consisting of one of the following options: 
 \begin{itemize}
-    \item \textbf{Description}: Invokes the verification process on a given neural network model and a VNNLIB property specification.
-
-    \item \textbf{Usage}:
-    \begin{lstlisting}[style=bash]
-verifier verify <query_filepath> 
---network <name1>:<net1_path> 
-[--network <name2>:<net2_path> ...] 
-[--timeout <seconds>]
-    \end{lstlisting}
-
-    \item \textbf{Options}:
-    \begin{longtable}{@{}>{\raggedright\arraybackslash\ttfamily}p{0.15\textwidth}   % Option column
-                    >{\raggedright\arraybackslash\ttfamily}p{0.12\textwidth}        % Shorthand column
-                    >{\raggedright\arraybackslash\ttfamily}p{0.20\textwidth}        % Argument column
-                    >{\raggedright\arraybackslash}p{0.4\textwidth}@{}}              % Description column (normal font for readability)
-        \toprule
-        Option & Shorthand & Argument & Description \\
-        \midrule
-        \bottomrule
-        \texttt{--network} & \texttt{-n} & \texttt{<name>:<path>} & \textbf{(Required)} Identifier for the network and path to the ONNX model file. \\
-        \texttt{--timeout} & \texttt{-t} & \texttt{<seconds>} & Maximum time to spend on verification in integer seconds. \\
-    \end{longtable}
-    
-    \item \textbf{Standard Output/Error}:
-    \begin{itemize}
-        \item The primary result is printed to \texttt{stdout}: \texttt{SAT}, \texttt{UNSAT}, \texttt{TIMEOUT}, \texttt{UNKNOWN}.
-        \item If \texttt{SAT}, the generated satisfying assignment will be printed to \texttt{stdout} immediately following the result line. 
-        The format of the satisfying assignment is detailed in Section~\ref{sec:satisfying_assignments}.
-        \item Detailed logs, warnings, or error messages should be sent to \texttt{stderr}.
-    \end{itemize}
+\item \texttt{timed-out} - The allocated time elapsed before the verification procedure terminated.
+\item \texttt{unknown} - The verifier terminated but was unable to definitively prove whether or not the query was unsatisfiable.
+\item \texttt{unsat} - The verifier terminated and proved that the query was unsatisfiable.
+\item \texttt{sat} - The verifier terminated and proved that the query was satisfiable.
 \end{itemize}
+If the result is \texttt{sat}, the satisfying assignment found should be printed on the immediately following lines in the following format:
+\begin{lstlisting}[style=bash]
+sat
+<variable_1>=<value>
+<variable_2>=<value>
+...
+<variable_n>=<value>
+\end{lstlisting}
+The variables should be reported in the order that they are declared in the query file. For example, the result for a \vnnlib{} query that started with the following network declarations:
+\begin{lstlisting}[style=bash]
+(declare-network f
+    (declare-input A Real [2,2])
+    (declare-input B Real [1])
+    (declare-hidden H Real [1,2])
+    (declare-output Y Real [1])
+)
+(declare-network g
+    (declare-input C Real [2,2])
+    (declare-output Z Real [1])
+)
+...
+\end{lstlisting}
+then the output should be printed as:
+\begin{lstlisting}[style=bash]
+sat
+A[0,0]=...
+A[0,1]=...
+A[1,0]=...
+A[0,0]=...
+B[0]=...
+H[0,0]=...
+H[0,1]=...
+Y[0]=...
+C[0,0]=...
+C[0,1]=...
+C[1,0]=...
+C[0,0]=...
+Z[0]=...
+\end{lstlisting}
 
-The \texttt{<name>} in the \texttt{--network} option is a user-defined identifier for the network, which is used in the VNNLIB property file to refer to this specific network.
 
-\section{Global Capability Options}
+\section{The \texttt{supports} command}
 \label{sec:global_capabilities}
 
-This section details additional global options for querying individual verifier capabilities. These options provide a convenient way for higher-level tools to automatically assess the capabilities of the verifier.
+When invoked with the \texttt{supports} command, the verifier should report the types of queries and networks it is capable of verifying.
+These options provide a way for higher-level tools to automatically assess the capabilities of the verifier.
 
-\subsection{\texttt{supports-multiple-networks}}
-\begin{itemize}
-    \item \textbf{Description}: Checks if the verifier supports properties defined over multiple neural networks. See Section~\ref{sec:multi-network-declarations} for details on how to declare and use multiple networks in VNNLIB.
-    \item \textbf{Usage}: \texttt{verifier --supports-multiple-networks}
-    \item \textbf{Output}: \texttt{true} or \texttt{false}.
-\end{itemize}
+The general pattern of usage is as follows:
+\begin{lstlisting}[style=bash]
+<verifier> supports <option>
+\end{lstlisting}
+and the verifier should be able to report the following capabilities:
 
-\subsection{\texttt{supports-multiple-io}}
-\begin{itemize}
-    \item \textbf{Description}: Checks if the verifier supports models with multiple input and/or output tensors. See Section~\ref{sec:input-output-declarations} for details on how to declare and use multiple I/O tensors in VNNLIB.
-    \item \textbf{Usage}: \texttt{verifier --supports-multiple-io}
-    \item \textbf{Output}: \texttt{true} or \texttt{false}.
-\end{itemize}
+\subsection{ONNX capabilities}
 
-\subsection{\texttt{supports-hidden-nodes}}
-\begin{itemize}
-    \item \textbf{Description}: Checks if the verifier supports referencing hidden layer nodes in VNNLIB properties. See Section~\ref{sec:hidden-node-declarations} for details on how to declare and use hidden nodes in VNNLIB.
-    \item \textbf{Usage}: \texttt{verifier --supports-hidden-nodes}
-    \item \textbf{Output}: \texttt{true} or \texttt{false}.
-\end{itemize}
+\clOutputOption
+{--onnx-opset-versions}
+{Prints a newline-separated pair of the minimum and maximum \href{https://onnxruntime.ai/docs/reference/compatibility.html\#onnx-opset-support}{ONNX opset versions} that the verifier supports.}
+{Two version strings}
+\begin{lstlisting}[style=bash]
+%*\exampleVerifier* supports --onnx-opset-versions
+13
+19
+\end{lstlisting}
 
-\subsection{\texttt{supported-logics}}
-\begin{itemize}
-    \item \textbf{Description}: Prints a list of supported VNN-LIB logics, indicating the scope of theoretical support. See Section~\ref{sec:query_categories} for 
-    details on each of the logics (e.g., NRA for non-linear real arithmetic support) that may be represented in VNN-LIB.
-    \item \textbf{Example Output}:
-    \begin{lstlisting}[style=bash, numbers=none, frame=none, backgroundcolor=\color{white}]
-FRA
-LINEAR
-R
-    \end{lstlisting}
-\end{itemize}
+\clOutputOption
+{--onnx-types}
+{Prints a newline-separated list of the ONNX data types that the verifier supports.}
+{List of ONNX types}
+\begin{lstlisting}[style=bash]
+%*\exampleVerifier* supports --onnx-types
+REAL
+FLOAT32
+\end{lstlisting}
 
-\subsection{\texttt{supported-onnx-types}}
-\begin{itemize}
-    \item \textbf{Description}: Prints a newline-separated list of the ONNX data types (e.g., ``float16'', ``float32'', ``int32'') that the verifier supports.
-    \item \textbf{Usage}: \texttt{verifier --supported-theories}
-    \item \textbf{Example Output}:
-    \begin{lstlisting}[style=bash, numbers=none, frame=none, backgroundcolor=\color{white}]
-FLOAT
-FLOAT16
-    \end{lstlisting}
-\end{itemize}
-
-\subsection{\texttt{supported-onnx-operators}}
-\begin{itemize}
-    \item \textbf{Description}: Prints a newline-separated list of ONNX operator types (e.g., ``Conv'', ``Relu'', ``Gemm'') that are supported by the verifier. 
-	This helps users determine if their ONNX model is compatible with the verifier. See Section~\ref{sec:model} for more details on the ONNX standard and its operators.
-    \item \textbf{Usage}: \texttt{verifier --supported-onnx-operators}
-    \item \textbf{Example Output}:
-    \begin{lstlisting}[style=bash, numbers=none, frame=none, backgroundcolor=\color{white}]
+\clOutputOption
+{--onnx-operators}
+{Reports the ONNX operator types (e.g., ``Conv'', ``Relu'', ``Gemm'') that are supported by the verifier. See Section~\ref{sec:model} for more details on the ONNX standard and its operators.
+}
+{A newline-separated list of ONNX operators}
+\begin{lstlisting}[style=bash]
+%*\exampleVerifier* supports --onnx-operators
 Conv
 Relu
 MatMul
 Gemm
 Add
 Flatten
-    \end{lstlisting}
-\end{itemize}
+\end{lstlisting}
 
-\subsection{\texttt{supported-onnx-opsets}}
-\begin{itemize}
-    \item \textbf{Description}: Prints a newline-separated list of supported ONNX opset versions.
-    \item \textbf{Usage}: \texttt{verifier --supported-onnx-opsets}
-    \item \textbf{Example Output}:
-    \begin{lstlisting}[style=bash, numbers=none, frame=none, backgroundcolor=\color{white}]
-13
-14
-15
-    \end{lstlisting}
-\end{itemize}
+\clOutputOption
+{--multiple-input-outputs}
+{Does the verifier support ONNX networks with multiple input or output nodes? See Section~\ref{sec:input-output-declarations} for details.}
+{A boolean (\texttt{true} or \texttt{false})}
+\begin{lstlisting}[style=bash]
+%*\exampleVerifier* supports --multiple-inputs-outputs
+true
+\end{lstlisting}
 
-\section{Satisfying Assignments}\label{sec:satisfying_assignments}
+\subsection{Query capabilities}
+
+\clOutputOption
+{--multiple-networks}
+{Does the verifier support queries with multiple networks? See Section~\ref{sec:multi-network-declarations} for how to declare multiple networks in a query.}
+{A boolean (\texttt{true} or \texttt{false})}
+\begin{lstlisting}[style=bash]
+%*\exampleVerifier* supports --multiple-networks
+false
+\end{lstlisting}
+
+\clOutputOption
+{--hidden-nodes}
+{Does the verifier support queries which refer to hidden nodes in the network? See Section~\ref{sec:hidden-node-declarations} for how to declare hidden nodes in a query.}
+{A boolean (\texttt{true} or \texttt{false})}
+\begin{lstlisting}[style=bash]
+%*\exampleVerifier* supports --hidden-nodes
+true
+\end{lstlisting}
+
+\clOutputOption
+{--logics}
+{Prints a list of supported \vnnlib{} logics, indicating the scope of theoretical support. See Section~\ref{sec:query_categories} for 
+    details on each of the logics (e.g., NRA for non-linear real arithmetic support) that may be represented in \vnnlib{}.
+}
+{A newline-seperated list of logics.}
+\begin{lstlisting}[style=bash]
+%*\exampleVerifier* supports --logics
+FRA
+LINEAR
+R
+\end{lstlisting}
+
+
+

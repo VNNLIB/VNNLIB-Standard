@@ -22,6 +22,7 @@
 
 \renewcommand{\lstlistingname}{Example}
 \newcommand{\ie}{\textit{i.e.}}
+\newcommand{\vnnlib}{VNN-LIB}
 
 %customized todo
 \definecolor{lightgreen}{rgb}{0.8,1.0,0.8}
@@ -89,7 +90,7 @@
 \newcommand{\myremark}[1]{\todo[inline, color=lightgreen]{\textbf{Remark:} #1}}
 
 \title{
-	The VNN-LIB Standard \\ 
+	The \vnnlib{} Standard \\ 
 	Version 2.0 (draft)
 }
 
@@ -111,7 +112,7 @@
 \maketitle
 
 \begin{abstract}
-This document presents VNN-LIB, a standard that formalises the query language for neural network verifiers. The standard uses the 
+This document presents \vnnlib{}, a standard that formalises the query language for neural network verifiers. The standard uses the 
 Open Neural Network Exchange (ONNX) format for model description and builds upon the Satisfiability Modulo Theories Library (SMT-LIB) 
 format for query specification. Key among the standard is a formally defined syntax and semantics, complimentary tooling, as well as a 
 command-line interface for verifiers. The goal is to foster greater robustness and interoperability in the neural network verification 
@@ -125,7 +126,7 @@ landscape.
 \input{chapters/verifier_interface.tex}
 
 \appendix
-\chapter{VNN-LIB LBNF Grammar}\label{app:lbnf_grammar}
+\chapter{\vnnlib{} LBNF Grammar}\label{app:lbnf_grammar}
 
 \begin{thebibliography}{9} 
 
