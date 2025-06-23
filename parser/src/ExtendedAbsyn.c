@@ -9,7 +9,11 @@ void freeLinearArithExpr(LinearArithExpr expr) {
     }
 }
 
-
+/**
+ * @brief Copies the contents of one LinearArithExpr to another.
+ * @param dest The destination LinearArithExpr to copy into.
+ * @param src The source LinearArithExpr to copy from.
+ */
 void copyLinearArithExpr(LinearArithExpr dest, const LinearArithExpr src) {
     if (!dest || !src) return;
 
@@ -31,14 +35,17 @@ void copyLinearArithExpr(LinearArithExpr dest, const LinearArithExpr src) {
     memcpy(dest->coeffs, src->coeffs, src->num_terms * sizeof(double));
 }
 
-
+/**
+ * @brief Pretty-prints a LinearArithExpr into a human-readable string.
+ * @param p The LinearArithExpr to pretty-print.
+ * @return A dynamically allocated string representing the expression.
+ */
 char *ppLinearArithExpr(LinearArithExpr p) {
     if (!p) return strdup("NULL");
 
-    // Initialize buffer for append_str
-    size_t size = 128; // Initial size
+    size_t size = 128;
     size_t used = 0;
-    char *buffer = (char *)malloc(size);
+    char *buffer = (char *) malloc(size);
     if (!buffer) {
         fprintf(stderr, "Error: out of memory for ppLinearArithExpr buffer!\n");
         return NULL;
@@ -95,7 +102,11 @@ char *ppLinearArithExpr(LinearArithExpr p) {
     return buffer;
 }
 
-
+/**
+ * @brief Linearises an ArithExpr into a LinearArithExpr.
+ * @param arith_expr The ArithExpr to linearise.
+ * @return A LinearArithExpr representing the linearised form of the input expression.
+ */ 
 LinearArithExpr linearise(ArithExpr arith_expr) {
     LinearArithExpr expr = (LinearArithExpr) malloc(sizeof(*expr));
     if (!expr) {
@@ -183,6 +194,7 @@ LinearArithExpr linearise(ArithExpr arith_expr) {
             break;
         }
 
+        // Plus and Minus operations combine multiple linear expressions
         case is_Plus: {
             ListArithExpr list = arith_expr->u.plus_.listarithexpr_;
             LinearArithExpr first_expr = linearise(list->arithexpr_);
@@ -368,10 +380,6 @@ LinearArithExpr linearise(ArithExpr arith_expr) {
 
         case is_Multiply: {
             ListArithExpr list = arith_expr->u.multiply_.listarithexpr_;
-            if (!list) { // Handle empty multiply, e.g. (*). Result is 1.
-                expr->constant = 1.0;
-                break;
-            }
 
             // Linearise each sub-expression in the multiplication
             int num_operands = 0;
@@ -388,7 +396,7 @@ LinearArithExpr linearise(ArithExpr arith_expr) {
             for (int i = 0; i < num_operands; ++i) {
                 sub_exprs[i] = linearise(current->arithexpr_);
                 if (!sub_exprs[i]) { 
-                    for (int j = 0; j < i; ++j) freeLinearArithExpr(sub_exprs[j]);
+                    for (int j = 0; j < i; j++) freeLinearArithExpr(sub_exprs[j]);
                     free(sub_exprs);
                     freeLinearArithExpr(expr);
                     return NULL;
@@ -396,7 +404,7 @@ LinearArithExpr linearise(ArithExpr arith_expr) {
                 current = current->listarithexpr_;
             }
 
-            // 
+            // Check for linearity and compute the constant product
             LinearArithExpr var_expr = NULL;
             double constant_product = 1.0;
             bool non_linear = false;
@@ -404,7 +412,7 @@ LinearArithExpr linearise(ArithExpr arith_expr) {
             for (int i = 0; i < num_operands; ++i) {
                 if (sub_exprs[i]->num_terms > 0) {
                     if (var_expr != NULL) {
-                        non_linear = true; // Found more than one expression with variables
+                        non_linear = true;
                         break;
                     }
                     var_expr = sub_exprs[i];
@@ -423,7 +431,7 @@ LinearArithExpr linearise(ArithExpr arith_expr) {
                     for (int i = 0; i < expr->num_terms; ++i) {
                         expr->coeffs[i] *= constant_product;
                     }
-                } else {
+                } else { // No variables, just a multiplication of constants
                     expr->constant = constant_product;
                 }
             }
