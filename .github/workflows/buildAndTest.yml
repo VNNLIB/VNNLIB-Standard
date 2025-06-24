@@ -1,4 +1,4 @@
-name: Build-and-Test-VNNLib-benchMarks
+name: Build-and-Test
 
 on: 
     workflow_dispatch:
@@ -10,7 +10,7 @@ jobs:
     steps:
         - uses: actions/checkout@v4
 
-        - name: installing bnfc and dependencies
+        - name: Installing bnfc and dependencies
           run: cabal update && cabal install alex && cabal install happy && cabal install BNFC
 
         - name: Build the parser
