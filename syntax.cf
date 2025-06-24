@@ -18,10 +18,10 @@ GenericTensShape. TensorShape ::= "[" [Int] "]" ;
 -- Production of Tensor indicies
 TensorInd. TensorIndices ::= "[" [Int] "]" ;
 
--- A tensor element is constructed with the associated varaible name and tensor indicies
+-- A tensor element is constructed with the associated variable name and tensor indices
 TensElem. TensorElement ::= VariableName TensorIndices ;
 
--- ArithExpr is a numeric value that may be a paramater, a tensor element, 
+-- ArithExpr is a numeric value that may be a parameter, a tensor element, 
 -- or an arithmetic operation
 VarExpr. ArithExpr ::= TensorElement ;
 DoubleExpr. ArithExpr ::= SDouble ;
