@@ -1,0 +1,56 @@
+\babel@toc {english}{}\relax 
+\contentsline {chapter}{\numberline {1}Introduction}{3}{chapter.1}%
+\contentsline {chapter}{\numberline {2}Network Models}{4}{chapter.2}%
+\contentsline {section}{\numberline {2.1}Introduction}{4}{section.2.1}%
+\contentsline {section}{\numberline {2.2}Network Formats}{4}{section.2.2}%
+\contentsline {subsection}{\numberline {2.2.1}Interoperable Network Formats}{5}{subsection.2.2.1}%
+\contentsline {subsection}{\numberline {2.2.2}Justification for ONNX}{5}{subsection.2.2.2}%
+\contentsline {section}{\numberline {2.3}ONNX Format Overview}{5}{section.2.3}%
+\contentsline {subsection}{\numberline {2.3.1}ONNX Model Structure}{6}{subsection.2.3.1}%
+\contentsline {subsection}{\numberline {2.3.2}ONNX Tensors}{6}{subsection.2.3.2}%
+\contentsline {subsection}{\numberline {2.3.3}ONNX Opsets}{6}{subsection.2.3.3}%
+\contentsline {section}{\numberline {2.4}VNN-LIB{} Support for ONNX}{7}{section.2.4}%
+\contentsline {section}{\numberline {2.5}ONNX Operators}{7}{section.2.5}%
+\contentsline {chapter}{\numberline {3}Query Language}{9}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Syntax}{9}{section.3.1}%
+\contentsline {subsection}{\numberline {3.1.1}Simple network declarations}{10}{subsection.3.1.1}%
+\contentsline {subsection}{\numberline {3.1.2}Assertions}{11}{subsection.3.1.2}%
+\contentsline {paragraph}{Constants}{11}{section*.3}%
+\contentsline {paragraph}{Variables}{11}{section*.4}%
+\contentsline {paragraph}{Arithmetic expressions}{11}{section*.5}%
+\contentsline {paragraph}{Comparisons}{11}{section*.6}%
+\contentsline {paragraph}{Boolean expressions}{12}{section*.7}%
+\contentsline {subsection}{\numberline {3.1.3}More complex network declarations}{12}{subsection.3.1.3}%
+\contentsline {paragraph}{Multiple input and output declarations}{12}{section*.8}%
+\contentsline {paragraph}{Hidden Node Declarations}{12}{section*.10}%
+\contentsline {paragraph}{Multiple networks}{14}{section*.13}%
+\contentsline {subsection}{\numberline {3.1.4}Comments and whitespace}{15}{subsection.3.1.4}%
+\contentsline {section}{\numberline {3.2}Scoping and Typing}{15}{section.3.2}%
+\contentsline {section}{\numberline {3.3}Semantics}{15}{section.3.3}%
+\contentsline {chapter}{\numberline {4}Logics}{16}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Neural Network Verification Queries}{16}{section.4.1}%
+\contentsline {section}{\numberline {4.2}Verifier Architecture}{17}{section.4.2}%
+\contentsline {section}{\numberline {4.3}Theories}{19}{section.4.3}%
+\contentsline {section}{\numberline {4.4}Arithmetic Complexity}{20}{section.4.4}%
+\contentsline {section}{\numberline {4.5}Orthogonal Logic}{20}{section.4.5}%
+\contentsline {chapter}{\numberline {5}Verifier Command-line Interface}{22}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Invocation}{22}{section.5.1}%
+\contentsline {section}{\numberline {5.2}Global options}{23}{section.5.2}%
+\contentsline {paragraph}{\texttt {--name}}{23}{section*.26}%
+\contentsline {paragraph}{\texttt {--version}}{23}{section*.27}%
+\contentsline {section}{\numberline {5.3}The \texttt {verify} command}{23}{section.5.3}%
+\contentsline {paragraph}{\texttt {--network}}{24}{section*.28}%
+\contentsline {paragraph}{\texttt {--timeout}}{24}{section*.29}%
+\contentsline {section}{\numberline {5.4}The \texttt {supports} command}{25}{section.5.4}%
+\contentsline {subsection}{\numberline {5.4.1}VNN-LIB{} capabilities}{25}{subsection.5.4.1}%
+\contentsline {paragraph}{\texttt {--vnnlib-versions}}{25}{section*.30}%
+\contentsline {subsection}{\numberline {5.4.2}ONNX capabilities}{26}{subsection.5.4.2}%
+\contentsline {paragraph}{\texttt {--onnx-opset-versions}}{26}{section*.31}%
+\contentsline {paragraph}{\texttt {--onnx-types}}{26}{section*.32}%
+\contentsline {paragraph}{\texttt {--onnx-operators}}{26}{section*.33}%
+\contentsline {paragraph}{\texttt {--multiple-input-outputs}}{27}{section*.34}%
+\contentsline {subsection}{\numberline {5.4.3}Query capabilities}{27}{subsection.5.4.3}%
+\contentsline {paragraph}{\texttt {--multiple-networks}}{27}{section*.35}%
+\contentsline {paragraph}{\texttt {--hidden-nodes}}{27}{section*.36}%
+\contentsline {paragraph}{\texttt {--logics}}{28}{section*.37}%
+\contentsline {chapter}{\numberline {A}LBNF Grammar for Query Language}{29}{appendix.A}%
