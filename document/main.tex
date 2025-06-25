@@ -18,7 +18,7 @@
 \usepackage{array}
 \usepackage{geometry}
 \usepackage{tikz}
-\usepackage{caption} 
+\usepackage[font={small,it}]{caption}
 
 \renewcommand{\lstlistingname}{Example}
 \newcommand{\ie}{\textit{i.e.}}
@@ -58,7 +58,7 @@
     frame=lines,
     xleftmargin=2em,
     framexleftmargin=1.5em,
-    escapeinside={\%*}{*} 
+    escapeinside={\%*}{*}
 }
 
 % Listings style for Bash/CLI commands
@@ -84,6 +84,8 @@
     framexleftmargin=1.5em,
     escapeinside={\%*}{*} 
 }
+
+\newcommand{\inlinevnn}[1]{\lstinline[style=lbnf]{#1}}
 
 \newcommand{\mytodo}[1]{\todo[inline,color=lightgreen]{TODO:#1}}
 \newcommand{\mnote}[2][]{\todo[inline,color=blue!10,#1]{Matthew: #2}}

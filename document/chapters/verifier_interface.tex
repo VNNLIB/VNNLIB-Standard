@@ -148,6 +148,18 @@ The general pattern of usage is as follows:
 \end{lstlisting}
 and the verifier should be able to report the following capabilities:
 
+\subsection{\vnnlib{} capabilities}
+
+\clOutputOption
+{--vnnlib-versions}
+{Prints a newline-separated pair of the minimum and maximum versions of \vnnlib{} that the verifier supports.}
+{Two version strings}
+\begin{lstlisting}[style=bash]
+%*\exampleVerifier* supports --vnnlib-versions
+2.0
+2.3
+\end{lstlisting}
+
 \subsection{ONNX capabilities}
 
 \clOutputOption
@@ -187,7 +199,7 @@ Flatten
 
 \clOutputOption
 {--multiple-input-outputs}
-{Does the verifier support ONNX networks with multiple input or output nodes? See Section~\ref{sec:input-output-declarations} for details.}
+{Does the verifier support ONNX networks with multiple input or output nodes? See Section~\ref{sec:complex-networks-decls} for details.}
 {A boolean (\texttt{true} or \texttt{false})}
 \begin{lstlisting}[style=bash]
 %*\exampleVerifier* supports --multiple-inputs-outputs
@@ -198,7 +210,7 @@ true
 
 \clOutputOption
 {--multiple-networks}
-{Does the verifier support queries with multiple networks? See Section~\ref{sec:multi-network-declarations} for how to declare multiple networks in a query.}
+{Does the verifier support queries with multiple networks? See Section~\ref{sec:complex-networks-decls} for how to declare multiple networks in a query.}
 {A boolean (\texttt{true} or \texttt{false})}
 \begin{lstlisting}[style=bash]
 %*\exampleVerifier* supports --multiple-networks
@@ -207,7 +219,7 @@ false
 
 \clOutputOption
 {--hidden-nodes}
-{Does the verifier support queries which refer to hidden nodes in the network? See Section~\ref{sec:hidden-node-declarations} for how to declare hidden nodes in a query.}
+{Does the verifier support queries which refer to hidden nodes in the network? See Section~\ref{sec:complex-networks-decls} for how to declare hidden nodes in a query.}
 {A boolean (\texttt{true} or \texttt{false})}
 \begin{lstlisting}[style=bash]
 %*\exampleVerifier* supports --hidden-nodes
