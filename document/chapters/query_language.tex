@@ -111,35 +111,32 @@ The query language supports such networks by allowing a network declaration to d
 
     \begin{lstlisting}[style=lbnf]
 (declare-network multi_io_net
-    (declare-input  image    Real [1,3,224,224] "image_in")
-    (declare-input  metadata Real [1,10] "metadata_in")
-    (declare-output logits   Real [1,1000] "logits_out")
-    (declare-output bbox     Real [1,4] "bbox_out")
+    (declare-input  image    Real [1,3,224,224] "image")
+    (declare-input  metadata Real [1,10] "metadata")
+    (declare-output logits   Real [1,1000] "logits")
+    (declare-output bbox     Real [1,4,2] "bbox")
 )\end{lstlisting}
 
     \vspace{0.5cm}
-    \includegraphics[height=10cm]{imgs/multi_io_net.onnx.png}
+    \includegraphics[width=\textwidth]{imgs/multi_io_net.onnx.png}
     \caption{A network with multiple inputs/outputs, mapped by declaration order.}
     \label{fig:multi-inputs-outputs}
 \end{figure}
 
 
-\paragraph{Hidden Node Declarations}
-\label{sec:hidden-node-declarations}
+\paragraph{Hidden output declarations}
+\label{sec:hidden-output-declarations}
 
-In some use cases it is desirable to constrain the result of intermediate computation at the output of hidden nodes within the network. For example, when reasoning about the encodings in an encoder-decoder architecture or when reasoning about attention mechanisms.
-This can be achieved by declaring hidden nodes is declared using the \texttt{declare-hidden} keyword. This declaration includes a variable name for use within the \vnnlib{} specification, 
-its element type, its tensor shape, and crucially, a string identifier that specifies the corresponding node name in the ONNX graph.  Multiple
-hidden nodes can be trivially declared within a single network declaration. Figure~\ref{fig:hidden-node} shows a \vnnlib{} network declaration with a hidden node.
+In some use cases it is desirable to constrain the result of intermediate computation at the output of hidden nodes within the network. For example, when reasoning about the encodings in an encoder-decoder architecture or when reasoning about attention mechanisms. This can be achieved by declaring hidden nodes using the \texttt{declare-hidden} keyword. This declaration includes a variable name for use within the \vnnlib{} specification,  its element type, its tensor shape, and crucially, a string identifier that specifies the corresponding node name in the ONNX graph.  Multiple hidden nodes can be trivially declared within a single network declaration. Figure~\ref{fig:hidden-node} shows a \vnnlib{} network declaration with a hidden node.
 
-\mnote{Talk about node names vs node output names}
+The hidden node declaration crucially refers to the uniquely identified outputs of a node, rather than the node (or operator) itself. It declares that an output of the node is to be used as a variable in the \vnnlib{} query.
 
 \begin{figure}[h!]
     \begin{minipage}[c]{0.65\textwidth}
         \begin{lstlisting}[style=lbnf]   
 (declare-network encoder
     (declare-input X Real [1,28,28])
-    (declare-hidden Z Real [1,128] "encoder_output")
+    (declare-hidden Z Real [1,128] "hidden")
     (declare-output Y Real [1,10])
 )\end{lstlisting}
     \end{minipage}%
@@ -173,11 +170,11 @@ shows an example which declares two networks representing a teacher and a studen
     \end{minipage}
     \begin{minipage}[c]{0.4\textwidth}
         \centering
-        \includegraphics[height=5cm]{imgs/teacher_net.onnx.png}
+        \includegraphics[height=6cm]{imgs/teacher_net.onnx.png}
         \vspace{0.5cm} 
         \includegraphics[height=5cm]{imgs/student_net.onnx.png}
     \end{minipage}
-    \caption{Two networks declared in \vnnlib{}: \texttt{teacher\_net} and \texttt{student\_net}.}
+    \caption{Two networks declared in \vnnlib{}: \texttt{teacher\_net} and \texttt{student\_net} respectively.}
     \label{fig:multiple-networks}
 \end{figure}
 
@@ -323,16 +320,23 @@ verification task fails.
         
         % --- BOTTOM ROW ---
         \node (arith_title)    [category] at (0,-7cm) {Arithmetic Complexity};
-        \node (ortho_title)    [category] at (8,-7cm) {Orthogonal Logic};
 
         % --- Draw the tree for Theories (Flowing UP) ---
-        \node (float_cat) [logic, below=of theories_title, xshift=1.5cm]  {FP};
-        \node (f16)       [logic, below=of float_cat, xshift=-1.2cm] {FP16};
-        \node (f32)       [logic, below=of float_cat, xshift=1.2cm] {FP32};
-        \node (real)      [logic, left=of float_cat] {R};
+        \node (float_cat)   [logic, below=of theories_title, xshift=1.5cm]  {FP (Floating Point)};
+        \node (f4)          [logic, below=of float_cat, xshift=-2.5cm] {FP4};
+        \node (f8)          [logic, below=of float_cat, xshift=-1.25cm] {FP8};
+        \node (f16)         [logic, below=of float_cat, xshift=-0cm] {FP16};
+        \node (f32)         [logic, below=of float_cat, xshift=1.25cm] {FP32};
+        \node (f64)         [logic, below=of float_cat, xshift=2.5cm] {FP64};
+        \node (real)        [logic, left=of float_cat] {R (Real)};
+        \node (si_real)     [logic, below=of real] {SR};
         % Arrows
+        \draw[arrow] (f4.north) -- (float_cat.south);
+        \draw[arrow] (f8.north) -- (float_cat.south);
         \draw[arrow] (f16.north) -- (float_cat.south);
         \draw[arrow] (f32.north) -- (float_cat.south);
+        \draw[arrow] (f64.north) -- (float_cat.south);
+        \draw[arrow] (si_real.north) -- (real.south);
 
         % --- Draw the tree for Architecture (Flowing UP) ---
         \node (csp) [logic, below=of arch_title] {[CSP] (Constraint Satisfaction)};
@@ -347,9 +351,6 @@ verification task fails.
         % Arrows
         \draw [arrow] (bounds) -- (linear);
         \draw [arrow] (linear) -- (poly);
-
-        % --- Draw the tree for Orthogonal Logic ---
-        \node (strict) [logic, below=of ortho_title] {SI (Strict Inequality)};
         
         \end{tikzpicture}
     }%
@@ -410,6 +411,14 @@ network's properties, allowing verifiers to reason about the network's behavior 
 However, due to the accumulation of numerical errors in real-world neural network inference (which is done on finite-precision floating-point arithmetic), 
 the guarantees obtained from verification under this theory may not directly transfer to a network's deployment. 
 
+\subsubsection*{Strict Comparison (SR)}
+The use of strict inequalities (e.g., $y > c$) in a verification property introduces specific formal and computational challenges. While non-strict inequalities ($\ge$) define closed sets, 
+strict inequalities define open sets. In verification, this distinction is critical, especially at decision boundaries. To prove a property like $\forall x \in \Pi, \nu(x) > c$, the verifier 
+must show that the output can never be equal to $c$.
+
+However, this constraint only applies to real-valued outputs. Floating point arithmetic can trivially satisfy strict inequalities as it is able to represent values that are arbitrarily close to $c$ without being equal to it
+by using the next representable value above or below $c$.
+
 \subsection{Arithmetic Complexity}
 
 \subsubsection*{Polynomial Complexity}
@@ -424,10 +433,3 @@ for the use of linear over-approximations of the reachable sets, such as hyper-r
 \subsubsection*{Bounds}
 The most fundamental level of arithmetic complexity is the bounds logic, which deals with verifying properties that can be expressed as simple inequalities that bound the values of the network's 
 inputs, outputs, or hidden nodes. In the case of FRA, input bounds are propagated through the network to determine the range of possible values for each neuron.
-
-\subsection{Orthogonal Logic}
-
-\subsubsection*{Strict Inequality}
-The use of strict inequalities (e.g., $y > c$) in a verification property introduces specific formal and computational challenges. While non-strict inequalities ($\ge$) define closed sets, 
-strict inequalities define open sets. In verification, this distinction is critical, especially at decision boundaries. To prove a property like $\forall x \in \Pi, \nu(x) > c$, the verifier 
-must show that the output can never be equal to $c$.
