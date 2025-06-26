@@ -1,21 +1,24 @@
 \chapter{Introduction}
 \label{sec:intro}
 
-As neural networks become increasingly integral to safety-critical and high societal impact applications\cite{1, 2, 3}, 
-the need for robust verification of their properties is paramount. While neural networks have shown exceptional performance, 
-they are susceptible to issues like adversarial examples\cite{3} and discriminatory behaviour\cite{4}.
+\section{Motivation}
 
-Since 2023, the \vnnlib{} standard\cite{5} has served as a de facto specification language for queries in the neural network verification 
-community, notably supporting the annual VNN-COMP\cite{7}. It was conceived to facilitate the standardisation of solver interfaces and 
-enable the collection of benchmarks in a common format. 
+While neural networks have shown exceptional performance across a range of tasks, 
+they remain vulnerable to issues such as adversarial examples~\cite{szegedy2013intriguing} and discriminatory behaviour~\cite{4}. As these models are increasingly deployed in safety-critical and high-impact societal applications~\cite{1,2,3}, the need for robust methods to verify their behaviour has become paramount.
 
-This document is structured as follows:
-\begin{itemize}
-\item Chapter~\ref{sec:model} discusses how neural networks models should be represented using the ONNX format.
-\item Chapter~\ref{sec:specification_language} details the \vnnlib{} query language, including its syntax, scoping rules, typing rules and formal semantics.
-\item Chapter~\ref{sec:query_categories} outlines different characteristics of queries, namely linearity, 
-reachability, and normality.
-\item  Chapter~\ref{sec:solver_interface} introduces a standard command line interface for verifiers.
-\item Finally, Chapter~\ref{sec:examples} 
-presents examples illustrating how to use \vnnlib{} to specify constraints.
-\end{itemize}
+As with many formal verification problems, neural network verification can typically be reduced to sets of satisfiability queries. These queries are answerable by domain specific solvers which will be referred to as \emph{neural network verifiers} or simply \emph{verifiers} in this document. The \vnnlib{} standard was inspired by the success of SMT-LIB, which provides a unified format for queries to SMT solvers. 
+Since its introduction in 2023, the \vnnlib{} standard~\cite{5} has been the de-facto specification language for queries in the neural network verification community, most notably used in the annual VNN-COMP~\cite{7} competition. Its goal is to facilitate the standardisation of solver interfaces and enable the collection of neural network verification benchmarks in a common format. 
+
+\section{About this document}
+
+Currently, the standard consists of following three parts:
+\begin{enumerate}
+\item \textbf{\nameref{sec:models} (Chapter~\ref{sec:models})}: A high-level description of the pre-existing standalone ONNX standard for representing the neural network models.
+\item \textbf{\nameref{sec:specification_language} (Chapter~\ref{sec:specification_language})}: The \vnnlib{} language for representing a satisfiability query over one or more neural network models.
+\item \textbf{\nameref{sec:solver_interface} (Chapter~\ref{sec:solver_interface})}: A standardised interface for allowing users to invoke a neural network verifier on a query and to query the capabilities of the verifier.
+\end{enumerate}
+
+This document assumes some basic familiarity with neural networks, first-order logic and simple type theory. The reader is referred to any of several textbooks on neural networks, first-order logic [Gal86, Fit96, End01, Men09] simple type theory. 
+
+New versions of the document are identified by semantic versioning. In general patch versions will fix bugs in the document, minor versions will include conservative extensions to the specification, while changes to the major version number will result from major backwards-incompatible changes.
+A high-level summary of the changes introduced to the document by each new version may be found in Appendix~\ref{sec:changelog}.

@@ -1,0 +1,15 @@
+\begin{thebibliography}{1}
+
+\bibitem{forsberg2005labelled}
+Markus Forsberg and Aarne Ranta.
+\newblock The labelled bnf grammar formalism.
+\newblock {\em Department of Computing Science, Chalmers University of
+  Technology and the University of Gothenburg}, 2005.
+
+\bibitem{szegedy2013intriguing}
+Christian Szegedy, Wojciech Zaremba, Ilya Sutskever, Joan Bruna, Dumitru Erhan,
+  Ian Goodfellow, and Rob Fergus.
+\newblock Intriguing properties of neural networks.
+\newblock {\em arXiv preprint arXiv:1312.6199}, 2013.
+
+\end{thebibliography}

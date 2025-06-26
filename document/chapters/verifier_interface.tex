@@ -1,4 +1,5 @@
-% TODO: \mnote{I'm not sure I like the name vnn\_verifier. Can we make it into a macro via latex \textbackslash{}newcommand so we can change it everywhere at once? As for the name, maybe just verifier or $<$executable$>$?}
+\chapter{Verifier Command-line Interface}
+\label{sec:solver_interface}
 
 \newcommand{\clOutputOption}[3]{
 \paragraph{\texttt{#1}}
@@ -25,9 +26,6 @@
 }
 
 \newcommand{\exampleVerifier}{checkNN}
-
-\chapter{Verifier Command-line Interface}
-\label{sec:solver_interface}
 
 With the growing number of neural network verifiers and their increasing integration into larger toolchains, there is a clear need for a consistent and predictable way to invoke them. A standardised command-line interface (CLI) therefore enables interoperability between verifiers and higher-level tools, facilitates benchmarking and automation, and reduces the burden on users adapting to multiple systems.
 
