@@ -6,9 +6,9 @@ At the heart of the \vnnlib{} standard is the \vnnlib{} query language. Heavily 
 \label{sec:syntax}
 
 
-Similar to SMT-LIB, the syntax of \vnnlib{} is primarily designed with the goal of machine-readability in mind. Although the syntax is somewhat human-readable, maximising readability is not a primary goal of the language. Instead it is envisaged that \vnnlib{} queries will be generated automatically by higher level tools that provide better user-orientated interfaces.
+Similar to SMT-LIB, the syntax of \vnnlib{} is primarily designed with machine-readability in mind. Although the syntax is somewhat human-readable, maximising human-readability is not a primary goal of the language. Instead it is envisaged that \vnnlib{} queries will be generated automatically by higher level tools that provide better human-orientated interfaces.
 
-The syntax of \vnnlib{} is formally defined as Labelled Backus-Naur Form~\cite{forsberg2005labelled} (LBNF) grammar which can be found in Appendix~\ref{app:lbnf_grammar}. Instead of describing each of the production rules in detail, we will now highlight key syntactic constructs of the language via examples illustrating their usage.
+The syntax of \vnnlib{} is formally defined by the Labelled Backus-Naur Form~\cite{forsberg2005labelled} (LBNF) grammar found in Appendix~\ref{app:lbnf_grammar}. Although we won't describe each of the production rules in detail, we will now describe the key syntactic constructs of the language via illustrative examples.
 
 Firstly, all \vnnlib{} queries are split into two parts: a list of network declarations and a list of assertions. The former allow users to specify an interface for the networks and bring new abstract variables into scope that represent the input and output values of the network. The latter than reference those variables in order to express the desired constraints that should be satisfied. Currently, the standard does not permit the interleaving of network declarations and assertions. Figure~\ref{fig:simple-query} shows an example of a simple query.
 
@@ -105,16 +105,16 @@ The query language supports such networks by allowing a network declaration to d
 (declare-network multi_io_net
     (declare-input  image    Real [1,3,224,224])
     (declare-input  metadata Real [1,10])
-    (declare-output logits   Real [1,1000])
     (declare-output bbox     Real [1 4])
+    (declare-output logits   Real [1,1000])
 )\end{lstlisting}
 
     \begin{lstlisting}[style=lbnf]
 (declare-network multi_io_net
+    (declare-input  metadata Real [1,10]        "metadata")
     (declare-input  image    Real [1,3,224,224] "image")
-    (declare-input  metadata Real [1,10] "metadata")
-    (declare-output logits   Real [1,1000] "logits")
-    (declare-output bbox     Real [1,4,2] "bbox")
+    (declare-output logits   Real [1,1000]      "logits")
+    (declare-output bbox     Real [1,4,2]       "bbox")
 )\end{lstlisting}
 
     \vspace{0.5cm}
@@ -132,15 +132,15 @@ In some use cases it is desirable to constrain the result of intermediate comput
 The hidden node declaration crucially refers to the uniquely identified outputs of a node, rather than the node (or operator) itself. It declares that an output of the node is to be used as a variable in the \vnnlib{} query.
 
 \begin{figure}[h!]
-    \begin{minipage}[c]{0.65\textwidth}
+    \begin{minipage}[c]{0.72\textwidth}
         \begin{lstlisting}[style=lbnf]   
 (declare-network encoder
-    (declare-input X Real [1,28,28])
+    (declare-input  X Real [1,28,28])
     (declare-hidden Z Real [1,128] "hidden")
     (declare-output Y Real [1,10])
 )\end{lstlisting}
     \end{minipage}%
-    \begin{minipage}[c]{0.35\textwidth}
+    \begin{minipage}[c]{0.25\textwidth}
         \centering
         \includegraphics[height=6cm]{imgs/encoder_net.onnx.png}
     \end{minipage}
@@ -159,18 +159,18 @@ shows an example which declares two networks representing a teacher and a studen
     \begin{minipage}[c]{0.6\textwidth}
         \begin{lstlisting}[style=lbnf]
 (declare-network teacher
-    (declare-input tX Real [1,32])
+    (declare-input  tX Real [1,32])
     (declare-output tY Real [1,2])
 )
 
 (declare-network student
-    (declare-input sX Real [1,32])
+    (declare-input  sX Real [1,32])
     (declare-output sY Real [1,2])
 )\end{lstlisting}
     \end{minipage}
     \begin{minipage}[c]{0.4\textwidth}
         \centering
-        \includegraphics[height=6cm]{imgs/teacher_net.onnx.png}
+        \includegraphics[height=7cm]{imgs/teacher_net.onnx.png}
         \vspace{0.5cm} 
         \includegraphics[height=5cm]{imgs/student_net.onnx.png}
     \end{minipage}

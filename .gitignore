@@ -12,11 +12,11 @@ VNNLIBWrappers.hpp
 build
 .vscode
 
-document/*.log
-document/*.out
-document/*.err
-document/*.aux
-document/*.pdf
-document/*.synctex.gz
-document/*.blg
-document/*.toc
+document/**/*.log
+document/**/*.out
+document/**/*.err
+document/**/*.aux
+document/**/*.pdf
+document/**/*.synctex.gz
+document/**/*.blg
+document/**/*.toc

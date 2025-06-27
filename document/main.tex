@@ -6,7 +6,12 @@
 \usepackage{amsfonts}
 \usepackage{amssymb}
 \usepackage{graphicx}
-\usepackage{hyperref}
+\usepackage[colorlinks = true,
+            linkcolor = black,
+            urlcolor  = blue,
+            %citecolor = blue,
+            %anchorcolor = blue
+            ]{hyperref}
 \usepackage{todonotes}
 \usepackage{xcolor}
 \usepackage{listings}
@@ -133,6 +138,8 @@ landscape.
 \input{chapters/changelog.tex}
 
 \chapter{Query Language Grammar}\label{app:lbnf_grammar}
+
+\mnote{TODO Allen Anthony}
 
 \bibliography{bibliography}
 \bibliographystyle{plain}
