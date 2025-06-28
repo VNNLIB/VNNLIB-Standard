@@ -1,6 +1,6 @@
 (declare-network drones
 	(declare-input X Real [12])
-	(declare-output Y Real)
+	(declare-output Y Real [])
 )
 
 
