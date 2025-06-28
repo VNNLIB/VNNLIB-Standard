@@ -45,9 +45,9 @@ And. BoolExpr ::= "(" "and" [BoolExpr] ")" ;
 Or. BoolExpr ::= "(" "or" [BoolExpr] ")";
 separator nonempty BoolExpr "" ;
 
--- A property is a constraint that must be satisfied by the model. 
-Prop. Property ::= "(assert" BoolExpr ")" ;
-separator nonempty Property "" ;
+-- An assertion is a constraint that must be satisfied by the model. 
+Assert. Assertion ::= "(assert" BoolExpr ")" ;
+separator nonempty Assertion "" ;
 
 -- A tensor element is a generic scalar variable of type Real
 -- or a specific type that is defined for onnx nodes:
@@ -93,7 +93,7 @@ NetworkOnnxDef. NetworkDefinition ::= "(declare-network" VariableName [InputOnnx
 separator nonempty NetworkDefinition "" ;
 
 -- A query is a series of network definitions followed by a series of properties
-VNNLibQuery. Query ::= [NetworkDefinition] [Property] ;
+VNNLibQuery. Query ::= [NetworkDefinition] [Assertion] ;
 
 -- A line may be commented out by starting with a semicolon
 comment ";" ;
