@@ -5,17 +5,20 @@ token SDouble '-'? digit+ '.' digit+ ('e' '-'? digit+)? ;
 token SInt '-' digit+ ;
 token Int digit+ ;
 
--- The regular expression for an element of a tensor variable
-token TensorElement letter (letter|digit|'@')* '_' digit+ ('-' digit+)* ;
-
 -- The regular expression for a tensor variable
-token VariableName letter (letter|digit|'@')* ;
+token VariableName letter (letter|digit|'_')* ;
 
--- Production to represent a Tensor shape as a sequence of integers
-[]. [Int] ::= ;
-(:). [Int] ::= Int [Int] ;
+-- The regular expression for a tensor element is constructed with the associated variable name and tensor indices
+token TensorElement letter (letter|digit|'_')* '[' digit+ (',' digit+)* ']' ;
 
--- ArithExpr is a numeric value that may be a paramater, a tensor element, 
+-- Sequence of integers to represent Tensor shape/indicies
+separator Int "," ;
+
+-- Production of Tensor Shape (empty shape is allowed for scalar tensors)
+TensShape. TensorShape ::= "[" [Int] "]" ;
+
+
+-- ArithExpr is a numeric value that may be a parameter, a tensor element, 
 -- or an arithmetic operation
 VarExpr. ArithExpr ::= TensorElement ;
 DoubleExpr. ArithExpr ::= SDouble ;
@@ -42,9 +45,9 @@ And. BoolExpr ::= "(" "and" [BoolExpr] ")" ;
 Or. BoolExpr ::= "(" "or" [BoolExpr] ")";
 separator nonempty BoolExpr "" ;
 
--- A property is a constraint that must be satisfied by the model. 
-Prop. Property ::= "(assert" BoolExpr ")" ;
-separator nonempty Property "" ;
+-- An assertion is a constraint that must be satisfied by the model. 
+Assert. Assertion ::= "(assert" BoolExpr ")" ;
+separator nonempty Assertion "" ;
 
 -- A tensor element is a generic scalar variable of type Real
 -- or a specific type that is defined for onnx nodes:
@@ -73,19 +76,24 @@ ElementTypeBool. ElementType ::= "bool" ;
 ElementTypeString. ElementType ::= "string" ;
 
 -- A tensor definition is a declaration of a tensor variable with a shape and an element type
-InputDef. InputDefinition ::= "(declare-input" VariableName ElementType [Int] ")" ;
-HiddenDef. HiddenDefinition ::= "(declare-hidden" VariableName ElementType [Int] "onnx-node" ":" String ")" ;
-OutputDef. OutputDefinition ::= "(declare-output" VariableName ElementType [Int] ")" ;
+InputDef. InputDefinition ::= "(declare-input" VariableName ElementType TensorShape ")" ;
+HiddenDef. HiddenDefinition ::= "(declare-hidden" VariableName ElementType TensorShape String ")" ;
+OutputDef. OutputDefinition ::= "(declare-output" VariableName ElementType TensorShape ")" ;
+InputOnnxDef. InputOnnxDefinition ::= "(declare-input" VariableName ElementType TensorShape String ")" ;
+OutputOnnxDef. OutputOnnxDefinition ::= "(declare-output" VariableName ElementType TensorShape String ")" ;
 
 separator nonempty InputDefinition "" ;
 separator HiddenDefinition "" ;
 separator nonempty OutputDefinition "" ;
+separator nonempty InputOnnxDefinition "" ;
+separator nonempty OutputOnnxDefinition "" ;
 
 NetworkDef. NetworkDefinition ::= "(declare-network" VariableName [InputDefinition] [HiddenDefinition] [OutputDefinition] ")" ;
+NetworkOnnxDef. NetworkDefinition ::= "(declare-network" VariableName [InputOnnxDefinition] [HiddenDefinition] [OutputOnnxDefinition] ")" ;
 separator nonempty NetworkDefinition "" ;
 
 -- A query is a series of network definitions followed by a series of properties
-VNNLibQuery. Query ::= [NetworkDefinition] [Property] ;
+VNNLibQuery. Query ::= [NetworkDefinition] [Assertion] ;
 
 -- A line may be commented out by starting with a semicolon
 comment ";" ;
