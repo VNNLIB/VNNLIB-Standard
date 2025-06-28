@@ -8,18 +8,15 @@ token Int digit+ ;
 -- The regular expression for a tensor variable
 token VariableName letter (letter|digit|'_')* ;
 
+-- The regular expression for a tensor element is constructed with the associated variable name and tensor indices
+token TensorElement letter (letter|digit|'_')* '[' digit+ (',' digit+)* ']' ;
+
 -- Sequence of integers to represent Tensor shape/indicies
-separator nonempty Int "," ;
+separator Int "," ;
 
 -- Production of Tensor Shape (empty shape is allowed for scalar tensors)
-ScalarTensShape. TensorShape ::= ;
-GenericTensShape. TensorShape ::= "[" [Int] "]" ;
+TensShape. TensorShape ::= "[" [Int] "]" ;
 
--- Production of Tensor indicies
-TensorInd. TensorIndices ::= "[" [Int] "]" ;
-
--- A tensor element is constructed with the associated variable name and tensor indices
-TensElem. TensorElement ::= VariableName TensorIndices ;
 
 -- ArithExpr is a numeric value that may be a parameter, a tensor element, 
 -- or an arithmetic operation
