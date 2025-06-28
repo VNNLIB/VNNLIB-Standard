@@ -1,0 +1,16 @@
+(declare-network mnist
+	(declare-input X Real [28,28])
+	(declare-output Y Real [10])
+)
+
+(assert (>= X[0,0] 0))
+(assert (<= X[0,0] 1))
+; ...
+(assert (>= X[27,27] 0))
+(assert (<= X[27,27] 1))
+; ...
+(assert (<= (- Y[0] Y[9]) 0))
+(assert (<= (- Y[1] Y[9]) 0))
+; ...
+(assert (<= (- Y[7] Y[9]) 0))
+(assert (<= (- Y[8] Y[9]) 0))
