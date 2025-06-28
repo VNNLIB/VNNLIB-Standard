@@ -1,6 +1,6 @@
 (declare-network acc
 	(declare-input X Real [3])
-	(declare-output Y Real)
+	(declare-output Y Real [])
 )
 
 
