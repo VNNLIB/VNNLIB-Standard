@@ -266,7 +266,7 @@ SymbolInfo* findSymbol(SemanticContext *ctx, VariableName name) {
         }
         current = current->next;
     }
-    return NULL; // Not found
+    return NULL;
 }
 
 
@@ -307,7 +307,7 @@ int checkArithExpr(ArithExpr p, SemanticContext *ctx)
     {
         // TODO: Add type checking to ensure that the operands are of the same type
         case is_VarExpr:
-            err |= checkTensorElement(p->u.varexpr_.tensorelement_, ctx);
+            err |= checkTensorElement(p->u.varexpr_.variablename_, p->u.varexpr_.listint_, ctx);
             break;
         case is_DoubleExpr:
             err |= checkSDouble(p->u.doubleexpr_.sdouble_, ctx);
@@ -359,8 +359,6 @@ int checkBoolExpr(BoolExpr p, SemanticContext *ctx)
     int err = 0;
     switch(p->kind)
     {
-        // TODO: Check number of inputs is >= 2 and return warning if not
-
         case is_GreaterThan:
             err |= checkArithExpr(p->u.greaterthan_.arithexpr_1, ctx);
             err |= checkArithExpr(p->u.greaterthan_.arithexpr_2, ctx);
@@ -414,32 +412,32 @@ int checkListBoolExpr(ListBoolExpr p, SemanticContext *ctx)
 }
 
 
-int checkProperty(Property p, SemanticContext *ctx)
+int checkAssertion(Assertion p, SemanticContext *ctx)
 {
     if (!p) return 1;
     int err = 0;
     switch(p->kind)
     {
-        case is_Prop:
-            err |= checkBoolExpr(p->u.prop_.boolexpr_, ctx);
+        case is_Assert:
+            err |= checkBoolExpr(p->u.assert_.boolexpr_, ctx);
             break;
 
         default:
-			fprintf(stderr, "Bad kind field in Property node.\n");
+			fprintf(stderr, "Bad kind field in Assertion node.\n");
 			return 1;
     }
     return err;
 }
 
 
-int checkListProperty(ListProperty p, SemanticContext *ctx)
+int checkListAssertion(ListAssertion p, SemanticContext *ctx)
 {
     if (!p) return 1;
     int err = 0;
     while(p != 0)
     {
-        err |= checkProperty(p->property_, ctx);
-        p = p->listproperty_;
+        err |= checkAssertion(p->assertion_, ctx);
+        p = p->listassertion_;
     }
     return err;
 }
@@ -452,7 +450,24 @@ int checkElementType(ElementType p, SemanticContext *ctx)
 	{
         case is_GenericElementType: break;
         case is_ElementTypeF16: break;
-        // ... all other cases ... (Shortened for brevity)
+        case is_ElementTypeF32: break;
+        case is_ElementTypeF64: break;
+        case is_ElementTypeF4E2M1: break;
+        case is_ElementTypeF8E5M2: break;
+        case is_ElementTypeF8E5M2FNUZ: break;
+        case is_ElementTypeF8E4M3FN: break;
+        case is_ElementTypeF8E4M3FNUZ: break;
+        case is_ElementTypeI8: break;
+        case is_ElementTypeI16: break;
+        case is_ElementTypeI32: break;
+        case is_ElementTypeI64: break;
+        case is_ElementTypeU8: break;
+        case is_ElementTypeU16: break;
+        case is_ElementTypeU32: break;
+        case is_ElementTypeU64: break;
+        case is_ElementTypeC64: break;
+        case is_ElementTypeC128: break;
+        case is_ElementTypeBool: break;
         case is_ElementTypeString: break;
 
         default:
@@ -467,23 +482,20 @@ int checkInputDefinition(InputDefinition p, SemanticContext *ctx)
 {
     if (!p) return 1;
     int err = 0;
-    switch(p->kind)
-    {
-        case is_InputDef:
-            err |= checkVariableName(p->u.inputdef_.variablename_, ctx);
-            err |= checkElementType(p->u.inputdef_.elementtype_, ctx);
-            if (err) return err; // Don't proceed if children have errors
+    err |= checkVariableName(p->u.inputdef_.variablename_, ctx);
+    err |= checkElementType(p->u.inputdef_.elementtype_, ctx);
+    if (err) return err; // Don't proceed if children have errors
 
-            // Check for duplicate symbols
-            if (!addSymbol(ctx, p->u.inputdef_.variablename_, p->u.inputdef_.elementtype_, p->u.inputdef_.listint_, SYM_INPUT)) {
-                err = 1; 
-            }
-            break;
-
-        default:
-            fprintf(stderr, "Bad kind field in InputDefinition node.\n");
-            return 1; 
+    TensorShape shape = p->u.inputdef_.tensorshape_;
+    ListInt dims = NULL;
+    if (shape->kind == is_TensorDims) {
+        dims = shape->u.tensordims_.listint_;
     }
+
+    if (!addSymbol(ctx, p->u.inputdef_.variablename_, p->u.inputdef_.elementtype_, dims, SYM_INPUT)) {
+        err = 1;
+    }
+
     return err;
 }
 
@@ -492,24 +504,22 @@ int checkHiddenDefinition(HiddenDefinition p, SemanticContext *ctx)
 {
     if (!p) return 1;
 	int err = 0;
-	switch(p->kind)
-	{
-        case is_HiddenDef:
-            err |= checkVariableName(p->u.hiddendef_.variablename_, ctx);
-            err |= checkElementType(p->u.hiddendef_.elementtype_, ctx);
-            err |= checkString(p->u.hiddendef_.string_, ctx);
-            if (err) return err;
+    err |= checkVariableName(p->u.hiddendef_.variablename_, ctx);
+    err |= checkElementType(p->u.hiddendef_.elementtype_, ctx);
+    err |= checkString(p->u.hiddendef_.string_, ctx);
+    if (err) return err;
 
-            // Check for duplicate symbols
-            if (!addSymbol(ctx, p->u.hiddendef_.variablename_, p->u.hiddendef_.elementtype_, p->u.hiddendef_.listint_, SYM_INTERMEDIATE)) {
-                err = 1;
-            }
-            break;
+    TensorShape shape = p->u.hiddendef_.tensorshape_;
+    ListInt dims = NULL;
+    if (shape->kind == is_TensorDims) {
+        dims = shape->u.tensordims_.listint_;
+    }
 
-        default:
-			fprintf(stderr, "Bad kind field in HiddenDefinition node.\n");
-			return 1;
-	}
+    // Check for duplicate symbols
+    if (!addSymbol(ctx, p->u.hiddendef_.variablename_, p->u.hiddendef_.elementtype_, dims, SYM_INTERMEDIATE)) {
+        err = 1;
+    }
+
 	return err;
 }
 
@@ -518,23 +528,21 @@ int checkOutputDefinition(OutputDefinition p, SemanticContext *ctx)
 {
     if (!p) return 1;
 	int err = 0;
-	switch(p->kind)
-	{
-        case is_OutputDef:
-            err |= checkVariableName(p->u.outputdef_.variablename_, ctx);
-            err |= checkElementType(p->u.outputdef_.elementtype_, ctx);
-            if (err) return err;
+	err |= checkVariableName(p->u.outputdef_.variablename_, ctx);
+	err |= checkElementType(p->u.outputdef_.elementtype_, ctx);
+	if (err) return err;
 
-            // Check for duplicate symbols
-            if (!addSymbol(ctx, p->u.outputdef_.variablename_, p->u.outputdef_.elementtype_, p->u.outputdef_.listint_, SYM_OUTPUT)) {
-                err = 1;
-            }
-            break;
+    TensorShape shape = p->u.outputdef_.tensorshape_;
+    ListInt dims = NULL;
+    if (shape->kind == is_TensorDims) {
+        dims = shape->u.tensordims_.listint_;
+    }
 
-        default:
-            fprintf(stderr, "Bad kind field in OutputDefinition node.\n");
-            return 1; // Error
-	}
+    // Check for duplicate symbols
+    if (!addSymbol(ctx, p->u.outputdef_.variablename_, p->u.outputdef_.elementtype_, dims, SYM_OUTPUT)) {
+        err = 1;
+    }
+
 	return err;
 }
 
@@ -580,12 +588,14 @@ int checkListOutputDefinition(ListOutputDefinition p, SemanticContext *ctx)
 
 int checkNetworkDefinition(NetworkDefinition p, SemanticContext *ctx)
 {
+
     if (!p) return 1;
 	int err = 0;
 	switch(p->kind)
 	{
         case is_NetworkDef:
             // TODO: Store context of network: ctx->currentNetwork = p->u.networkdef_.variablename_;
+            // Check if all declarations have onnx names if at least one has an onnx name
 
             err |= checkVariableName(p->u.networkdef_.variablename_, ctx);
 
@@ -626,8 +636,8 @@ int checkQuery(Query p, SemanticContext *ctx)
         // 1. Process network definitions (populates symbol table)
         err |= checkListNetworkDefinition(p->u.vnnlibquery_.listnetworkdefinition_, ctx);
 
-        // 2. Process properties (uses symbol table for checks)
-        err |= checkListProperty(p->u.vnnlibquery_.listproperty_, ctx);
+        // 2. Process assertions (uses symbol table for checks)
+        err |= checkListAssertion(p->u.vnnlibquery_.listassertion_, ctx);
         break;
 
     default:
@@ -651,100 +661,11 @@ int checkChar(Char c, SemanticContext *ctx) { return 0; }
 int checkString(String s, SemanticContext *ctx) { return 0; }
 
 
-int checkScalar(SymbolInfo *symbol, TensorElement element, SemanticContext *ctx, char *tensorDim) {
-    int index = strtol(tensorDim, NULL, 10);
-    if (index != 0) {
-        addError(ctx, (VNNLibError) {
-            .message = "Invalid tensor element",
-            .offendingSymbol = element,
-            .hint = "Expected dummy index 0 for scalar variable.",
-            .errorCode = NotEnoughIndices
-        });
-        return 1;
-    }
-    return 0;
-}
-
-
-int checkTensor(SymbolInfo *symbol, TensorElement element, SemanticContext *ctx, char *tensorDim) {
+// Checks semantic validity of a tensor element
+// This function checks if the tensor element is declared and if the indices are within bounds
+int checkTensorElement(VariableName tensorName, ListInt tensorIndex, SemanticContext *ctx) {
+    if (!tensorName) return 1;
     int err = 0;
-    int *indices = malloc(sizeof(int) * symbol->numDimensions);
-    int idx = 0;
-    char *token;
-
-    // Check that the correct number of indices are provided
-    token = strtok(tensorDim, "-");
-
-    while (idx < symbol->numDimensions) {
-        if (token == NULL) {
-            err = 1;
-            addError(ctx, (VNNLibError) {
-                .message = "Not enough indices provided",
-                .offendingSymbol = element,
-                .hint = format_string("Expected %d indices but encountered %d.", symbol->numDimensions, idx),
-                .errorCode = NotEnoughIndices
-            });
-            goto cleanup;
-        }
-
-        indices[idx] = strtol(token, NULL, 10);
-        idx++;
-        token = strtok(NULL, "-");
-    }
-
-    if (token != NULL) {
-        err = 1;
-        addError(ctx, (VNNLibError) {
-            .message = "Too many indices provided",
-            .offendingSymbol = element,
-            .hint = format_string("Expected %d indices but encountered %d.", symbol->numDimensions, idx + 1),
-            .errorCode = TooManyIndices
-        });
-        goto cleanup;
-    }
-
-    // Check that indices are within bounds
-    for (int i = 0; i < symbol->numDimensions; i++) {
-        if (indices[i] < 0 || indices[i] >= symbol->shape[i]) {
-            err = 1;
-            // reportError(ctx, "Index out of bounds: %d for dimension %d", indices[i], i);
-            addError(ctx, (VNNLibError) {
-                .message = "Index out of bounds",
-                .offendingSymbol = element,
-                .hint = format_string("Expected index in range [0, %d), but got %d.", symbol->shape[i], indices[i]),
-                .errorCode = IndexOutOfBounds
-            });
-        }
-    }
-
-    cleanup:
-        free_safe(indices);
-        return err;
-}
-
-
-// Checks usage of tensor elements
-int checkTensorElement(TensorElement p, SemanticContext *ctx) {
-    if (!p) return 1;
-    int err = 0;
-
-    // Extract the tensor name and dimension from the string
-    char *tensorName = strdup_safe(p);
-	char *tensorDim = strchr(tensorName, '_');
-    *tensorDim = '\0'; // Terminate the variable name
-    tensorDim = tensorDim ? tensorDim + 1 : NULL; 
-
-    // Check that the tensor indices are provided
-    if (!tensorDim) {
-        err = 1;
-        addError(ctx, (VNNLibError) {
-            .message = "Invalid tensor element",
-            .offendingSymbol = p,
-            .hint = "Expected format: <tensor>_<index>",
-            .errorCode = NotEnoughIndices
-        });
-        goto cleanup;
-    }
 
     SymbolInfo *symbol = findSymbol(ctx, tensorName); 
 
@@ -757,19 +678,77 @@ int checkTensorElement(TensorElement p, SemanticContext *ctx) {
             .hint = "Variable must be declared before use.",
             .errorCode = UndeclaredVariable
         });
+        return err;
     }
 
-    // Check that index is 0 for scalar variables
-    else if (symbol->numDimensions == 0) {
-        err |= checkScalar(symbol, p, ctx, tensorDim);
+    if (!tensorIndex) {
+        err = 1;
+        addError(ctx, (VNNLibError) {
+            .message = "No indices provided for tensor element",
+            .offendingSymbol = tensorName,
+            .hint = "Tensor element access requires indices.",
+            .errorCode = NotEnoughIndices
+        });
+        return err;
     }
 
-    // Check that indices are valid for tensor variables
+    if (symbol->numDimensions == 0) {
+        err = 1;
+        int firstIndex = atoi(tensorIndex->int_);
+        if (firstIndex != 0 || tensorIndex->listint_ != NULL) {
+            addError(ctx, (VNNLibError) {
+                .message = "Indexing on scalar variable",
+                .offendingSymbol = tensorName,
+                .hint = "Scalar variables cannot be indexed. Only the dummy index 0 is allowed.",
+                .errorCode = IndexOutOfBounds
+            });
+            return err;
+        }
+    }
+
     else {
-        err |= checkTensor(symbol, p, ctx, tensorDim);
-    }
+        int numIndices = 0;
+        while (tensorIndex != NULL) {
+            numIndices++;
 
-    cleanup:
-        free_safe(tensorName);
-        return err;  
+            if (numIndices > symbol->numDimensions) {
+                err = 1;
+                addError(ctx, (VNNLibError) {
+                    .message = "Too many indices provided",
+                    .offendingSymbol = tensorName,
+                    .hint = format_string("Expected %d indices but encountered %d.", symbol->numDimensions, numIndices),
+                    .errorCode = TooManyIndices
+                });
+                return err;
+            }
+
+            int index = atoi(tensorIndex->int_);
+
+            // Checks if the index is within bounds
+            if (index < 0 || index >= symbol->shape[numIndices - 1]) {
+                err = 1;
+                addError(ctx, (VNNLibError) {
+                    .message = "Index out of bounds",
+                    .offendingSymbol = tensorName,
+                    .hint = format_string("Expected index in range [0, %d), but got %d.", symbol->shape[numIndices - 1], index),
+                    .errorCode = IndexOutOfBounds
+                });
+                return err;
+            }
+
+            tensorIndex = tensorIndex->listint_;
+        }
+
+        if (numIndices < symbol->numDimensions) {
+            err = 1;
+            addError(ctx, (VNNLibError) {
+                .message = "Not enough indices provided",
+                .offendingSymbol = tensorName,
+                .hint = format_string("Expected %d indices but encountered %d.", symbol->numDimensions, numIndices),
+                .errorCode = NotEnoughIndices
+            });
+        }
+    }
+    
+    return err;
 }

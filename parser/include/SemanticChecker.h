@@ -86,13 +86,13 @@ int checkHiddenDefinition(HiddenDefinition p, SemanticContext *ctx);
 int checkListOutputDefinition(ListOutputDefinition listoutputdefinition, SemanticContext *ctx);
 int checkOutputDefinition(OutputDefinition p, SemanticContext *ctx);
 int checkElementType(ElementType p, SemanticContext *ctx);
-int checkListProperty(ListProperty listproperty, SemanticContext *ctx);
-int checkProperty(Property p, SemanticContext *ctx);
+int checkListAssertion(ListAssertion listassertion, SemanticContext *ctx);
+int checkAssertion(Assertion p, SemanticContext *ctx);
 int checkBoolExpr(BoolExpr p, SemanticContext *ctx);
 int checkListBoolExpr(ListBoolExpr listboolexpr, SemanticContext *ctx);
 int checkArithExpr(ArithExpr p, SemanticContext *ctx);
 int checkListArithExpr(ListArithExpr listarithexpr, SemanticContext *ctx);
-int checkTensorElement(TensorElement p, SemanticContext *ctx);
+int checkTensorElement(VariableName p, ListInt dims, SemanticContext *ctx);
 int checkVariableName(VariableName p, SemanticContext *ctx);
 int checkListInt(ListInt listint, SemanticContext *ctx, int *shape, int *numDimensions);
 
