@@ -8,13 +8,19 @@ token Int digit+ ;
 -- The regular expression for allowed Variable Names - tensors, or networks
 token VariableName letter (letter|digit|'_')* ;
 
+-- Sequence of integers to represent Tensor shape/indicies
+separator nonempty Int "," ;
+
+-- Production of notation for Tensor shape/indices
+TensorIndex. TensorInds ::= "[" [Int] "]" ;
+
 -- Production of Tensor Shape (empty shape is allowed for scalar tensors)
-separator Int "," ;
-Dimensions. TensorDims ::= "[" [Int] "]" ;
+ScalarDims. TensorShape ::= "[" "]" ;
+TensorDims. TensorShape ::= "[" [Int] "]" ;
 
 -- ArithExpr is a numeric value that may be a parameter, a tensor element, or an arithmetic operation
--- A variable refers to a tensor element, constructed with the associated variable name and tensor indices
-VarExpr. ArithExpr ::= VariableName TensorDims ;
+-- -- A variable refers to a tensor element, constructed with the associated variable name and tensor indices
+VarExpr. ArithExpr ::= VariableName TensorInds ;
 DoubleExpr. ArithExpr ::= SDouble ;
 SIntExpr. ArithExpr ::= SInt ;
 IntExpr. ArithExpr ::= Int ;
