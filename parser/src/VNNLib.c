@@ -123,8 +123,6 @@ char* check_query(const Query q, int json) {
     } else if (returnCode != 0) {
 		fprintf(stderr, "Semantic checking failed with return code: %d\n", returnCode);
 		errorReport = strdup("Semantic checking failed.");
-	} else {
-		errorReport = strdup("No semantic errors found.");
 	}
 
 	// Free the semantic context

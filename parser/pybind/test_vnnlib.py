@@ -4,22 +4,22 @@ import os
 
 vnnlib_content = """
 (declare-network acc
-	(declare-input X Real 3)
-    (declare-input X Real 3)
-	(declare-output Y Real)
+	(declare-input X Real [3])
+	(declare-output Y Real [])
 )
 
-(assert (<= (* -1.0 X_0) 0.0))
-(assert (<= X_0 50.0))
-(assert (<= (* -1.0 X_1) 50.0))
-(assert (<= X_1 50.0))
-(assert (<= (* -1.0 X_2) 0.0))
-(assert (<= X_2 150.0))
-(assert (<= (+ (* -1.5 X_1) X_2) -15.0))
+
+(assert (<= (* -1.0 X[0]) 0.0))
+(assert (<= X[0] 50.0))
+(assert (<= (* -1.0 X[1]) 50.0))
+(assert (<= X[1] 50.0))
+(assert (<= (* -1.0 X[2]) 0.0))
+(assert (<= X[2] 150.0))
+(assert (<= (+ (* -1.5 X[1]) X[2]) -15.0))
 
 (assert (or 
-	(<= Y_0 -3.0)
-	(>= Y_0 0.0)
+	(<= Y[0] -3.0)
+	(>= Y[0] 0.0)
 ))
 """
 
@@ -36,10 +36,6 @@ try:
     print(f"Query Object Type: {type(query_ast)}")
     print(f"Query AST as string:\n{str(query_ast)}\n") 
 
-    # Check validity of the query
-    check_out = vnnlib.check_query(query_ast, json=True)
-    print(f"Check Query Output: {check_out}\n")
-
     # 2. Traverse Network Definitions
     print("--- Networks ---")
     for network_def in query_ast.networks:
@@ -55,7 +51,7 @@ try:
             print(f"        Type Object: {type(input_def.element_type)}")
             # Traverse shape (ListInt)
             shape_str = []
-            for i in input_def.shape:
+            for i in input_def.shape.dims:
                 shape_str.append(i) 
             print(f"        Shape: ({', '.join(shape_str)})")
 
@@ -67,19 +63,19 @@ try:
             # Traverse shape
             shape_str = []
             current_shape_node = output_def.shape
-            for i in input_def.shape:
+            for i in input_def.shape.dims:
                 shape_str.append(i) 
             print(f"        Shape: ({', '.join(shape_str)})")
         
-    # 3. Traverse Properties
-    print("\n--- Properties ---")
-    prop_count = 0
-    for property_item in query_ast.properties:
-        prop_count += 1
-        print(f"  Property {prop_count} Type: {type(property_item)}")
-        print(f"  Property as string: {str(property_item)}")
+    # 3. Traverse Assertions
+    print("\n--- Assertions ---")
+    assert_count = 0
+    for assertion_item in query_ast.assertions:
+        assert_count += 1
+        print(f"  assertion {assert_count} Type: {type(assertion_item)}")
+        print(f"  assertion as string: {str(assertion_item)}")
 
-        bool_expr = property_item.expr # Prop::boolexpr_
+        bool_expr = assertion_item.expr # assert::boolexpr_
         if bool_expr:
             print(f"    Boolean Expr Type: {type(bool_expr)}") 
             print(f"    Boolean Expr as string: {str(bool_expr)}")

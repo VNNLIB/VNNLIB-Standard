@@ -218,8 +218,7 @@ class Wrapper:
 		self.generator_code = []
 
 		self.subcls_names = []
-		self.variant_names = []
-		self.variant_structs = []
+		self.variant_structs = {}
 		self.subclasses = []
 
 		self.struct = struct
@@ -236,8 +235,7 @@ class Wrapper:
 			if field.kind == CursorKind.UNION_DECL and field.is_definition(): 
 				for child in decl.get_children():
 					if child.kind == CursorKind.FIELD_DECL and child.is_definition():
-						self.variant_names.append(child.spelling)
-						self.variant_structs.append(child.type.get_declaration())
+						self.variant_structs[child.spelling] = child.type.get_declaration()
 
 			# Extracting from enum field "kind". E.g.,  enum { is_VNNLibQuery } kind;
 			elif field.kind == CursorKind.FIELD_DECL and field.is_definition() and decl.kind == CursorKind.ENUM_DECL:
@@ -312,18 +310,16 @@ class Wrapper:
 			self.subclasses.append(subcls)
 			self.subcls_names.append(subcls_name)
 
-		elif self.variant_structs:
-			for i in range(len(self.subcls_names)):
-				subcls = Node(self.subcls_names[i], self.variant_structs[i], self.struct_name, self.name)
-				self.subclasses.append(subcls)
-		
-		elif self.subcls_names:
-			for i in range(len(self.subcls_names)):
-				subcls = Leaf(self.subcls_names[i], self.name, self.struct_name)
-				self.subclasses.append(subcls)
-
 		else:
-			raise ValueError(f"Unsupported subclass type for {self.struct_name}")
+			for i in range(len(self.subcls_names)):
+				variant_name = self.subcls_names[i].lower() + "_"
+
+				if variant_name in self.variant_structs:
+					subcls = Node(self.subcls_names[i], self.variant_structs[variant_name], self.struct_name, self.name)
+				else:
+					subcls = Leaf(self.subcls_names[i], self.name, self.struct_name)
+
+				self.subclasses.append(subcls)
 		
 		for subclass in self.subclasses:
 			self.subclass_code += subclass.cpp_code
@@ -375,7 +371,12 @@ class Wrapper:
 			for i in range(len(self.subcls_names)):
 				fun_code += [f"{ind(2)}case {i}: {{"]
 				fields = self.subclasses[i].fields
-				path_to_field = f"ptr->u.{self.variant_names[i]}." if self.variant_names else ""
+
+				variant_name = self.subcls_names[i].lower() + "_"
+				path_to_field = ""
+				if variant_name in self.variant_structs:
+					path_to_field = f"ptr->u.{variant_name}."
+
 				fun_code += self.construct_generator_for_subclass(self.subcls_names[i], fields, path_to_field, indent=3)
 				fun_code += [
 					f"{ind(2)}}}",
