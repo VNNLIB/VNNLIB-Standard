@@ -111,7 +111,7 @@ char* check_query(const Query q, int json) {
     initSemanticContext(&ctx);
 
     // Start traversal
-    checkQuery(q, &ctx);
+    int returnCode = checkQuery(q, &ctx);
 
     // Check for semantic errors
     if (ctx.errorCount > 0) {
@@ -120,7 +120,12 @@ char* check_query(const Query q, int json) {
         } else {
             errorReport = reportErrors(&ctx);
         }
-    }
+    } else if (returnCode != 0) {
+		fprintf(stderr, "Semantic checking failed with return code: %d\n", returnCode);
+		errorReport = strdup("Semantic checking failed.");
+	} else {
+		errorReport = strdup("No semantic errors found.");
+	}
 
 	// Free the semantic context
 	destroySemanticContext(&ctx);
