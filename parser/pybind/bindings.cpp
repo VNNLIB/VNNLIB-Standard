@@ -1,11 +1,10 @@
 #include <pybind11/pybind11.h>
-#include <pybind11/stl.h>      // For std::string, std::vector, etc.
+#include <pybind11/stl.h>      
 #include <memory>
 
-// These are your existing C library and C++ wrapper headers
-#include "VNNLib.h" // For parse_vnnlib (the C version)
-#include "Absyn.h"  // For C structs (Query, ListInt, etc.)
-#include "VNNLIBWrappers.hpp" // For your C++ wrappers (QueryWrapper, ListIntWrapper, etc.)
+#include "VNNLib.h" 
+#include "Absyn.h" 
+#include "VNNLIBWrappers.hpp" 
 
 namespace py = pybind11;
 
@@ -17,7 +16,7 @@ PYBIND11_MODULE(vnnlib, m) {
     // --- Base ElementType Wrappers ---
     py::class_<ElementTypeWrapper> elemTypeWrapper(m, "ElementType");
     elemTypeWrapper
-        .def("__str__", &ElementTypeWrapper::to_string); // Assuming __str__ calls to_string
+        .def("__str__", &ElementTypeWrapper::to_string); 
 
     // Concrete ElementTypes
     py::class_<GenericElementType, ElementTypeWrapper>(m, "GenericElementType");
@@ -43,8 +42,7 @@ PYBIND11_MODULE(vnnlib, m) {
     py::class_<ElementTypeBool, ElementTypeWrapper>(m, "ElementTypeBool");
     py::class_<ElementTypeString, ElementTypeWrapper>(m, "ElementTypeString");
 
-
-    // --- ListInt Wrapper ---
+    // --- ListInt ---
     py::class_<ListIntWrapper> listIntWrapper(m, "ListInt");
     listIntWrapper
         .def("__str__", &ListIntWrapper::to_string);
@@ -58,14 +56,15 @@ PYBIND11_MODULE(vnnlib, m) {
             return py::make_iterator(self.begin(), self.end());
         }, py::keep_alive<0, 1>()); // Keep the list alive while iterating
 
-
-    // --- ArithExpr Wrapper ---
+    // --- ArithExpr --- 
     py::class_<ArithExprWrapper> arithExprWrapper(m, "ArithExpr");
     arithExprWrapper
         .def("__str__", &ArithExprWrapper::to_string);
-
+    
+    // ArithExpr (Operands)
     py::class_<VarExpr, ArithExprWrapper>(m, "VarExpr")
-        .def_readonly("tensor_element", &VarExpr::tensorelement_);
+        .def_readonly("variable_name", &VarExpr::variablename_)
+        .def_property_readonly("indices", [](const VarExpr &obj) { return obj.listint_.get(); }, py::return_value_policy::reference_internal);
 
     py::class_<DoubleExpr, ArithExprWrapper>(m, "DoubleExpr")
         .def_readonly("value", &DoubleExpr::sdouble_);
@@ -81,24 +80,7 @@ PYBIND11_MODULE(vnnlib, m) {
             return obj.arithexpr_.get();
         }, py::return_value_policy::reference_internal);
 
-    // --- ListArithExpr Wrapper ---
-    py::class_<ListArithExprWrapper> listArithExprWrapper(m, "ListArithExpr");
-    listArithExprWrapper
-        .def("__str__", &ListArithExprWrapper::to_string);
-
-    py::class_<ArithExprList, ListArithExprWrapper>(m, "ArithExprList")
-        .def_property_readonly("current", [](const ArithExprList &obj) {
-            return obj.arithexpr_.get();
-        }, py::return_value_policy::reference_internal)
-        .def_property_readonly("next", [](const ArithExprList &obj) {
-            return obj.listarithexpr_.get();
-        }, py::return_value_policy::reference_internal)
-        .def("__iter__", [](ArithExprList &self) {
-            return py::make_iterator(self.begin(), self.end());
-        }, py::keep_alive<0, 1>());
-
-
-    // Concrete ArithExpr types
+    // ArithExpr (Operators)
     py::class_<Plus, ArithExprWrapper>(m, "Plus")
         .def_property_readonly("operands", [](const Plus &obj) {
             return obj.listarithexpr_.get();
@@ -117,14 +99,28 @@ PYBIND11_MODULE(vnnlib, m) {
             return obj.listarithexpr_.get();
         }, py::return_value_policy::reference_internal);
 
+    // ListArithExpr
+    py::class_<ListArithExprWrapper> listArithExprWrapper(m, "ListArithExpr");
+    listArithExprWrapper
+        .def("__str__", &ListArithExprWrapper::to_string);
 
-    // --- BoolExpr Wrapper ---
+    py::class_<ArithExprList, ListArithExprWrapper>(m, "ArithExprList")
+        .def_property_readonly("current", [](const ArithExprList &obj) {
+            return obj.arithexpr_.get();
+        }, py::return_value_policy::reference_internal)
+        .def_property_readonly("next", [](const ArithExprList &obj) {
+            return obj.listarithexpr_.get();
+        }, py::return_value_policy::reference_internal)
+        .def("__iter__", [](ArithExprList &self) {
+            return py::make_iterator(self.begin(), self.end());
+        }, py::keep_alive<0, 1>());
+
+    // --- BoolExpr ---
     py::class_<BoolExprWrapper> boolExprWrapper(m, "BoolExpr");
     boolExprWrapper
         .def("__str__", &BoolExprWrapper::to_string);
 
-
-    // Concrete BoolExpr types
+    // BoolExpr (Comparison)
     py::class_<GreaterThan, BoolExprWrapper>(m, "GreaterThan")
         .def_property_readonly("expr1", [](const GreaterThan &obj) { return obj.arithexpr_1.get(); }, py::return_value_policy::reference_internal)
         .def_property_readonly("expr2", [](const GreaterThan &obj) { return obj.arithexpr_2.get(); }, py::return_value_policy::reference_internal);
@@ -149,8 +145,18 @@ PYBIND11_MODULE(vnnlib, m) {
         .def_property_readonly("expr1", [](const Equal &obj) { return obj.arithexpr_1.get(); }, py::return_value_policy::reference_internal)
         .def_property_readonly("expr2", [](const Equal &obj) { return obj.arithexpr_2.get(); }, py::return_value_policy::reference_internal);
 
+    // BoolExpr (And, Or)
+    py::class_<And, BoolExprWrapper>(m, "And")
+        .def_property_readonly("operands", [](const And &obj) {
+            return obj.listboolexpr_.get();
+        }, py::return_value_policy::reference_internal);
 
-    // --- ListBoolExpr Wrapper ---
+    py::class_<Or, BoolExprWrapper>(m, "Or")
+        .def_property_readonly("operands", [](const Or &obj) {
+            return obj.listboolexpr_.get();
+        }, py::return_value_policy::reference_internal);
+
+    // ListBoolExpr
     py::class_<ListBoolExprWrapper> listBoolExprWrapper(m, "ListBoolExpr");
     listBoolExprWrapper
         .def("__str__", &ListBoolExprWrapper::to_string);
@@ -166,48 +172,41 @@ PYBIND11_MODULE(vnnlib, m) {
             return py::make_iterator(self.begin(), self.end());
         }, py::keep_alive<0, 1>());
 
+    // --- Assertion --- 
+    py::class_<AssertionWrapper> assertionWrapper(m, "AssertionBase"); // Changed name to avoid conflict if Query is also a property
+    assertionWrapper
+        .def("__str__", &AssertionWrapper::to_string);
 
-    // And, Or use ListBoolExpr
-    py::class_<And, BoolExprWrapper>(m, "And")
-        .def_property_readonly("operands", [](const And &obj) {
-            return obj.listboolexpr_.get();
-        }, py::return_value_policy::reference_internal);
-
-    py::class_<Or, BoolExprWrapper>(m, "Or")
-        .def_property_readonly("operands", [](const Or &obj) {
-            return obj.listboolexpr_.get();
-        }, py::return_value_policy::reference_internal);
-
-
-    // --- Property Wrapper ---
-    py::class_<PropertyWrapper> propertyWrapper(m, "PropertyBase"); // Changed name to avoid conflict if Query is also a property
-    propertyWrapper
-        .def("__str__", &PropertyWrapper::to_string);
-
-    py::class_<Prop, PropertyWrapper>(m, "Property") // This is likely the main property type
-        .def_property_readonly("expr", [](const Prop &obj) {
+    py::class_<Assert, AssertionWrapper>(m, "Assertion") // This is likely the main property type
+        .def_property_readonly("expr", [](const Assert &obj) {
             return obj.boolexpr_.get();
         }, py::return_value_policy::reference_internal);
 
+    // ListAssertion
+    py::class_<ListAssertionWrapper> listAssertionWrapper(m, "ListAssertion");
+    listAssertionWrapper
+        .def("__str__", &ListAssertionWrapper::to_string);
 
-    // --- ListProperty Wrapper ---
-    py::class_<ListPropertyWrapper> listPropertyWrapper(m, "ListProperty");
-    listPropertyWrapper
-        .def("__str__", &ListPropertyWrapper::to_string);
-
-    py::class_<PropertyList, ListPropertyWrapper>(m, "PropertyList")
-        .def_property_readonly("current", [](const PropertyList &obj) { // Renamed to avoid conflict
-            return obj.property_.get();
+    py::class_<AssertionList, ListAssertionWrapper>(m, "AssertionList")
+        .def_property_readonly("current", [](const AssertionList &obj) { // Renamed to avoid conflict
+            return obj.assertion_.get();
         }, py::return_value_policy::reference_internal)
-        .def_property_readonly("next", [](const PropertyList &obj) {
-            return obj.listproperty_.get();
+        .def_property_readonly("next", [](const AssertionList &obj) {
+            return obj.listassertion_.get();
         }, py::return_value_policy::reference_internal)
-        .def("__iter__", [](PropertyList &self) {
+        .def("__iter__", [](AssertionList &self) {
             return py::make_iterator(self.begin(), self.end());
         }, py::keep_alive<0, 1>());
 
+    // --- TensorShape ---
+    py::class_<TensorShapeWrapper> tensorShapeWrapper(m, "TensorShape");
+    tensorShapeWrapper
+        .def("__str__", &TensorShapeWrapper::to_string);
+    py::class_<TensorDims, TensorShapeWrapper>(m, "TensorDims")
+        .def_property_readonly("dims", [](const TensorDims &obj) { return obj.listint_.get(); }, py::return_value_policy::reference_internal);
+    py::class_<ScalarDims, TensorShapeWrapper>(m, "ScalarDims");
 
-    // --- Definition Wrappers (Input, Hidden, Output) ---
+    // --- InputDefinition ---
     py::class_<InputDefinitionWrapper> inputDefWrapper(m, "InputDefinition");
     inputDefWrapper
         .def("__str__", &InputDefinitionWrapper::to_string);
@@ -215,29 +214,9 @@ PYBIND11_MODULE(vnnlib, m) {
     py::class_<InputDef, InputDefinitionWrapper>(m, "InputDef")
         .def_readonly("variable_name", &InputDef::variablename_)
         .def_property_readonly("element_type", [](const InputDef &obj) { return obj.elementtype_.get(); }, py::return_value_policy::reference_internal)
-        .def_property_readonly("shape", [](const InputDef &obj) { return obj.listint_.get(); }, py::return_value_policy::reference_internal);
+        .def_property_readonly("shape", [](const InputDef &obj) { return obj.tensorshape_.get(); }, py::return_value_policy::reference_internal);
 
-    py::class_<HiddenDefinitionWrapper> hiddenDefWrapper(m, "HiddenDefinition");
-    hiddenDefWrapper
-        .def("__str__", &HiddenDefinitionWrapper::to_string);
-    
-    py::class_<HiddenDef, HiddenDefinitionWrapper>(m, "HiddenDef")
-        .def_readonly("onnx_name", &HiddenDef::string_) // Assuming 'string_' is a comment or similar
-        .def_readonly("variable_name", &HiddenDef::variablename_)
-        .def_property_readonly("element_type", [](const HiddenDef &obj) { return obj.elementtype_.get(); }, py::return_value_policy::reference_internal)
-        .def_property_readonly("shape", [](const HiddenDef &obj) { return obj.listint_.get(); }, py::return_value_policy::reference_internal);
-
-    py::class_<OutputDefinitionWrapper> outputDefWrapper(m, "OutputDefinition");
-    outputDefWrapper
-        .def("__str__", &OutputDefinitionWrapper::to_string);
-
-    py::class_<OutputDef, OutputDefinitionWrapper>(m, "OutputDef")
-        .def_readonly("variable_name", &OutputDef::variablename_)
-        .def_property_readonly("element_type", [](const OutputDef &obj) { return obj.elementtype_.get(); }, py::return_value_policy::reference_internal)
-        .def_property_readonly("shape", [](const OutputDef &obj) { return obj.listint_.get(); }, py::return_value_policy::reference_internal);
-
-
-    // --- List Definition Wrappers ---
+    // ListInputDefinition
     py::class_<ListInputDefinitionWrapper> listInputDefWrapper(m, "ListInputDefinition");
     listInputDefWrapper
         .def("__str__", &ListInputDefinitionWrapper::to_string);
@@ -252,9 +231,19 @@ PYBIND11_MODULE(vnnlib, m) {
         .def("__iter__", [](InputDefinitionList &self) {
             return py::make_iterator(self.begin(), self.end());
         }, py::keep_alive<0, 1>());
-        
 
-    // --- ListHiddenDefinition Wrapper ---
+    // --- HiddenDefinition ---
+    py::class_<HiddenDefinitionWrapper> hiddenDefWrapper(m, "HiddenDefinition");
+    hiddenDefWrapper
+        .def("__str__", &HiddenDefinitionWrapper::to_string);
+    
+    py::class_<HiddenDef, HiddenDefinitionWrapper>(m, "HiddenDef")
+        .def_readonly("onnx_name", &HiddenDef::string_) // Assuming 'string_' is a comment or similar
+        .def_readonly("variable_name", &HiddenDef::variablename_)
+        .def_property_readonly("element_type", [](const HiddenDef &obj) { return obj.elementtype_.get(); }, py::return_value_policy::reference_internal)
+        .def_property_readonly("shape", [](const HiddenDef &obj) { return obj.tensorshape_.get(); }, py::return_value_policy::reference_internal);
+        
+    // ListHiddenDefinition
     py::class_<ListHiddenDefinitionWrapper> listHiddenDefWrapper(m, "ListHiddenDefinition");
     listHiddenDefWrapper
         .def("__str__", &ListHiddenDefinitionWrapper::to_string);
@@ -269,13 +258,22 @@ PYBIND11_MODULE(vnnlib, m) {
         .def("__iter__", [](HiddenDefinitionList &self) {
             return py::make_iterator(self.begin(), self.end());
         }, py::keep_alive<0, 1>());
+
+    // --- OutputDefinition ---
+    py::class_<OutputDefinitionWrapper> outputDefWrapper(m, "OutputDefinition");
+    outputDefWrapper
+        .def("__str__", &OutputDefinitionWrapper::to_string);
+
+    py::class_<OutputDef, OutputDefinitionWrapper>(m, "OutputDef")
+        .def_readonly("variable_name", &OutputDef::variablename_)
+        .def_property_readonly("element_type", [](const OutputDef &obj) { return obj.elementtype_.get(); }, py::return_value_policy::reference_internal)
+        .def_property_readonly("shape", [](const OutputDef &obj) { return obj.tensorshape_.get(); }, py::return_value_policy::reference_internal);
     
-    
-    // --- ListOutputDefinition Wrapper ---
+    // ListOutputDefinition
     py::class_<ListOutputDefinitionWrapper> listOutputDefWrapper(m, "ListOutputDefinition");
     listOutputDefWrapper
         .def("__str__", &ListOutputDefinitionWrapper::to_string);
-
+    
     py::class_<OutputDefinitionList, ListOutputDefinitionWrapper>(m, "OutputDefinitionList")
         .def_property_readonly("current", [](const OutputDefinitionList &obj) { 
             return obj.outputdefinition_.get(); 
@@ -287,8 +285,7 @@ PYBIND11_MODULE(vnnlib, m) {
             return py::make_iterator(self.begin(), self.end());
         }, py::keep_alive<0, 1>());
 
-
-    // --- NetworkDefinition Wrapper ---
+    // --- NetworkDefinition ---
     py::class_<NetworkDefinitionWrapper> networkDefWrapper(m, "NetworkDefinition");
     networkDefWrapper
         .def("__str__", &NetworkDefinitionWrapper::to_string);
@@ -299,8 +296,7 @@ PYBIND11_MODULE(vnnlib, m) {
         .def_property_readonly("hiddens", [](const NetworkDef &obj) { return obj.listhiddendefinition_.get(); }, py::return_value_policy::reference_internal)
         .def_property_readonly("outputs", [](const NetworkDef &obj) { return obj.listoutputdefinition_.get(); }, py::return_value_policy::reference_internal);
     
-
-    // --- ListNetworkDefinition Wrapper ---
+    // ListNetworkDefinition
     py::class_<ListNetworkDefinitionWrapper> listNetworkDefWrapper(m, "ListNetworkDefinition");
     listNetworkDefWrapper
         .def("__str__", &ListNetworkDefinitionWrapper::to_string);
@@ -316,30 +312,37 @@ PYBIND11_MODULE(vnnlib, m) {
             return py::make_iterator(self.begin(), self.end());
         }, py::keep_alive<0, 1>());
 
-
-    // --- Query Wrapper (Top Level) ---
-    // QueryWrapper is the abstract base, VNNLibQuery is the concrete one.
-    py::class_<QueryWrapper> queryWrapper(m, "QueryBase"); // Renamed to avoid conflict with existing "Query"
-    queryWrapper // This is the object returned by generate(Query)
+    // --- Query ---
+    py::class_<QueryWrapper> queryWrapper(m, "QueryBase");
+    queryWrapper
         .def("__str__", &QueryWrapper::to_string);
 
-    py::class_<VNNLibQuery, QueryWrapper>(m, "Query") // This will be the actual object users get.
+    py::class_<VNNLibQuery, QueryWrapper>(m, "Query") 
         .def_property_readonly("networks", [](const VNNLibQuery &obj) {
             return obj.listnetworkdefinition_.get();
         }, py::return_value_policy::reference_internal)
-        .def_property_readonly("properties", [](const VNNLibQuery &obj) {
-            return obj.listproperty_.get();
+        .def_property_readonly("assertions", [](const VNNLibQuery &obj) {
+            return obj.listassertion_.get();
         }, py::return_value_policy::reference_internal);
 
 
-    // --- Main Parsing Function ---
+    // Main Parsing Function
     m.def("parse_vnnlib", [](const std::string& path) -> std::unique_ptr<QueryWrapper> {
         // This calls the C function from VNNLib.h
         Query raw_c_query = parse_vnnlib(path.c_str());
         if (!raw_c_query) {
             throw std::runtime_error("Failed to parse VNNLib file: C parser returned null.");
         }
-        
+
+        // Scope Checking
+        char *error_message = check_query(raw_c_query, 1);
+        if (error_message != nullptr) {
+            std::string error_str(error_message);
+            free(error_message); 
+            free_Query(raw_c_query); 
+            throw std::runtime_error("VNNLib query parsing error:\n" + error_str);
+        }
+
         std::unique_ptr<QueryWrapper> query_ast_wrapper = generate(raw_c_query);
         
         if (!query_ast_wrapper) {
@@ -349,20 +352,6 @@ PYBIND11_MODULE(vnnlib, m) {
         
         return query_ast_wrapper;
     }, py::doc("Parses a VNNLib file and returns a traversable AST Query object."));
-
-
-    // --- Function for Checking Semantic Validity ---
-    m.def("check_query", [](const QueryWrapper& query, bool json) {
-        char* result = check_query(query.get_struct(), json);
-
-        if (result == nullptr) {
-            throw std::runtime_error("Failed to check query validity: C function returned null.");
-        }
-
-        std::string result_str = result ? std::string(result) : std::string();
-        free(result); 
-        return result_str;
-    }, py::arg("query"), py::arg("json") = false, py::doc("Checks the validity of a VNNLib query and returns the result as a string"));
 
 
 #ifdef VERSION_INFO
