@@ -14,6 +14,7 @@ open import Data.Vec as Vec using (Vec; []; _∷_)
 open import Level
 open import Function.Nary.NonDependent as NFunc
 open import Function.Base
+open import Relation.Binary.PropositionalEquality as Eq using (_≡_; refl; subst)
 
 open import vnnlib-syntax using (TensorShape; NetworkType; NetworkDefinition; Context; mkContext)
 
@@ -70,12 +71,27 @@ record NetworkImplementation (networkType : NetworkType) : Set
   field
     networkFunction : ProductOfTensors inputShape → ProductOfTensors outputShape
     inputTensors : ProductOfTensors inputShape
-
+  domainCardinality : ℕ
+  domainCardinality = List.length inputShape
+  codomainCardinality : ℕ
+  codomainCardinality = List.length outputShape
 
 Environment : Context → Setω
 Environment Γ =
   (i : Fin (List.length Γ)) → let networkType = List.lookup Γ i in NetworkImplementation networkType
 
+-- WIP: proofs that NetworkImplementation.domainCardinality and codomainCardinality is the same value as the list length of the number of inputs and outputs
+domainCardinality-eq : ∀ {Γ} (ε : Environment Γ) (i : Fin (List.length Γ)) → NetworkImplementation.domainCardinality (ε i) ≡ List.length (NetworkType.inputShape (List.lookup Γ i))
+domainCardinality-eq ε i = Eq.refl
+
+jᵢ : ∀ {Γ} (ε : Environment Γ) (i : Fin (List.length Γ)) (j : Fin (List.length (NetworkType.inputShape (List.lookup Γ i)))) →  Fin (NetworkImplementation.domainCardinality (ε i))
+jᵢ ε i j = subst Fin (domainCardinality-eq ε i) j
+
+codomainCardinality-eq : ∀ {Γ} (ε : Environment Γ) (i : Fin (List.length Γ)) → NetworkImplementation.codomainCardinality (ε i) ≡ List.length (NetworkType.outputShape (List.lookup Γ i))
+codomainCardinality-eq ε i = Eq.refl
+
+jₒ : ∀ {Γ} (ε : Environment Γ) (i : Fin (List.length Γ)) (j : Fin (List.length (NetworkType.outputShape (List.lookup Γ i)))) →  Fin (NetworkImplementation.codomainCardinality (ε i))
+jₒ ε i j = subst Fin (codomainCardinality-eq ε i) j
 
 -- Arithmetic Expressions: nary operations
 data ArithExpr (Γ : Context) : Set where
@@ -93,8 +109,8 @@ data ArithExpr (Γ : Context) : Set where
 ⟦_%_⟧ₐ : ∀ {Γ} → Environment Γ → ArithExpr Γ → ℚ
 ⟦ ε % (constant a) ⟧ₐ  = a
 ⟦ ε % (negate a) ⟧ₐ = 0ℚ ℚ.- ⟦ ε % a ⟧ₐ 
-⟦ ε % (varInput i j n ) ⟧ₐ  = TensorElement n (projₙ {!!} {!!} {!!}) -- NetworkImplementation.inputTensors (ε i) 
-⟦ ε % (varOutput i j n ) ⟧ₐ = TensorElement n (projₙ {!!} {!!} {!!}) -- NetworkImplementation.networkFunction (ε i) (NetworkImplementation.inputTensors (ε i))
+⟦ ε % (varInput i j n ) ⟧ₐ  = TensorElement n (projₙ (NetworkImplementation.domainCardinality (ε i)) (jᵢ ε i j) (NetworkImplementation.inputTensors (ε i)))
+⟦ ε % (varOutput i j n ) ⟧ₐ = TensorElement n (projₙ (NetworkImplementation.codomainCardinality (ε i)) (jₒ ε i j) (NetworkImplementation.networkFunction (ε i) (NetworkImplementation.inputTensors (ε i)))) 
 -- Cannot simplify similar cases with fold as context is implicit
 ⟦ ε % (add []) ⟧ₐ   = 0ℚ
 ⟦ ε % (add (a₀ ∷ a)) ⟧ₐ   = ⟦ ε % a₀ ⟧ₐ ℚ.+ ⟦ ε % (add a) ⟧ₐ
