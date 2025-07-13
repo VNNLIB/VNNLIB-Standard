@@ -5,7 +5,7 @@ on:
     pull_request:
 
 jobs:
-  buildAndTest:
+  buildAndTestGrammar:
     runs-on: ubuntu-latest
     steps:
         - uses: actions/checkout@v4
@@ -18,3 +18,57 @@ jobs:
         
         - name: Test the parser
           run: chmod +x test.sh && ./test.sh
+
+  buildAndTestParser:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.x
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install system dependencies (clang)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang
+
+      - name: Install Python dependencies (pybind11)
+        run: pip install pybind11
+
+      - name: Install BNFC and Haskell dependencies
+        run: |
+          cabal update
+          cabal install alex happy BNFC
+          echo "$HOME/.cabal/bin" >> $GITHUB_PATH
+
+      - name: Compile grammar to C language
+        run: |
+          echo "Building the BNFC parser for C..."
+          bnfc --c -m -o parser/src/bisonParser syntax.cf
+
+      - name: Build C parser
+        run: |
+          echo "Compiling the C parser library..."
+          make -C parser || { echo "Make failed"; exit 1; }
+
+          echo "Modifying Printer.h for pybind wrapper..."
+          sed -i '/#define PRINTER_HEADER/a\\nextern char *buf_;' parser/src/bisonParser/Printer.h
+
+      - name: Build Python wrapper
+        working-directory: parser/pybind
+        run: |
+          echo "Generating and building the Python wrapper..."
+          python generate_wrappers.py
+          python setup.py build_ext --inplace
+
+          echo "Build complete."
+
+      - name: Test Python parser
+        working-directory: parser/pybind
+        run: |
+          python test_vnnlib.py
+
+          echo "Python parser tests completed successfully."
