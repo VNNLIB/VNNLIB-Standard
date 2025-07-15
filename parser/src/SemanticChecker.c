@@ -179,6 +179,7 @@ int initSemanticContext(SemanticContext *ctx) {
         return 1;
     }
     ctx->symbolTableHead = NULL;
+    ctx->numSymbols = 0;
     ctx->errorCount = 0;
     return initErrorList(ctx);
 }
@@ -189,6 +190,7 @@ void freeSymbolInfo(SymbolInfo *info) {
     if (!info) return;
     free_safe(info->name); 
     free_safe(info->shape); 
+    free_safe(info->onnxName);
     free_safe(info);        
 }
 
@@ -211,7 +213,7 @@ void destroySemanticContext(SemanticContext *ctx) {
 
 // Add symbol to table (simple linked list, checks for duplicates)
 // Returns the added symbol or NULL if an error occurred
-SymbolInfo* addSymbol(SemanticContext *ctx, VariableName name, ElementType type, ListInt listInt, SymbolKind kind) {
+SymbolInfo* addSymbol(SemanticContext *ctx, VariableName name, ElementType type, ListInt listInt, SymbolKind kind, char* onnxName) {
     // Check for duplicates
     if (findSymbol(ctx, name)) {
         addError(ctx, (VNNLibError) {
@@ -223,34 +225,44 @@ SymbolInfo* addSymbol(SemanticContext *ctx, VariableName name, ElementType type,
         return NULL;
     }
 
+    char* onnxNameCopy = NULL;
+    char* nameCopy = NULL;
+
     SymbolInfo *newSymbol = malloc(sizeof(SymbolInfo));
     int *symbolShape = malloc(sizeof(int) * MAX_DIMENSIONS);
     if (!newSymbol || !symbolShape) {
         perror("Failed to allocate memory for symbol info");
-        free_safe(newSymbol);
-        free_safe(symbolShape);
-        return NULL;
+        goto cleanup;
     }
 
     int numDimensions = 0;
     if (listInt && checkListInt(listInt, ctx, symbolShape, &numDimensions) != 0) {
-        free_safe(symbolShape);
-        free_safe(newSymbol);
-        return NULL;
+        goto cleanup;
     }
 
-    char *nameCopy = strdup_safe(name);
+    nameCopy = strdup_safe(name);
+    if (onnxName != NULL) {
+        onnxNameCopy = strdup_safe(onnxName);
+    }
 
     newSymbol->name = nameCopy;
     newSymbol->type = type;
     newSymbol->kind = kind;
     newSymbol->shape = symbolShape;
     newSymbol->numDimensions = numDimensions;
+    newSymbol->onnxName = onnxNameCopy;
 
     newSymbol->next = ctx->symbolTableHead;
     ctx->symbolTableHead = newSymbol;
 
     return newSymbol;
+
+    cleanup:
+        free_safe(nameCopy);
+        free_safe(symbolShape);
+        free_safe(newSymbol);
+        free_safe(onnxNameCopy);
+        return NULL;
 }
 
 
@@ -495,19 +507,48 @@ int checkInputDefinition(InputDefinition p, SemanticContext *ctx)
         fprintf(stderr, "Checker Error: InputDefinition node is NULL.\n");
         return 1;
     }
-    int err = 0;
-    err |= checkVariableName(p->u.inputdef_.variablename_, ctx);
-    err |= checkElementType(p->u.inputdef_.elementtype_, ctx);
-    if (err) return err;
 
-    TensorShape shape = p->u.inputdef_.tensorshape_;
+    int err = 0;
+
+    char* onnxName = NULL;
+    SymbolInfo* newSymbol = NULL;
+    TensorShape shapeDef = NULL;
     ListInt dims = NULL;
-    if (shape->kind == is_TensorDims) {
-        dims = shape->u.tensordims_.listint_;
+
+    switch (p->kind) {
+        case is_InputOnnxDef:
+            err |= checkVariableName(p->u.inputonnxdef_.variablename_, ctx);
+            err |= checkElementType(p->u.inputonnxdef_.elementtype_, ctx);
+            err |= checkString(p->u.inputonnxdef_.string_, ctx);
+
+            shapeDef = p->u.inputonnxdef_.tensorshape_;
+            if (shapeDef->kind == is_TensorDims) {
+                dims = shapeDef->u.tensordims_.listint_;
+            }
+            onnxName = p->u.inputonnxdef_.string_;
+            newSymbol = addSymbol(ctx, p->u.inputonnxdef_.variablename_, p->u.inputonnxdef_.elementtype_, dims, SYM_INPUT, onnxName);
+            break;
+
+        case is_InputDef:
+            err |= checkVariableName(p->u.inputdef_.variablename_, ctx);
+            err |= checkElementType(p->u.inputdef_.elementtype_, ctx);
+
+            shapeDef = p->u.inputdef_.tensorshape_;
+            if (shapeDef->kind == is_TensorDims) {
+                dims = shapeDef->u.tensordims_.listint_;
+            }
+            newSymbol = addSymbol(ctx, p->u.inputdef_.variablename_, p->u.inputdef_.elementtype_, dims, SYM_INPUT, onnxName);
+            break;
+
+        default:
+            fprintf(stderr, "Checker Error: Bad kind field in InputDefinition node.\n");
+            return 1;
     }
 
-    if (!addSymbol(ctx, p->u.inputdef_.variablename_, p->u.inputdef_.elementtype_, dims, SYM_INPUT)) {
+    if (newSymbol == NULL) {
         err = 1;
+    } else {
+        ctx->numSymbols++;
     }
     return err;
 }
@@ -519,20 +560,24 @@ int checkHiddenDefinition(HiddenDefinition p, SemanticContext *ctx)
         fprintf(stderr, "Checker Error: HiddenDefinition node is NULL.\n");
         return 1;
     }
+
     int err = 0;
     err |= checkVariableName(p->u.hiddendef_.variablename_, ctx);
     err |= checkElementType(p->u.hiddendef_.elementtype_, ctx);
     err |= checkString(p->u.hiddendef_.string_, ctx);
     if (err) return err;
 
+    char* onnxName = p->u.hiddendef_.string_;
     TensorShape shape = p->u.hiddendef_.tensorshape_;
     ListInt dims = NULL;
     if (shape->kind == is_TensorDims) {
         dims = shape->u.tensordims_.listint_;
     }
 
-    if (!addSymbol(ctx, p->u.hiddendef_.variablename_, p->u.hiddendef_.elementtype_, dims, SYM_INTERMEDIATE)) {
+    if (!addSymbol(ctx, p->u.hiddendef_.variablename_, p->u.hiddendef_.elementtype_, dims, SYM_HIDDEN, onnxName)) {
         err = 1;
+    } else {
+        ctx->numSymbols++;
     }
     return err;
 }
@@ -541,22 +586,51 @@ int checkHiddenDefinition(HiddenDefinition p, SemanticContext *ctx)
 int checkOutputDefinition(OutputDefinition p, SemanticContext *ctx)
 {
     if (!p) {
-        fprintf(stderr, "Checker Error: OutputDefinition node is NULL.\n");
+        fprintf(stderr, "Checker Error: InputDefinition node is NULL.\n");
         return 1;
     }
-    int err = 0;
-    err |= checkVariableName(p->u.outputdef_.variablename_, ctx);
-    err |= checkElementType(p->u.outputdef_.elementtype_, ctx);
-    if (err) return err;
 
-    TensorShape shape = p->u.outputdef_.tensorshape_;
+    int err = 0;
+
+    char* onnxName = NULL;
+    SymbolInfo* newSymbol = NULL;
+    TensorShape shapeDef = NULL;
     ListInt dims = NULL;
-    if (shape->kind == is_TensorDims) {
-        dims = shape->u.tensordims_.listint_;
+
+    switch (p->kind) {
+        case is_OutputOnnxDef:
+            err |= checkVariableName(p->u.outputonnxdef_.variablename_, ctx);
+            err |= checkElementType(p->u.outputonnxdef_.elementtype_, ctx);
+            err |= checkString(p->u.outputonnxdef_.string_, ctx);
+
+            shapeDef = p->u.outputonnxdef_.tensorshape_;
+            if (shapeDef->kind == is_TensorDims) {
+                dims = shapeDef->u.tensordims_.listint_;
+            }
+            onnxName = p->u.outputonnxdef_.string_;
+            newSymbol = addSymbol(ctx, p->u.outputonnxdef_.variablename_, p->u.outputonnxdef_.elementtype_, dims, SYM_OUTPUT, onnxName);
+            break;
+
+        case is_OutputDef:
+            err |= checkVariableName(p->u.outputdef_.variablename_, ctx);
+            err |= checkElementType(p->u.outputdef_.elementtype_, ctx);
+
+            shapeDef = p->u.outputdef_.tensorshape_;
+            if (shapeDef->kind == is_TensorDims) {
+                dims = shapeDef->u.tensordims_.listint_;
+            }
+            newSymbol = addSymbol(ctx, p->u.outputdef_.variablename_, p->u.outputdef_.elementtype_, dims, SYM_OUTPUT, onnxName);
+            break;
+
+        default:
+            fprintf(stderr, "Checker Error: Bad kind field in InputDefinition node.\n");
+            return 1;
     }
 
-    if (!addSymbol(ctx, p->u.outputdef_.variablename_, p->u.outputdef_.elementtype_, dims, SYM_OUTPUT)) {
+    if (newSymbol == NULL) {
         err = 1;
+    } else {
+        ctx->numSymbols++;
     }
     return err;
 }
@@ -614,6 +688,8 @@ int checkNetworkDefinition(NetworkDefinition p, SemanticContext *ctx)
         return 1;
     }
     int err = 0;
+    int initialSymbolCount = ctx->numSymbols;
+
     switch(p->kind)
     {
         case is_NetworkDef:
@@ -626,8 +702,40 @@ int checkNetworkDefinition(NetworkDefinition p, SemanticContext *ctx)
             fprintf(stderr, "Checker Error: Bad kind field in NetworkDefinition node.\n");
             return 1; 
     }
+
+    int numAddedSymbols = ctx->numSymbols - initialSymbolCount;
+    int i = 0;
+    SymbolInfo *symbol = ctx->symbolTableHead;
+    int numOnnxNames = 0; // Number of input/output variables with ONNX names
+
+    while (i < numAddedSymbols && symbol != NULL) {
+        if (symbol->onnxName != NULL && symbol->kind != SYM_HIDDEN) {
+            numOnnxNames++;
+        }
+        i++;
+        symbol = symbol->next;
+    }
+
+    if (numOnnxNames > 0 && numOnnxNames < numAddedSymbols) {
+        err = 1;
+        addError(ctx, (VNNLibError) {
+            .message = "Mixing ONNX-named variables with ordered variables in network",
+            .offendingSymbol = p->u.networkdef_.variablename_,
+            .hint = "All (input/output) variables for a network must have an ONNX name OR no (input/output) variables may have an ONNX name.",
+            .errorCode = UnexpectedOnnxName
+        });
+    }
+
     return err;
 }
+
+// addError(ctx, (VNNLibError) {
+            //     .message = "Unexpected ONNX name for variable",
+            //     .offendingSymbol = symbol->name,
+            //     .hint = "All (input/output) variables must have an ONNX name OR no (input/output) variables may have an ONNX name.",
+            //     .errorCode = UnexpectedOnnxName
+            // });
+            // err = 1;
 
 
 int checkListNetworkDefinition(ListNetworkDefinition p, SemanticContext *ctx)
@@ -677,7 +785,7 @@ int checkIdent(Ident i, SemanticContext *ctx) { return 0; }
 int checkInteger(Integer i, SemanticContext *ctx) { return 0; }
 int checkDouble(Double d, SemanticContext *ctx) { return 0; }
 int checkChar(Char c, SemanticContext *ctx) { return 0; }
-int checkString(String s, SemanticContext *ctx) { return 0; }
+int checkString(char* s, SemanticContext *ctx) { return 0; }
 
 
 int checkTensorElement(VariableName tensorName, ListInt tensorIndex, SemanticContext *ctx) {

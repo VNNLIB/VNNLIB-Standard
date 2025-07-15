@@ -5,6 +5,7 @@
 #include <stdarg.h> 
 #include <string.h> 
 #include <stdio.h>
+#include <stdbool.h>
 #include "Absyn.h" 
 #include "Util.h"
 
@@ -18,6 +19,7 @@ typedef enum {
     IndexOutOfBounds,
     TooManyIndices,
     NotEnoughIndices,
+    UnexpectedOnnxName
 } ErrorCode;
 
 
@@ -35,13 +37,14 @@ typedef struct {
 typedef enum {
     SYM_INPUT,
     SYM_OUTPUT,
-    SYM_INTERMEDIATE
+    SYM_HIDDEN
 } SymbolKind;
 
 
 // Structure to store information about a declared variable
 typedef struct SymbolInfo {
     char        *name;          // Pointer to the VariableName node
+    char        *onnxName;      // Optional ONNX name for the variable
     ElementType type;           // Pointer to the ElementType node 
     int         numDimensions;  // Number of dimensions
     int        *shape;          // Array of dimensions
@@ -49,13 +52,16 @@ typedef struct SymbolInfo {
     struct SymbolInfo *next;    // Pointer to the next symbol in the linked list
 } SymbolInfo;
 
-
 // Structure to hold state during semantic checking
 typedef struct SemanticContext {
     SymbolInfo *symbolTableHead;    // Head of the symbol linked list
+    int numSymbols;                  // Number of symbols in the table
+
     VNNLibError *errors;            // List of semantic errors
     int errorCapacity;              // Capacity of the error list
     int errorCount;                 // Counter for detected errors
+
+    ElementType currentDataType;    // Data type of the current expression
 } SemanticContext;
 
 
@@ -69,7 +75,7 @@ char *reportErrorsJSON(SemanticContext *ctx);
 // Context Management
 int initSemanticContext(SemanticContext *ctx);
 void destroySemanticContext(SemanticContext *ctx);
-SymbolInfo* addSymbol(SemanticContext *ctx, VariableName name, ElementType type, ListInt dims, SymbolKind kind);
+SymbolInfo* addSymbol(SemanticContext *ctx, VariableName name, ElementType type, ListInt dims, SymbolKind kind, String onnxName);
 SymbolInfo* findSymbol(SemanticContext *ctx, VariableName name);
 
 // Error Management
