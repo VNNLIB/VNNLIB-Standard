@@ -187,14 +187,48 @@ Comments in \vnnlib{} are denoted by a semicolon (\texttt{;}) and extend to the 
 \section{Scoping and Typing}
 \label{sec:scoping_and_typing}
 
-\mnote{TODO: Ann Roy}
+\subsection{Variables}
+The \vnnlib{} query language, utilizes variables to refer to specific inputs, outputs, and hidden outputs for neural networks.
 
+\paragraph{Declaration}
+Variable declarations bind a variable name to a specific ONNX tensor, which is then used in the \textit{Assertions} section of the query. Variables are declared into a query context in the \textit{Network Declarations} section of a \vnnlib{} query with a \textit{name}, and other ONNX \textit{Tensor} specfic properties such as: ONNX element type, shape, and optionally, the ONNX node name. Variables are also declared in order of input, hidden, and output declarations within a network declaration.
+
+\paragraph{Referencing}
+Variables are referenced within the \textit{Assertions} section of a query using its name, accompanied by the tensor indices to refer to an element in the corresponding tensor.
+
+
+
+\myremark {
+    Variable names are also used in \textit{Network Declarations} to refer to specific networks, but these are not used within the body of the query, and instead used for the purpose of externally binding the network to a specific ONNX model file during verification.
+    
+    Similarly, the ONNX node names are used to refer to specific nodes within the ONNX model file, but these are not used within the body of the query.
+}
+
+\paragraph{General Properties} The following properties hold for all variables in a \vnnlib{} query. These properties are used to define the scoping and typing rules of the query language, which are described in more detail in the following sections.
 \begin{itemize}
-\item Unique variable names
-\item Well-scoped indices within tensor dimensions
-\item Inputs/hidden/output declarations in order.
+    \item {Variables are \textit{globally scoped}. All variables are scoped to the entire body of the query.}
+    \item {Variables are \textit{free} and \textit{typed}. Variables are not \textit{bound} by quantifiers and can take on \textit{any} value (a tensor) in the domain of its ONNX element type.}
 \end{itemize}
 
+
+\subsection{Scoping}
+A \vnnlib{} query is said to be \textit{well-scoped}, if it satisfies the following criteria.
+\begin{enumerate}
+    \item All variables are declared before they are referenced.
+    \item Variable declarations are \textit{ordered} within network declarations such that inputs before hidden outputs, and hidden outputs before outputs.
+    \item Variables have unique names within the query. No variable name is reused within the same query.
+\end{enumerate}
+\mytodo{Well-scoped indices within tensor dimensions.}
+
+\subsection{Typing}
+A \vnnlib{} query is said to be \textit{well-typed}, if it satisfies the following criteria.
+
+\begin{itemize}
+    \item All variables have a valid ONNX element type.
+    \item All variable references are correctly-typed, that is, the element type of the variable must match the expected element type in the context where it is substituted.
+\end{itemize}
+
+\mytodo{Operations with different typed "constants" in Arithmetic or Comparitive expressions - multiple constants or variable(s) and constant(s).}
 
 \section{Semantics}
 \label{sec:semantics}
