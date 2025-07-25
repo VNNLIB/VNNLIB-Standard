@@ -8,6 +8,7 @@
 #include <stdbool.h>
 #include "Absyn.h" 
 #include "Util.h"
+#include "hashmap.h"
 
 #define MAX_DIMENSIONS 10 // Maximum number of dimensions for a tensor
 
@@ -46,22 +47,18 @@ typedef struct SymbolInfo {
     char        *name;          // Pointer to the VariableName node
     char        *onnxName;      // Optional ONNX name for the variable
     ElementType type;           // Pointer to the ElementType node 
-    int         numDimensions;  // Number of dimensions
-    int        *shape;          // Array of dimensions
+    int         numDimensions;  
+    int        *shape;         
     SymbolKind  kind;           // Kind of variable (input, output, intermediate)
-    struct SymbolInfo *next;    // Pointer to the next symbol in the linked list
 } SymbolInfo;
 
 // Structure to hold state during semantic checking
 typedef struct SemanticContext {
-    SymbolInfo *symbolTableHead;    // Head of the symbol linked list
-    int numSymbols;                  // Number of symbols in the table
+    struct hashmap *symbolMap;                   
 
-    VNNLibError *errors;            // List of semantic errors
-    int errorCapacity;              // Capacity of the error list
-    int errorCount;                 // Counter for detected errors
-
-    ElementType currentDataType;    // Data type of the current expression
+    VNNLibError *errors;           
+    int errorCapacity;              
+    int errorCount;               
 } SemanticContext;
 
 
@@ -76,7 +73,7 @@ char *reportErrorsJSON(SemanticContext *ctx);
 int initSemanticContext(SemanticContext *ctx);
 void destroySemanticContext(SemanticContext *ctx);
 SymbolInfo* addSymbol(SemanticContext *ctx, VariableName name, ElementType type, ListInt dims, SymbolKind kind, String onnxName);
-SymbolInfo* findSymbol(SemanticContext *ctx, VariableName name);
+const SymbolInfo* findSymbol(SemanticContext *ctx, VariableName name);
 
 // Error Management
 void addError(SemanticContext *ctx, VNNLibError error);
@@ -85,11 +82,11 @@ void addError(SemanticContext *ctx, VNNLibError error);
 int checkQuery(Query p, SemanticContext *ctx);
 int checkListNetworkDefinition(ListNetworkDefinition listnetworkdefinition, SemanticContext *ctx);
 int checkNetworkDefinition(NetworkDefinition p, SemanticContext *ctx);
-int checkListInputDefinition(ListInputDefinition listinputdefinition, SemanticContext *ctx);
+int checkListInputDefinition(ListInputDefinition listinputdefinition, int *usesOnnxNames, SemanticContext *ctx);
 int checkInputDefinition(InputDefinition p, SemanticContext *ctx);
 int checkListHiddenDefinition(ListHiddenDefinition listintermediatedefinition, SemanticContext *ctx);
 int checkHiddenDefinition(HiddenDefinition p, SemanticContext *ctx);
-int checkListOutputDefinition(ListOutputDefinition listoutputdefinition, SemanticContext *ctx);
+int checkListOutputDefinition(ListOutputDefinition listoutputdefinition, int *usesOnnxNames, SemanticContext *ctx);
 int checkOutputDefinition(OutputDefinition p, SemanticContext *ctx);
 int checkElementType(ElementType p, SemanticContext *ctx);
 int checkListAssertion(ListAssertion listassertion, SemanticContext *ctx);
