@@ -25,7 +25,7 @@ void addError(SemanticContext *ctx, VNNLibError error) {
 
     if (errorCount >= errorCapacity) {
         size_t new_capacity = errorCapacity * 2;
-        VNNLibError* new_errors = realloc(ctx->errors, new_capacity * sizeof(VNNLibError));
+        VNNLibError *new_errors = realloc(ctx->errors, new_capacity * sizeof(VNNLibError));
         if (!new_errors) {
             perror("Failed to reallocate memory for error list");
             return;
@@ -77,7 +77,7 @@ void reportError(SemanticContext *ctx, const char *format, ...) {
 
 
 // Helper to convert error codes to strings
-const char* errorCodeToString(ErrorCode code) {
+const char *errorCodeToString(ErrorCode code) {
     switch (code) {
         case MultipleDeclaration: return "MultipleDeclaration";
         case TypeMismatch: return "TypeMismatch";
@@ -195,7 +195,7 @@ void freeSymbolInfo(void *info) {
 
 // Add symbol to table
 // Returns the added symbol or NULL if an error occurred
-SymbolInfo* addSymbol(SemanticContext *ctx, VariableName name, ElementType type, ListInt listInt, SymbolKind kind, char* onnxName) {
+SymbolInfo *addSymbol(SemanticContext *ctx, VariableName name, ElementType type, ListInt listInt, SymbolKind kind, char *onnxName) {
     SymbolInfo lookup_key = { .name = name };
     if (hashmap_get(ctx->symbolMap, &lookup_key) != NULL) {
         addError(ctx, (VNNLibError) {
@@ -219,8 +219,8 @@ SymbolInfo* addSymbol(SemanticContext *ctx, VariableName name, ElementType type,
         free(symbolShape); 
         return NULL;
     }
-    
-    int* finalShape = realloc(symbolShape, sizeof(int) * numDimensions);
+
+    int *finalShape = realloc(symbolShape, sizeof(int) * numDimensions);
     if (numDimensions > 0 && !finalShape) {
         perror("Failed to reallocate memory for symbol shape");
         free(symbolShape); 
@@ -246,7 +246,7 @@ SymbolInfo* addSymbol(SemanticContext *ctx, VariableName name, ElementType type,
 
 
 // Find symbol by name
-const SymbolInfo* findSymbol(SemanticContext *ctx, VariableName name) {
+const SymbolInfo *findSymbol(SemanticContext *ctx, VariableName name) {
     SymbolInfo lookup_key = {.name = name};
     return hashmap_get(ctx->symbolMap, &lookup_key);
 }
@@ -261,6 +261,10 @@ int initSemanticContext(SemanticContext *ctx) {
     ctx->symbolMap = hashmap_new(sizeof(SymbolInfo), 0, 0, 0,
         symbol_hash, symbol_compare, freeSymbolInfo, NULL);
     ctx->errorCount = 0;
+
+    ctx->currentDataType = UNDEFINED_ELEMENT_TYPE;
+    ctx->lastScannedVariable = NULL;
+
     return initErrorList(ctx);
 }
 
@@ -300,6 +304,73 @@ int checkListInt(ListInt p, SemanticContext *ctx, int *symbolShape, int *numDime
 }
 
 
+bool isFloat(ElementTypeKind kind) {
+    return (kind == Real ||
+            kind == F16 || 
+            kind == F32 || 
+            kind == F64 || 
+            kind == BF16 || 
+            kind == F8E4M3FN || 
+            kind == F8E5M2 || 
+            kind == F8E4M3FNUZ || 
+            kind == F8E5M2FNUZ || 
+            kind == F4E2M1 ||
+            kind == FloatConstant);
+}
+
+
+bool isInteger(ElementTypeKind kind) {
+    return (kind == I8 || kind == I16 || 
+            kind == I32 || kind == I64 || 
+            kind == U8 || kind == U16 || 
+            kind == U32 || kind == U64 ||
+            kind == PosIntConstant);
+}
+
+
+bool isSignedInteger(ElementTypeKind kind) {
+    return (kind == I8 || kind == I16 || 
+            kind == I32 || kind == I64 || 
+            kind == NegIntConstant);
+}
+
+
+// Add this new helper function
+const char* elementTypeToString(ElementTypeKind kind) {
+    switch (kind) {
+        // Floats
+        case Real: return "Real";
+        case F16: return "float16";
+        case F32: return "float32";
+        case F64: return "float64";
+        case BF16: return "bfloat16";
+        case F8E4M3FN: return "float8e4m3fn";
+        case F8E5M2: return "float8e5m2";
+        case F8E4M3FNUZ: return "float8e4m3fuz";
+        case F8E5M2FNUZ: return "float8e5m2fuz";
+        case F4E2M1: return "float4e2m1";
+        case FloatConstant: return "Float";                // Generic float
+
+        // Integers
+        case I8: return "int8";
+        case I16: return "int16";
+        case I32: return "int32";
+        case I64: return "int64";
+        case U8: return "uint8";
+        case U16: return "uint16";
+        case U32: return "uint32";
+        case U64: return "uint64";
+        case PosIntConstant: return "Integer";             // Generic integer
+        case NegIntConstant: return "Signed Integer";      // Generic integer
+        
+        // Other types
+        case Bool: return "bool";
+        case Str: return "string";
+        default: return "UnknownType";
+    }
+}
+
+
 int checkArithExpr(ArithExpr p, SemanticContext *ctx)
 {
     if (!p) {
@@ -307,33 +378,167 @@ int checkArithExpr(ArithExpr p, SemanticContext *ctx)
         return 1;
     }
     int err = 0;
+    ElementTypeKind nodeType;
+    ElementTypeKind exprType = ctx->currentDataType;
+    bool isPreviousTypeUndefined = (exprType == UNDEFINED_ELEMENT_TYPE);
+
+    char hint_buffer[256];
+
     switch(p->kind)
     {
         case is_VarExpr:
             err |= checkTensorElement(p->u.varexpr_.variablename_, p->u.varexpr_.listint_, ctx);
+            const SymbolInfo *symbol = findSymbol(ctx, p->u.varexpr_.variablename_);
+
+            if (!symbol) {
+                addError(ctx, (VNNLibError) {
+                    .message = "Undeclared variable",
+                    .offendingSymbol = p->u.varexpr_.variablename_,
+                    .hint = "Variable must be declared before use.",
+                    .errorCode = UndeclaredVariable
+                });
+                return 1;
+            }
+            nodeType = (ElementTypeKind)symbol->type->kind;
+            bool isPreviousTypeConstant = (exprType == FloatConstant || exprType == NegIntConstant || exprType == PosIntConstant);
+
+            if (isPreviousTypeUndefined) {
+                ctx->currentDataType = nodeType;
+                ctx->lastScannedVariable = p->u.varexpr_.variablename_;
+
+            } else if (isPreviousTypeConstant) {
+                if ((exprType == FloatConstant && isFloat(nodeType)) || 
+                    (exprType == NegIntConstant && isSignedInteger(nodeType)) ||
+                    (exprType == PosIntConstant && isInteger(nodeType))) {
+                    ctx->currentDataType = nodeType;
+                    ctx->lastScannedVariable = p->u.varexpr_.variablename_;
+
+                } else {
+                    sprintf(hint_buffer, 
+                        "Expected a %s type to match constant '%s', but variable '%s' has type '%s'.",
+                        elementTypeToString(exprType), 
+                        ctx->lastScannedVariable,
+                        p->u.varexpr_.variablename_,
+                        elementTypeToString(nodeType));
+
+                    addError(ctx, (VNNLibError) {
+                        .message = "Type mismatch in arithmetic expression",
+                        .offendingSymbol = p->u.varexpr_.variablename_,
+                        .hint = hint_buffer,
+                        .errorCode = TypeMismatch
+                    });
+                    return 1;
+                }
+            } else if (exprType != nodeType) {
+                sprintf(hint_buffer, 
+                    "Expected type '%s' (from variable '%s'), but variable '%s' has type '%s'.",
+                    elementTypeToString(exprType), 
+                    ctx->lastScannedVariable,
+                    p->u.varexpr_.variablename_,
+                    elementTypeToString(nodeType));
+
+                addError(ctx, (VNNLibError) {
+                    .message = "Type mismatch in arithmetic expression",
+                    .offendingSymbol = p->u.varexpr_.variablename_,
+                    .hint = hint_buffer,
+                    .errorCode = TypeMismatch
+                });
+                return 1;
+            }
             break;
+
         case is_DoubleExpr:
             err |= checkSDouble(p->u.doubleexpr_.sdouble_, ctx);
+            nodeType = FloatConstant;
+
+            if (isPreviousTypeUndefined) {
+                ctx->currentDataType = FloatConstant;
+                ctx->lastScannedVariable = p->u.doubleexpr_.sdouble_;
+
+            } else if (!isFloat(exprType)) {
+                sprintf(hint_buffer, 
+                    "Expected type '%s' (from '%s'), but found a floating-point constant '%s'.",
+                    elementTypeToString(exprType),
+                    ctx->lastScannedVariable, 
+                    p->u.doubleexpr_.sdouble_);
+
+                addError(ctx, (VNNLibError) {
+                    .message = "Type mismatch in arithmetic expression",
+                    .offendingSymbol = p->u.doubleexpr_.sdouble_,
+                    .hint = hint_buffer,
+                    .errorCode = TypeMismatch
+                });
+                return 1;
+            }
             break;
+
         case is_SIntExpr:
             err |= checkSInt(p->u.sintexpr_.sint_, ctx);
+            nodeType = NegIntConstant;
+
+            if (isPreviousTypeUndefined) {
+                ctx->currentDataType = NegIntConstant;
+                ctx->lastScannedVariable = p->u.sintexpr_.sint_;
+
+            } else if (!isSignedInteger(exprType)) {
+                sprintf(hint_buffer, 
+                    "Expected type '%s' (from '%s'), but found a negative integer constant '%s'.",
+                    elementTypeToString(exprType),
+                    ctx->lastScannedVariable, 
+                    p->u.sintexpr_.sint_);
+
+                addError(ctx, (VNNLibError) {
+                    .message = "Type mismatch in arithmetic expression",
+                    .offendingSymbol = p->u.sintexpr_.sint_,
+                    .hint = hint_buffer,
+                    .errorCode = TypeMismatch
+                });
+                return 1;
+            }
             break;
+
         case is_IntExpr:
             err |= checkInt(p->u.intexpr_.int_, ctx);
+            nodeType = PosIntConstant;
+
+            if (isPreviousTypeUndefined) {
+                ctx->currentDataType = PosIntConstant;
+                ctx->lastScannedVariable = p->u.intexpr_.int_;
+
+            } else if (!isInteger(exprType)) {
+                sprintf(hint_buffer, 
+                    "Expected type '%s' (from '%s'), but found an integer constant '%s'.",
+                    elementTypeToString(exprType),
+                    ctx->lastScannedVariable, 
+                    p->u.intexpr_.int_);
+
+                addError(ctx, (VNNLibError) {
+                    .message = "Type mismatch in arithmetic expression",
+                    .offendingSymbol = p->u.intexpr_.int_,
+                    .hint = hint_buffer,
+                    .errorCode = TypeMismatch
+                });
+                return 1;
+            }
             break;
+
         case is_Negate:
             err |= checkArithExpr(p->u.negate_.arithexpr_, ctx);
             break;
+
         case is_Plus:
             err |= checkListArithExpr(p->u.plus_.listarithexpr_, ctx);
             break;
+
         case is_Minus:
             err |= checkArithExpr(p->u.minus_.arithexpr_, ctx);
             err |= checkListArithExpr(p->u.minus_.listarithexpr_, ctx);
             break;
+
         case is_Multiply:
             err |= checkListArithExpr(p->u.multiply_.listarithexpr_, ctx);
             break;
+
         default:
             fprintf(stderr, "Checker Error: Bad kind field in ArithExpr node.\n");
             return 1;
@@ -364,7 +569,10 @@ int checkBoolExpr(BoolExpr p, SemanticContext *ctx)
         fprintf(stderr, "Checker Error: BoolExpr node is NULL.\n");
         return 1;
     }
+
     int err = 0;
+    ctx->currentDataType = UNDEFINED_ELEMENT_TYPE;
+
     switch(p->kind)
     {
         case is_GreaterThan:
@@ -503,8 +711,8 @@ int checkInputDefinition(InputDefinition p, SemanticContext *ctx)
 
     int err = 0;
 
-    char* onnxName = NULL;
-    SymbolInfo* newSymbol = NULL;
+    char *onnxName = NULL;
+    SymbolInfo *newSymbol = NULL;
     TensorShape shapeDef = NULL;
     ListInt dims = NULL;
 
@@ -565,7 +773,7 @@ int checkHiddenDefinition(HiddenDefinition p, SemanticContext *ctx)
     err |= checkString(p->u.hiddendef_.string_, ctx);
     if (err) return err;
 
-    char* onnxName = p->u.hiddendef_.string_;
+    char *onnxName = p->u.hiddendef_.string_;
     TensorShape shape = p->u.hiddendef_.tensorshape_;
     ListInt dims = NULL;
     if (shape->kind == is_TensorDims) {
@@ -588,8 +796,8 @@ int checkOutputDefinition(OutputDefinition p, SemanticContext *ctx)
 
     int err = 0;
 
-    char* onnxName = NULL;
-    SymbolInfo* newSymbol = NULL;
+    char *onnxName = NULL;
+    SymbolInfo *newSymbol = NULL;
     TensorShape shapeDef = NULL;
     ListInt dims = NULL;
 
@@ -823,7 +1031,7 @@ int checkIdent(Ident i, SemanticContext *ctx) { return 0; }
 int checkInteger(Integer i, SemanticContext *ctx) { return 0; }
 int checkDouble(Double d, SemanticContext *ctx) { return 0; }
 int checkChar(Char c, SemanticContext *ctx) { return 0; }
-int checkString(char* s, SemanticContext *ctx) { return 0; }
+int checkString(char *s, SemanticContext *ctx) { return 0; }
 
 
 int checkTensorElement(VariableName tensorName, ListInt tensorIndex, SemanticContext *ctx) {
@@ -834,17 +1042,6 @@ int checkTensorElement(VariableName tensorName, ListInt tensorIndex, SemanticCon
     int err = 0;
 
     const SymbolInfo *symbol = findSymbol(ctx, tensorName); 
-
-    if (!symbol) {
-        err = 1;
-        addError(ctx, (VNNLibError) {
-            .message = "Undeclared variable",
-            .offendingSymbol = tensorName,
-            .hint = "Variable must be declared before use.",
-            .errorCode = UndeclaredVariable
-        });
-        return err;
-    }
 
     if (!tensorIndex) {
         err = 1;
