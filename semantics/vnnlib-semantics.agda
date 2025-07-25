@@ -9,44 +9,14 @@ open import Data.Bool
 open import Data.Product.Nary.NonDependent as Nary
 open import Data.Fin as Fin
 open import Data.Product as Product
-open import utils using (_≥ᵇ_;_>ᵇ_;_<ᵇ_;_=ᵇ_;_≠ᵇ_)
-open import Data.Vec as Vec using (Vec; []; _∷_)
 open import Level
 open import Function.Nary.NonDependent as NFunc
 open import Function.Base
 open import Relation.Binary.PropositionalEquality as Eq using (_≡_; refl; subst)
 
-open import vnnlib-syntax using (TensorShape; NetworkType; NetworkDefinition; Context; mkContext)
-
--- Tensor
-data TensorIndices : TensorShape → Set where
- empty : TensorIndices []
- non-empty : {head : ℕ} → {tail : List ℕ} → Fin head →  TensorIndices tail → TensorIndices (head ∷ tail) 
-
-data Tensor (Σ : Set) : TensorShape → Set where
-  scalar : Σ → Tensor Σ []
-  vector : {head : ℕ} → {tail : List ℕ} → Vec (Tensor Σ tail) head → Tensor Σ (head ∷ tail)
-
-TensorElement : ∀ {shape} → TensorIndices shape → Tensor ℚ shape → ℚ
-TensorElement {[]} empty (scalar x) = x
-TensorElement {dim ∷ shape} (non-empty idx idxs) (vector x) = TensorElement idxs (Vec.lookup x idx)
-
-testSide₁ : Tensor ℚ (2 ∷ 2 ∷ [])
-testSide₁ = vector (vector (scalar 1ℚ ∷ scalar 1ℚ ∷ []) ∷
-                 vector (scalar 1ℚ ∷ scalar 1ℚ ∷ []) ∷ [])
-
-testSide₂ : Tensor ℚ (2 ∷ 2 ∷ [])
-testSide₂ = vector (vector (scalar 1ℚ ∷ scalar 1ℚ ∷ []) ∷
-                 vector (scalar 1ℚ ∷ scalar 1ℚ ∷ []) ∷ [])
-
-testTensor : Tensor ℚ (2 ∷ 2 ∷ 2 ∷ [])
-testTensor = vector (testSide₁ ∷ testSide₂ ∷ [])
-
-testIndex : TensorIndices (2 ∷ 2 ∷ 2 ∷ [])
-testIndex = non-empty (# 1) (non-empty (# 1) (non-empty ((# 1)) empty))
-
-testElement : ℚ
-testElement = TensorElement testIndex testTensor
+open import utils
+open import vnnlib-syntax
+open import tensor using (Tensor; TensorShape; tensorLookup)
 
 
 -- Pending on std-lib update from vehicle-lang/vehicle-formalisation
@@ -93,71 +63,37 @@ codomainCardinality-eq ε i = Eq.refl
 jₒ : ∀ {Γ} (ε : Environment Γ) (i : Fin (List.length Γ)) (j : Fin (List.length (NetworkType.outputShape (List.lookup Γ i)))) →  Fin (NetworkImplementation.codomainCardinality (ε i))
 jₒ ε i j = subst Fin (codomainCardinality-eq ε i) j
 
--- Arithmetic Expressions: nary operations
-data ArithExpr (Γ : Context) : Set where
-  constant  : ℚ → ArithExpr Γ
-  negate : ArithExpr Γ → ArithExpr Γ
-  varInput : (i : Fin (List.length Γ)) → (j : Fin ( List.length (NetworkType.inputShape (List.lookup Γ i)) ) ) →
-    TensorIndices (List.lookup (NetworkType.inputShape (List.lookup Γ i)) j ) → ArithExpr Γ
-  varOutput : (i : Fin (List.length Γ)) →  (j : Fin ( List.length (NetworkType.outputShape (List.lookup Γ i)) ) ) →
-    TensorIndices (List.lookup (NetworkType.outputShape (List.lookup Γ i)) j)  → ArithExpr Γ
-  add : List (ArithExpr Γ) → ArithExpr Γ
-  minus : List (ArithExpr Γ) → ArithExpr Γ
-  mult  : List (ArithExpr Γ) → ArithExpr Γ
 
--- Arithmetic Expression Evaluation         
-⟦_%_⟧ₐ : ∀ {Γ} → Environment Γ → ArithExpr Γ → ℚ
-⟦ ε % (constant a) ⟧ₐ  = a
-⟦ ε % (negate a) ⟧ₐ = 0ℚ ℚ.- ⟦ ε % a ⟧ₐ 
-⟦ ε % (varInput i j n ) ⟧ₐ  = TensorElement n (projₙ (NetworkImplementation.domainCardinality (ε i)) (jᵢ ε i j) (NetworkImplementation.inputTensors (ε i)))
-⟦ ε % (varOutput i j n ) ⟧ₐ = TensorElement n (projₙ (NetworkImplementation.codomainCardinality (ε i)) (jₒ ε i j) (NetworkImplementation.networkFunction (ε i) (NetworkImplementation.inputTensors (ε i)))) 
--- Cannot simplify similar cases with fold as context is implicit
-⟦ ε % (add []) ⟧ₐ   = 0ℚ
-⟦ ε % (add (a₀ ∷ a)) ⟧ₐ   = ⟦ ε % a₀ ⟧ₐ ℚ.+ ⟦ ε % (add a) ⟧ₐ
-⟦ ε % (mult []) ⟧ₐ  = 1ℚ
-⟦ ε % (mult (a₀ ∷ a)) ⟧ₐ  = ⟦ ε % a₀ ⟧ₐ ℚ.* ⟦ ε % (mult a) ⟧ₐ
-⟦ ε % (minus []) ⟧ₐ = 0ℚ
-⟦ ε % (minus (a₀ ∷ a)) ⟧ₐ = ⟦ ε % a₀ ⟧ₐ ℚ.- ⟦ ε % (minus a) ⟧ₐ
+module _ (Γ : Context) (ε : Environment Γ) where
+         
+  ⟦_⟧ₐ : ArithExpr Γ → ℚ
+  ⟦ (constant a) ⟧ₐ         = a
+  ⟦(negate a) ⟧ₐ            = 0ℚ ℚ.- ⟦ a ⟧ₐ 
+  ⟦ (varInput i j n ) ⟧ₐ    = tensorLookup n (projₙ (NetworkImplementation.domainCardinality (ε i)) {!!} (NetworkImplementation.inputTensors (ε i)))
+  ⟦ (varOutput i j n ) ⟧ₐ   = tensorLookup n (projₙ (NetworkImplementation.codomainCardinality (ε i)) {!!} (NetworkImplementation.networkFunction (ε i) (NetworkImplementation.inputTensors (ε i)))) 
+  -- Cannot simplify similar cases with fold as context is implicit
+  ⟦ (add []) ⟧ₐ             = 0ℚ
+  ⟦ (add (a₀ ∷ a)) ⟧ₐ       = ⟦ a₀ ⟧ₐ ℚ.+ ⟦ (add a) ⟧ₐ
+  ⟦ (mult []) ⟧ₐ            = 1ℚ
+  ⟦ (mult (a₀ ∷ a)) ⟧ₐ      = ⟦ a₀ ⟧ₐ ℚ.* ⟦ (mult a) ⟧ₐ
+  ⟦ (minus []) ⟧ₐ           = 0ℚ
+  ⟦ (minus (a₀ ∷ a)) ⟧ₐ     = ⟦ a₀ ⟧ₐ ℚ.- ⟦ (minus a) ⟧ₐ
 
 
--- Boolean Expressions: Connective and Comparative Expressions
-data BoolExpr (Γ : Context) : Set where
-  literal : Bool → BoolExpr Γ
-  -- Comparative Expressions: 2-ary operations
-  greaterThan    : ArithExpr Γ → ArithExpr Γ → BoolExpr Γ
-  -- Come up with consistent length names
-  lessThan       : ArithExpr Γ → ArithExpr Γ → BoolExpr Γ
-  greaterEqual   : ArithExpr Γ → ArithExpr Γ → BoolExpr Γ
-  lessEqual      : ArithExpr Γ → ArithExpr Γ → BoolExpr Γ
-  notEqual       : ArithExpr Γ → ArithExpr Γ → BoolExpr Γ
-  equal          : ArithExpr Γ → ArithExpr Γ → BoolExpr Γ
-  -- Connective Expressions
-  andExpr : List (BoolExpr Γ) → BoolExpr Γ
-  orExpr  : List (BoolExpr Γ) → BoolExpr Γ
+  ⟦_⟧ᵇ : BoolExpr Γ → Bool
+  ⟦ (literal b) ⟧ᵇ          = b
+  ⟦ (greaterThan a1 a2) ⟧ᵇ  = ⟦ a1 ⟧ₐ >ᵇ ⟦ a2 ⟧ₐ
+  ⟦ (lessThan a1 a2) ⟧ᵇ     = ⟦ a1 ⟧ₐ <ᵇ ⟦ a2 ⟧ₐ
+  ⟦ (greaterEqual a1 a2) ⟧ᵇ = ⟦ a1 ⟧ₐ ≥ᵇ ⟦ a2 ⟧ₐ
+  ⟦ (lessEqual a1 a2) ⟧ᵇ    = ⟦ a1 ⟧ₐ ℚ.≤ᵇ ⟦ a2 ⟧ₐ
+  ⟦ (notEqual a1 a2) ⟧ᵇ     = ⟦ a1 ⟧ₐ ≠ᵇ ⟦ a2 ⟧ₐ
+  ⟦ (equal a1 a2) ⟧ᵇ        = ⟦  a1 ⟧ₐ =ᵇ ⟦ a2 ⟧ₐ
+  ⟦ (andExpr []) ⟧ᵇ         = true
+  ⟦ (andExpr (b ∷ xb)) ⟧ᵇ   = _∧_ ⟦ b ⟧ᵇ ⟦ (andExpr xb) ⟧ᵇ
+  ⟦ (orExpr []) ⟧ᵇ          = false
+  ⟦ (orExpr (b ∷ xb)) ⟧ᵇ    = _∨_ ⟦ b ⟧ᵇ ⟦  (orExpr xb) ⟧ᵇ
 
+  ⟦_⟧ₚ : Property Γ → Bool
+  ⟦ (assert p) ⟧ₚ = ⟦ p ⟧ᵇ
 
-⟦_%_⟧ᵇ : ∀ {Γ} → Environment Γ → BoolExpr Γ → Bool
-⟦ ε % (literal b) ⟧ᵇ = b
-⟦ ε % (greaterThan a1 a2) ⟧ᵇ  = ⟦ ε % a1 ⟧ₐ >ᵇ ⟦ ε % a2 ⟧ₐ
-⟦ ε % (lessThan a1 a2) ⟧ᵇ = ⟦ ε % a1 ⟧ₐ <ᵇ ⟦ ε % a2 ⟧ₐ
-⟦ ε % (greaterEqual a1 a2) ⟧ᵇ = ⟦ ε % a1 ⟧ₐ ≥ᵇ ⟦ ε % a2 ⟧ₐ
-⟦ ε % (lessEqual a1 a2) ⟧ᵇ = ⟦ ε % a1 ⟧ₐ ℚ.≤ᵇ ⟦ ε % a2 ⟧ₐ
-⟦ ε % (notEqual a1 a2) ⟧ᵇ  = ⟦ ε % a1 ⟧ₐ ≠ᵇ ⟦ ε % a2 ⟧ₐ
-⟦ ε % (equal a1 a2) ⟧ᵇ = ⟦ ε % a1 ⟧ₐ =ᵇ ⟦ ε % a2 ⟧ₐ
-⟦ ε % (andExpr []) ⟧ᵇ  = true
-⟦ ε % (andExpr (b ∷ xb)) ⟧ᵇ = _∧_ ⟦ ε % b ⟧ᵇ ⟦ ε % (andExpr xb) ⟧ᵇ
-⟦ ε % (orExpr []) ⟧ᵇ = false
-⟦ ε % (orExpr (b ∷ xb)) ⟧ᵇ  = _∨_ ⟦ ε % b ⟧ᵇ ⟦ ε % (orExpr xb) ⟧ᵇ
-
--- Properties: evalute to true or false
-data Property (Γ : Context) : Set where
-  assert : BoolExpr Γ → Property Γ
-
-⟦_%_⟧ₚ : ∀ {Γ} → Environment Γ → Property Γ → Bool
-⟦ ε % (assert p) ⟧ₚ = ⟦ ε % p ⟧ᵇ
-
-
--- Query
-data Query : Set where
-  mkQuery : (networks : List NetworkDefinition) → List (Property (mkContext networks)) → Query
 
