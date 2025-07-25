@@ -4,6 +4,12 @@ module vnnlib-syntax where
 open import Data.List as List
 open import Data.String hiding (map)
 open import Data.Nat as ℕ
+open import Data.Rational as ℚ
+open import Data.Fin as Fin
+open import Data.Vec as Vec using (Vec; []; _∷_)
+open import Data.Bool
+
+open import tensor using (TensorShape; TensorIndices)
 
 -- Variables
 --  -- Naming/referencing
@@ -35,10 +41,6 @@ data ElementType : Set where
   boolType     : ElementType
   stringType   : ElementType
 
--- -- Tensor Shape
-TensorShape : Set
-TensorShape = List ℕ
-
 
 -- Declarations are used to contruct the context
 -- -- Each entry in the context is a network type
@@ -48,10 +50,6 @@ record NetworkType : Set where
   field
     inputShape : List TensorShape
     outputShape : List TensorShape
-
--- Context is a list of network types
-Context : Set
-Context = List (NetworkType)
 
 
 -- Node Definitions
@@ -68,6 +66,10 @@ data OutputDefinition : Set where
 data NetworkDefinition : Set where
   declareNetwork : VariableName → List InputDefinition → List OutputDefinition → NetworkDefinition
 
+-- Context is a list of network types
+Context : Set
+Context = List (NetworkType)
+
 -- Network definitions are used to create the context
 mkContext : List NetworkDefinition → Context
 mkContext [] = []
@@ -77,3 +79,41 @@ mkContext (declareNetwork _ inputs outputs ∷ tail) =
     (List.map (λ { (declareOutput _ _ shape) → shape }) outputs)
   ∷ mkContext tail
 
+
+-- Assertions
+module _ (Γ : Context) where
+-- Arithmetic Expressions: nary operations
+  data ArithExpr : Set where
+    constant  : ℚ → ArithExpr
+    negate : ArithExpr → ArithExpr 
+    varInput : (i : Fin (List.length Γ)) → (j : Fin ( List.length (NetworkType.inputShape (List.lookup Γ i)) ) ) →
+      TensorIndices (List.lookup (NetworkType.inputShape (List.lookup Γ i)) j ) → ArithExpr
+    varOutput : (i : Fin (List.length Γ)) →  (j : Fin ( List.length (NetworkType.outputShape (List.lookup Γ i)) ) ) →
+      TensorIndices (List.lookup (NetworkType.outputShape (List.lookup Γ i)) j)  → ArithExpr
+    add : List (ArithExpr) → ArithExpr
+    minus : List (ArithExpr) → ArithExpr
+    mult  : List (ArithExpr) → ArithExpr
+
+  -- Boolean Expressions: Connective and Comparative Expressions
+  data BoolExpr : Set where
+    literal : Bool → BoolExpr
+    -- Comparative Expressions: 2-ary operations
+    greaterThan    : ArithExpr → ArithExpr → BoolExpr
+    -- Come up with consistent length names
+    lessThan       : ArithExpr → ArithExpr → BoolExpr
+    greaterEqual   : ArithExpr → ArithExpr → BoolExpr
+    lessEqual      : ArithExpr → ArithExpr → BoolExpr
+    notEqual       : ArithExpr → ArithExpr → BoolExpr
+    equal          : ArithExpr → ArithExpr → BoolExpr
+    -- Connective Expressions
+    andExpr : List (BoolExpr) → BoolExpr
+    orExpr  : List (BoolExpr) → BoolExpr
+
+  -- Properties: evalute to true or false
+  data Property : Set where
+    assert : BoolExpr → Property
+
+
+-- Query
+data Query : Set where
+  mkQuery : (networks : List NetworkDefinition) → List (Property (mkContext networks)) → Query
