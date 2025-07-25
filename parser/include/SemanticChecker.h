@@ -41,6 +41,33 @@ typedef enum {
     SYM_HIDDEN
 } SymbolKind;
 
+typedef enum { 
+    GenericElementType, 
+    ElementTypeF16, 
+    ElementTypeF32, 
+    ElementTypeF64, 
+    ElementTypeBF16, 
+    ElementTypeF8E4M3FN, 
+    ElementTypeF8E5M2, 
+    ElementTypeF8E4M3FNUZ, 
+    ElementTypeF8E5M2FNUZ, 
+    ElementTypeF4E2M1, 
+    ElementTypeI8, 
+    ElementTypeI16, 
+    ElementTypeI32, 
+    ElementTypeI64, 
+    ElementTypeU8, 
+    ElementTypeU16, 
+    ElementTypeU32, 
+    ElementTypeU64, 
+    ElementTypeC64, 
+    ElementTypeC128, 
+    ElementTypeBool, 
+    ElementTypeString, 
+    ElementTypeUndefined } ElementTypeKind;
+
+#define UNDEFINED_ELEMENT_TYPE ElementTypeUndefined
+
 
 // Structure to store information about a declared variable
 typedef struct SymbolInfo {
@@ -58,7 +85,7 @@ typedef struct SemanticContext {
 
     VNNLibError *errors;           
     int errorCapacity;              
-    int errorCount;               
+    int errorCount;  
 } SemanticContext;
 
 
@@ -93,8 +120,8 @@ int checkListAssertion(ListAssertion listassertion, SemanticContext *ctx);
 int checkAssertion(Assertion p, SemanticContext *ctx);
 int checkBoolExpr(BoolExpr p, SemanticContext *ctx);
 int checkListBoolExpr(ListBoolExpr listboolexpr, SemanticContext *ctx);
-int checkArithExpr(ArithExpr p, SemanticContext *ctx);
-int checkListArithExpr(ListArithExpr listarithexpr, SemanticContext *ctx);
+int checkArithExpr(ArithExpr p, ElementTypeKind* currentDataType, SemanticContext *ctx);
+int checkListArithExpr(ListArithExpr listarithexpr, ElementTypeKind* currentDataType, SemanticContext *ctx);
 int checkTensorElement(VariableName p, ListInt dims, SemanticContext *ctx);
 int checkVariableName(VariableName p, SemanticContext *ctx);
 int checkListInt(ListInt listint, SemanticContext *ctx, int *shape, int *numDimensions);

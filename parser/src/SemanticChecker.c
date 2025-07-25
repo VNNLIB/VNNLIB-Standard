@@ -25,7 +25,7 @@ void addError(SemanticContext *ctx, VNNLibError error) {
 
     if (errorCount >= errorCapacity) {
         size_t new_capacity = errorCapacity * 2;
-        VNNLibError* new_errors = realloc(ctx->errors, new_capacity * sizeof(VNNLibError));
+        VNNLibError *new_errors = realloc(ctx->errors, new_capacity * sizeof(VNNLibError));
         if (!new_errors) {
             perror("Failed to reallocate memory for error list");
             return;
@@ -77,7 +77,7 @@ void reportError(SemanticContext *ctx, const char *format, ...) {
 
 
 // Helper to convert error codes to strings
-const char* errorCodeToString(ErrorCode code) {
+const char *errorCodeToString(ErrorCode code) {
     switch (code) {
         case MultipleDeclaration: return "MultipleDeclaration";
         case TypeMismatch: return "TypeMismatch";
@@ -195,7 +195,7 @@ void freeSymbolInfo(void *info) {
 
 // Add symbol to table
 // Returns the added symbol or NULL if an error occurred
-SymbolInfo* addSymbol(SemanticContext *ctx, VariableName name, ElementType type, ListInt listInt, SymbolKind kind, char* onnxName) {
+SymbolInfo *addSymbol(SemanticContext *ctx, VariableName name, ElementType type, ListInt listInt, SymbolKind kind, char *onnxName) {
     SymbolInfo lookup_key = { .name = name };
     if (hashmap_get(ctx->symbolMap, &lookup_key) != NULL) {
         addError(ctx, (VNNLibError) {
@@ -219,8 +219,8 @@ SymbolInfo* addSymbol(SemanticContext *ctx, VariableName name, ElementType type,
         free(symbolShape); 
         return NULL;
     }
-    
-    int* finalShape = realloc(symbolShape, sizeof(int) * numDimensions);
+
+    int *finalShape = realloc(symbolShape, sizeof(int) * numDimensions);
     if (numDimensions > 0 && !finalShape) {
         perror("Failed to reallocate memory for symbol shape");
         free(symbolShape); 
@@ -246,7 +246,7 @@ SymbolInfo* addSymbol(SemanticContext *ctx, VariableName name, ElementType type,
 
 
 // Find symbol by name
-const SymbolInfo* findSymbol(SemanticContext *ctx, VariableName name) {
+const SymbolInfo *findSymbol(SemanticContext *ctx, VariableName name) {
     SymbolInfo lookup_key = {.name = name};
     return hashmap_get(ctx->symbolMap, &lookup_key);
 }
@@ -300,7 +300,7 @@ int checkListInt(ListInt p, SemanticContext *ctx, int *symbolShape, int *numDime
 }
 
 
-int checkArithExpr(ArithExpr p, SemanticContext *ctx)
+int checkArithExpr(ArithExpr p, ElementTypeKind *currentDataType, SemanticContext *ctx)
 {
     if (!p) {
         fprintf(stderr, "Checker Error: ArithExpr node is NULL.\n");
@@ -311,29 +311,60 @@ int checkArithExpr(ArithExpr p, SemanticContext *ctx)
     {
         case is_VarExpr:
             err |= checkTensorElement(p->u.varexpr_.variablename_, p->u.varexpr_.listint_, ctx);
+            const SymbolInfo *symbol = findSymbol(ctx, p->u.varexpr_.variablename_);
+
+            if (!symbol) {
+                addError(ctx, (VNNLibError) {
+                    .message = "Undeclared variable",
+                    .offendingSymbol = p->u.varexpr_.variablename_,
+                    .hint = "Variable must be declared before use.",
+                    .errorCode = UndeclaredVariable
+                });
+                return 1;
+            }
+
+            if (*currentDataType == UNDEFINED_ELEMENT_TYPE) {
+                *currentDataType = (ElementTypeKind)symbol->type->kind;
+            } else if (*currentDataType != (ElementTypeKind)symbol->type->kind) {
+                addError(ctx, (VNNLibError) {
+                    .message = "Type mismatch in arithmetic expression",
+                    .offendingSymbol = p->u.varexpr_.variablename_,
+                    .hint = "All variables in an arithmetic expression must have the same data type.",
+                    .errorCode = TypeMismatch
+                });
+                return 1;
+            }
             break;
+
         case is_DoubleExpr:
             err |= checkSDouble(p->u.doubleexpr_.sdouble_, ctx);
             break;
+
         case is_SIntExpr:
             err |= checkSInt(p->u.sintexpr_.sint_, ctx);
             break;
+
         case is_IntExpr:
             err |= checkInt(p->u.intexpr_.int_, ctx);
             break;
+
         case is_Negate:
-            err |= checkArithExpr(p->u.negate_.arithexpr_, ctx);
+            err |= checkArithExpr(p->u.negate_.arithexpr_, currentDataType, ctx);
             break;
+
         case is_Plus:
-            err |= checkListArithExpr(p->u.plus_.listarithexpr_, ctx);
+            err |= checkListArithExpr(p->u.plus_.listarithexpr_, currentDataType, ctx);
             break;
+
         case is_Minus:
-            err |= checkArithExpr(p->u.minus_.arithexpr_, ctx);
-            err |= checkListArithExpr(p->u.minus_.listarithexpr_, ctx);
+            err |= checkArithExpr(p->u.minus_.arithexpr_, currentDataType, ctx);
+            err |= checkListArithExpr(p->u.minus_.listarithexpr_, currentDataType, ctx);
             break;
+
         case is_Multiply:
-            err |= checkListArithExpr(p->u.multiply_.listarithexpr_, ctx);
+            err |= checkListArithExpr(p->u.multiply_.listarithexpr_, currentDataType, ctx);
             break;
+
         default:
             fprintf(stderr, "Checker Error: Bad kind field in ArithExpr node.\n");
             return 1;
@@ -342,7 +373,7 @@ int checkArithExpr(ArithExpr p, SemanticContext *ctx)
 }
 
 
-int checkListArithExpr(ListArithExpr p, SemanticContext *ctx)
+int checkListArithExpr(ListArithExpr p, ElementTypeKind *currentDataType, SemanticContext *ctx)
 {
     if (!p) {
         fprintf(stderr, "Checker Error: ListArithExpr node is NULL where a list was expected.\n");
@@ -351,7 +382,7 @@ int checkListArithExpr(ListArithExpr p, SemanticContext *ctx)
     int err = 0;
     while(p != 0 && err == 0)
     {
-        err |= checkArithExpr(p->arithexpr_, ctx);
+        err |= checkArithExpr(p->arithexpr_, currentDataType, ctx);
         p = p->listarithexpr_;
     }
     return err;
@@ -364,32 +395,35 @@ int checkBoolExpr(BoolExpr p, SemanticContext *ctx)
         fprintf(stderr, "Checker Error: BoolExpr node is NULL.\n");
         return 1;
     }
+
     int err = 0;
+    ElementTypeKind currentDataType = UNDEFINED_ELEMENT_TYPE;
+
     switch(p->kind)
     {
         case is_GreaterThan:
-            err |= checkArithExpr(p->u.greaterthan_.arithexpr_1, ctx);
-            err |= checkArithExpr(p->u.greaterthan_.arithexpr_2, ctx);
+            err |= checkArithExpr(p->u.greaterthan_.arithexpr_1, &currentDataType, ctx);
+            err |= checkArithExpr(p->u.greaterthan_.arithexpr_2, &currentDataType, ctx);
             break;
         case is_LessThan:
-            err |= checkArithExpr(p->u.lessthan_.arithexpr_1, ctx);
-            err |= checkArithExpr(p->u.lessthan_.arithexpr_2, ctx);
+            err |= checkArithExpr(p->u.lessthan_.arithexpr_1, &currentDataType, ctx);
+            err |= checkArithExpr(p->u.lessthan_.arithexpr_2, &currentDataType, ctx);
             break;
         case is_GreaterEqual:
-            err |= checkArithExpr(p->u.greaterequal_.arithexpr_1, ctx);
-            err |= checkArithExpr(p->u.greaterequal_.arithexpr_2, ctx);
+            err |= checkArithExpr(p->u.greaterequal_.arithexpr_1, &currentDataType, ctx);
+            err |= checkArithExpr(p->u.greaterequal_.arithexpr_2, &currentDataType, ctx);
             break;
         case is_LessEqual:
-            err |= checkArithExpr(p->u.lessequal_.arithexpr_1, ctx);
-            err |= checkArithExpr(p->u.lessequal_.arithexpr_2, ctx);
+            err |= checkArithExpr(p->u.lessequal_.arithexpr_1, &currentDataType, ctx);
+            err |= checkArithExpr(p->u.lessequal_.arithexpr_2, &currentDataType, ctx);
             break;
         case is_NotEqual:
-            err |= checkArithExpr(p->u.notequal_.arithexpr_1, ctx);
-            err |= checkArithExpr(p->u.notequal_.arithexpr_2, ctx);
+            err |= checkArithExpr(p->u.notequal_.arithexpr_1, &currentDataType, ctx);
+            err |= checkArithExpr(p->u.notequal_.arithexpr_2, &currentDataType, ctx);
             break;
         case is_Equal:
-            err |= checkArithExpr(p->u.equal_.arithexpr_1, ctx);
-            err |= checkArithExpr(p->u.equal_.arithexpr_2, ctx);
+            err |= checkArithExpr(p->u.equal_.arithexpr_1, &currentDataType, ctx);
+            err |= checkArithExpr(p->u.equal_.arithexpr_2, &currentDataType, ctx);
             break;
         case is_And:
             err |= checkListBoolExpr(p->u.and_.listboolexpr_, ctx);
@@ -503,8 +537,8 @@ int checkInputDefinition(InputDefinition p, SemanticContext *ctx)
 
     int err = 0;
 
-    char* onnxName = NULL;
-    SymbolInfo* newSymbol = NULL;
+    char *onnxName = NULL;
+    SymbolInfo *newSymbol = NULL;
     TensorShape shapeDef = NULL;
     ListInt dims = NULL;
 
@@ -565,7 +599,7 @@ int checkHiddenDefinition(HiddenDefinition p, SemanticContext *ctx)
     err |= checkString(p->u.hiddendef_.string_, ctx);
     if (err) return err;
 
-    char* onnxName = p->u.hiddendef_.string_;
+    char *onnxName = p->u.hiddendef_.string_;
     TensorShape shape = p->u.hiddendef_.tensorshape_;
     ListInt dims = NULL;
     if (shape->kind == is_TensorDims) {
@@ -588,8 +622,8 @@ int checkOutputDefinition(OutputDefinition p, SemanticContext *ctx)
 
     int err = 0;
 
-    char* onnxName = NULL;
-    SymbolInfo* newSymbol = NULL;
+    char *onnxName = NULL;
+    SymbolInfo *newSymbol = NULL;
     TensorShape shapeDef = NULL;
     ListInt dims = NULL;
 
@@ -823,7 +857,7 @@ int checkIdent(Ident i, SemanticContext *ctx) { return 0; }
 int checkInteger(Integer i, SemanticContext *ctx) { return 0; }
 int checkDouble(Double d, SemanticContext *ctx) { return 0; }
 int checkChar(Char c, SemanticContext *ctx) { return 0; }
-int checkString(char* s, SemanticContext *ctx) { return 0; }
+int checkString(char *s, SemanticContext *ctx) { return 0; }
 
 
 int checkTensorElement(VariableName tensorName, ListInt tensorIndex, SemanticContext *ctx) {
@@ -834,17 +868,6 @@ int checkTensorElement(VariableName tensorName, ListInt tensorIndex, SemanticCon
     int err = 0;
 
     const SymbolInfo *symbol = findSymbol(ctx, tensorName); 
-
-    if (!symbol) {
-        err = 1;
-        addError(ctx, (VNNLibError) {
-            .message = "Undeclared variable",
-            .offendingSymbol = tensorName,
-            .hint = "Variable must be declared before use.",
-            .errorCode = UndeclaredVariable
-        });
-        return err;
-    }
 
     if (!tensorIndex) {
         err = 1;
