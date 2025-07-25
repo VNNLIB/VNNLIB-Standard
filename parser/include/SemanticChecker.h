@@ -41,6 +41,37 @@ typedef enum {
     SYM_HIDDEN
 } SymbolKind;
 
+typedef enum { 
+    Real, 
+    F16, 
+    F32, 
+    F64, 
+    BF16, 
+    F8E4M3FN, 
+    F8E5M2, 
+    F8E4M3FNUZ, 
+    F8E5M2FNUZ, 
+    F4E2M1, 
+    I8, 
+    I16, 
+    I32, 
+    I64, 
+    U8, 
+    U16, 
+    U32, 
+    U64, 
+    C64, 
+    C128, 
+    Bool, 
+    Str, 
+    Undefined,
+    FloatConstant,
+    NegIntConstant,
+    PosIntConstant
+} ElementTypeKind;
+
+#define UNDEFINED_ELEMENT_TYPE Undefined
+
 
 // Structure to store information about a declared variable
 typedef struct SymbolInfo {
@@ -58,7 +89,10 @@ typedef struct SemanticContext {
 
     VNNLibError *errors;           
     int errorCapacity;              
-    int errorCount;               
+    int errorCount;  
+
+    ElementTypeKind currentDataType;        // Current data type being checked
+    char *lastScannedVariable;       // Used to track the last scanned variable for error reporting
 } SemanticContext;
 
 
