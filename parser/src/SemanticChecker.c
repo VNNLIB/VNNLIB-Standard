@@ -25,7 +25,7 @@ void addError(SemanticContext *ctx, VNNLibError error) {
 
     if (errorCount >= errorCapacity) {
         size_t new_capacity = errorCapacity * 2;
-        VNNLibError* new_errors = realloc(ctx->errors, new_capacity * sizeof(VNNLibError));
+        VNNLibError *new_errors = realloc(ctx->errors, new_capacity * sizeof(VNNLibError));
         if (!new_errors) {
             perror("Failed to reallocate memory for error list");
             return;
@@ -77,7 +77,7 @@ void reportError(SemanticContext *ctx, const char *format, ...) {
 
 
 // Helper to convert error codes to strings
-const char* errorCodeToString(ErrorCode code) {
+const char *errorCodeToString(ErrorCode code) {
     switch (code) {
         case MultipleDeclaration: return "MultipleDeclaration";
         case TypeMismatch: return "TypeMismatch";
@@ -172,48 +172,32 @@ char *reportErrorsJSON(SemanticContext *ctx) {
 
 // --- Semantic Context Initialization and Cleanup ---
 
-// Initialize the semantic context
-int initSemanticContext(SemanticContext *ctx) {
-    if (!ctx) {
-        fprintf(stderr, "Checker Error: Semantic context provided is NULL.\n");
-        return 1;
-    }
-    ctx->symbolTableHead = NULL;
-    ctx->errorCount = 0;
-    return initErrorList(ctx);
+int symbol_compare(const void *a, const void *b, void *udata) {
+    const SymbolInfo *symA = (const SymbolInfo *)a;
+    const SymbolInfo *symB = (const SymbolInfo *)b;
+    return strcmp(symA->name, symB->name);
+}
+
+
+uint64_t symbol_hash(const void *item, uint64_t seed0, uint64_t seed1) {
+    const SymbolInfo *sym = (const SymbolInfo *)item;
+    return hashmap_sip(sym->name, strlen(sym->name), seed0, seed1);
 }
 
 
 // Helper to free symbol info (does not free nodes from original AST)
-void freeSymbolInfo(SymbolInfo *info) {
+void freeSymbolInfo(void *info) {
     if (!info) return;
-    free_safe(info->name); 
-    free_safe(info->shape); 
-    free_safe(info);        
+    SymbolInfo *symbol = (SymbolInfo *)info;
+    free_safe(symbol->shape);
 }
 
 
-// Free all symbols in the context
-void destroySemanticContext(SemanticContext *ctx) {
-    if (!ctx) return;
-    SymbolInfo *current = ctx->symbolTableHead;
-    SymbolInfo *next;
-    while (current != NULL) {
-        next = current->next;
-        freeSymbolInfo(current);
-        current = next;
-    }
-    ctx->symbolTableHead = NULL;
-    ctx->errorCount = 0;
-    freeErrorList(ctx);
-}
-
-
-// Add symbol to table (simple linked list, checks for duplicates)
+// Add symbol to table
 // Returns the added symbol or NULL if an error occurred
-SymbolInfo* addSymbol(SemanticContext *ctx, VariableName name, ElementType type, ListInt listInt, SymbolKind kind) {
-    // Check for duplicates
-    if (findSymbol(ctx, name)) {
+SymbolInfo *addSymbol(SemanticContext *ctx, VariableName name, ElementType type, ListInt listInt, SymbolKind kind, char *onnxName) {
+    SymbolInfo lookup_key = { .name = name };
+    if (hashmap_get(ctx->symbolMap, &lookup_key) != NULL) {
         addError(ctx, (VNNLibError) {
             .message = "Duplicate variable declaration",
             .offendingSymbol = name,
@@ -223,54 +207,80 @@ SymbolInfo* addSymbol(SemanticContext *ctx, VariableName name, ElementType type,
         return NULL;
     }
 
-    SymbolInfo *newSymbol = malloc(sizeof(SymbolInfo));
+    SymbolInfo newSymbol;
     int *symbolShape = malloc(sizeof(int) * MAX_DIMENSIONS);
-    if (!newSymbol || !symbolShape) {
-        perror("Failed to allocate memory for symbol info");
-        free_safe(newSymbol);
-        free_safe(symbolShape);
+    if (!symbolShape) {
+        perror("Failed to allocate memory for symbol shape");
         return NULL;
     }
 
     int numDimensions = 0;
     if (listInt && checkListInt(listInt, ctx, symbolShape, &numDimensions) != 0) {
-        free_safe(symbolShape);
-        free_safe(newSymbol);
+        free(symbolShape); 
         return NULL;
     }
 
-    char *nameCopy = strdup_safe(name);
+    int *finalShape = realloc(symbolShape, sizeof(int) * numDimensions);
+    if (numDimensions > 0 && !finalShape) {
+        perror("Failed to reallocate memory for symbol shape");
+        free(symbolShape); 
+        return NULL;
+    }
 
-    newSymbol->name = nameCopy;
-    newSymbol->type = type;
-    newSymbol->kind = kind;
-    newSymbol->shape = symbolShape;
-    newSymbol->numDimensions = numDimensions;
+    newSymbol.name = name; 
+    newSymbol.onnxName = onnxName; 
+    newSymbol.type = type;
+    newSymbol.numDimensions = numDimensions;
+    newSymbol.shape = finalShape;
+    newSymbol.kind = kind;
 
-    newSymbol->next = ctx->symbolTableHead;
-    ctx->symbolTableHead = newSymbol;
+    hashmap_set(ctx->symbolMap, &newSymbol);
+    if (hashmap_oom(ctx->symbolMap)) {
+        fprintf(stderr, "Checker Error: Out of memory while adding symbol '%s'.\n", name);
+        free(finalShape);
+        return NULL;
+    }
 
-    return newSymbol;
+    return (SymbolInfo*)hashmap_get(ctx->symbolMap, &lookup_key);
 }
 
 
 // Find symbol by name
-SymbolInfo* findSymbol(SemanticContext *ctx, VariableName name) {
-    if (!ctx || !name || !ctx->symbolTableHead) return NULL;
-    SymbolInfo *current = ctx->symbolTableHead;
-    while (current != NULL) {
-        if (strcmp(current->name, name) == 0) {
-            return current;
-        }
-        current = current->next;
+const SymbolInfo *findSymbol(SemanticContext *ctx, VariableName name) {
+    SymbolInfo lookup_key = {.name = name};
+    return hashmap_get(ctx->symbolMap, &lookup_key);
+}
+
+
+// Initialize the semantic context
+int initSemanticContext(SemanticContext *ctx) {
+    if (!ctx) {
+        fprintf(stderr, "Checker Error: Semantic context provided is NULL.\n");
+        return 1;
     }
-    return NULL;
+    ctx->symbolMap = hashmap_new(sizeof(SymbolInfo), 0, 0, 0,
+        symbol_hash, symbol_compare, freeSymbolInfo, NULL);
+    ctx->errorCount = 0;
+
+    ctx->currentDataType = UNDEFINED_ELEMENT_TYPE;
+    ctx->lastScannedVariable = NULL;
+
+    return initErrorList(ctx);
+}
+
+
+// Free all symbols in the context
+void destroySemanticContext(SemanticContext *ctx) {
+    if (!ctx) return;
+    hashmap_free((ctx->symbolMap));
+    ctx->errorCount = 0;
+    freeErrorList(ctx);
 }
 
 
 // ----------------- Recursive Traversal Functions -----------------
 
-int checkListInt(ListInt p, SemanticContext *ctx, int *shape, int *shapeSize)
+int checkListInt(ListInt p, SemanticContext *ctx, int *symbolShape, int *numDimensions)
 {
     if (!p) return 0;
     int err = 0; 
@@ -280,18 +290,84 @@ int checkListInt(ListInt p, SemanticContext *ctx, int *shape, int *shapeSize)
         if (err) {
             fprintf(stderr, "Checker Error: Unexpected failure in checkInt within ListInt.\n");
             return 1;
-        } 
-        
-        if (*shapeSize >= MAX_DIMENSIONS) {
+        }
+        if (*numDimensions >= MAX_DIMENSIONS) {
             fprintf(stderr, "Checker Error: Too many dimensions in ListInt, exceeds MAX_DIMENSIONS.\n");
             return 1;
         }
 
-        shape[*shapeSize] = strtol(p->int_, NULL, 10);
+        symbolShape[*numDimensions] = strtol(p->int_, NULL, 10);
         p = p->listint_;
-        (*shapeSize)++;
+        (*numDimensions)++;
     }
     return err;
+}
+
+
+bool isFloat(ElementTypeKind kind) {
+    return (kind == Real ||
+            kind == F16 || 
+            kind == F32 || 
+            kind == F64 || 
+            kind == BF16 || 
+            kind == F8E4M3FN || 
+            kind == F8E5M2 || 
+            kind == F8E4M3FNUZ || 
+            kind == F8E5M2FNUZ || 
+            kind == F4E2M1 ||
+            kind == FloatConstant);
+}
+
+
+bool isInteger(ElementTypeKind kind) {
+    return (kind == I8 || kind == I16 || 
+            kind == I32 || kind == I64 || 
+            kind == U8 || kind == U16 || 
+            kind == U32 || kind == U64 ||
+            kind == PosIntConstant);
+}
+
+
+bool isSignedInteger(ElementTypeKind kind) {
+    return (kind == I8 || kind == I16 || 
+            kind == I32 || kind == I64 || 
+            kind == NegIntConstant);
+}
+
+
+// Add this new helper function
+const char* elementTypeToString(ElementTypeKind kind) {
+    switch (kind) {
+        // Floats
+        case Real: return "Real";
+        case F16: return "float16";
+        case F32: return "float32";
+        case F64: return "float64";
+        case BF16: return "bfloat16";
+        case F8E4M3FN: return "float8e4m3fn";
+        case F8E5M2: return "float8e5m2";
+        case F8E4M3FNUZ: return "float8e4m3fuz";
+        case F8E5M2FNUZ: return "float8e5m2fuz";
+        case F4E2M1: return "float4e2m1";
+        case FloatConstant: return "Float";                // Generic float
+
+        // Integers
+        case I8: return "int8";
+        case I16: return "int16";
+        case I32: return "int32";
+        case I64: return "int64";
+        case U8: return "uint8";
+        case U16: return "uint16";
+        case U32: return "uint32";
+        case U64: return "uint64";
+        case PosIntConstant: return "Integer";             // Generic integer
+        case NegIntConstant: return "Signed Integer";      // Generic integer
+        
+        // Other types
+        case Bool: return "bool";
+        case Str: return "string";
+        default: return "UnknownType";
+    }
 }
 
 
@@ -302,33 +378,167 @@ int checkArithExpr(ArithExpr p, SemanticContext *ctx)
         return 1;
     }
     int err = 0;
+    ElementTypeKind nodeType;
+    ElementTypeKind exprType = ctx->currentDataType;
+    bool isPreviousTypeUndefined = (exprType == UNDEFINED_ELEMENT_TYPE);
+
+    char hint_buffer[256];
+
     switch(p->kind)
     {
         case is_VarExpr:
             err |= checkTensorElement(p->u.varexpr_.variablename_, p->u.varexpr_.listint_, ctx);
+            const SymbolInfo *symbol = findSymbol(ctx, p->u.varexpr_.variablename_);
+
+            if (!symbol) {
+                addError(ctx, (VNNLibError) {
+                    .message = "Undeclared variable",
+                    .offendingSymbol = p->u.varexpr_.variablename_,
+                    .hint = "Variable must be declared before use.",
+                    .errorCode = UndeclaredVariable
+                });
+                return 1;
+            }
+            nodeType = (ElementTypeKind)symbol->type->kind;
+            bool isPreviousTypeConstant = (exprType == FloatConstant || exprType == NegIntConstant || exprType == PosIntConstant);
+
+            if (isPreviousTypeUndefined) {
+                ctx->currentDataType = nodeType;
+                ctx->lastScannedVariable = p->u.varexpr_.variablename_;
+
+            } else if (isPreviousTypeConstant) {
+                if ((exprType == FloatConstant && isFloat(nodeType)) || 
+                    (exprType == NegIntConstant && isSignedInteger(nodeType)) ||
+                    (exprType == PosIntConstant && isInteger(nodeType))) {
+                    ctx->currentDataType = nodeType;
+                    ctx->lastScannedVariable = p->u.varexpr_.variablename_;
+
+                } else {
+                    sprintf(hint_buffer, 
+                        "Expected a %s type to match constant '%s', but variable '%s' has type '%s'.",
+                        elementTypeToString(exprType), 
+                        ctx->lastScannedVariable,
+                        p->u.varexpr_.variablename_,
+                        elementTypeToString(nodeType));
+
+                    addError(ctx, (VNNLibError) {
+                        .message = "Type mismatch in arithmetic expression",
+                        .offendingSymbol = p->u.varexpr_.variablename_,
+                        .hint = hint_buffer,
+                        .errorCode = TypeMismatch
+                    });
+                    return 1;
+                }
+            } else if (exprType != nodeType) {
+                sprintf(hint_buffer, 
+                    "Expected type '%s' (from variable '%s'), but variable '%s' has type '%s'.",
+                    elementTypeToString(exprType), 
+                    ctx->lastScannedVariable,
+                    p->u.varexpr_.variablename_,
+                    elementTypeToString(nodeType));
+
+                addError(ctx, (VNNLibError) {
+                    .message = "Type mismatch in arithmetic expression",
+                    .offendingSymbol = p->u.varexpr_.variablename_,
+                    .hint = hint_buffer,
+                    .errorCode = TypeMismatch
+                });
+                return 1;
+            }
             break;
+
         case is_DoubleExpr:
             err |= checkSDouble(p->u.doubleexpr_.sdouble_, ctx);
+            nodeType = FloatConstant;
+
+            if (isPreviousTypeUndefined) {
+                ctx->currentDataType = FloatConstant;
+                ctx->lastScannedVariable = p->u.doubleexpr_.sdouble_;
+
+            } else if (!isFloat(exprType)) {
+                sprintf(hint_buffer, 
+                    "Expected type '%s' (from '%s'), but found a floating-point constant '%s'.",
+                    elementTypeToString(exprType),
+                    ctx->lastScannedVariable, 
+                    p->u.doubleexpr_.sdouble_);
+
+                addError(ctx, (VNNLibError) {
+                    .message = "Type mismatch in arithmetic expression",
+                    .offendingSymbol = p->u.doubleexpr_.sdouble_,
+                    .hint = hint_buffer,
+                    .errorCode = TypeMismatch
+                });
+                return 1;
+            }
             break;
+
         case is_SIntExpr:
             err |= checkSInt(p->u.sintexpr_.sint_, ctx);
+            nodeType = NegIntConstant;
+
+            if (isPreviousTypeUndefined) {
+                ctx->currentDataType = NegIntConstant;
+                ctx->lastScannedVariable = p->u.sintexpr_.sint_;
+
+            } else if (!isSignedInteger(exprType)) {
+                sprintf(hint_buffer, 
+                    "Expected type '%s' (from '%s'), but found a negative integer constant '%s'.",
+                    elementTypeToString(exprType),
+                    ctx->lastScannedVariable, 
+                    p->u.sintexpr_.sint_);
+
+                addError(ctx, (VNNLibError) {
+                    .message = "Type mismatch in arithmetic expression",
+                    .offendingSymbol = p->u.sintexpr_.sint_,
+                    .hint = hint_buffer,
+                    .errorCode = TypeMismatch
+                });
+                return 1;
+            }
             break;
+
         case is_IntExpr:
             err |= checkInt(p->u.intexpr_.int_, ctx);
+            nodeType = PosIntConstant;
+
+            if (isPreviousTypeUndefined) {
+                ctx->currentDataType = PosIntConstant;
+                ctx->lastScannedVariable = p->u.intexpr_.int_;
+
+            } else if (!isInteger(exprType)) {
+                sprintf(hint_buffer, 
+                    "Expected type '%s' (from '%s'), but found an integer constant '%s'.",
+                    elementTypeToString(exprType),
+                    ctx->lastScannedVariable, 
+                    p->u.intexpr_.int_);
+
+                addError(ctx, (VNNLibError) {
+                    .message = "Type mismatch in arithmetic expression",
+                    .offendingSymbol = p->u.intexpr_.int_,
+                    .hint = hint_buffer,
+                    .errorCode = TypeMismatch
+                });
+                return 1;
+            }
             break;
+
         case is_Negate:
             err |= checkArithExpr(p->u.negate_.arithexpr_, ctx);
             break;
+
         case is_Plus:
             err |= checkListArithExpr(p->u.plus_.listarithexpr_, ctx);
             break;
+
         case is_Minus:
             err |= checkArithExpr(p->u.minus_.arithexpr_, ctx);
             err |= checkListArithExpr(p->u.minus_.listarithexpr_, ctx);
             break;
+
         case is_Multiply:
             err |= checkListArithExpr(p->u.multiply_.listarithexpr_, ctx);
             break;
+
         default:
             fprintf(stderr, "Checker Error: Bad kind field in ArithExpr node.\n");
             return 1;
@@ -359,7 +569,10 @@ int checkBoolExpr(BoolExpr p, SemanticContext *ctx)
         fprintf(stderr, "Checker Error: BoolExpr node is NULL.\n");
         return 1;
     }
+
     int err = 0;
+    ctx->currentDataType = UNDEFINED_ELEMENT_TYPE;
+
     switch(p->kind)
     {
         case is_GreaterThan:
@@ -495,18 +708,52 @@ int checkInputDefinition(InputDefinition p, SemanticContext *ctx)
         fprintf(stderr, "Checker Error: InputDefinition node is NULL.\n");
         return 1;
     }
-    int err = 0;
-    err |= checkVariableName(p->u.inputdef_.variablename_, ctx);
-    err |= checkElementType(p->u.inputdef_.elementtype_, ctx);
-    if (err) return err;
 
-    TensorShape shape = p->u.inputdef_.tensorshape_;
+    int err = 0;
+
+    char *onnxName = NULL;
+    SymbolInfo *newSymbol = NULL;
+    TensorShape shapeDef = NULL;
     ListInt dims = NULL;
-    if (shape->kind == is_TensorDims) {
-        dims = shape->u.tensordims_.listint_;
+
+    switch (p->kind) {
+        case is_InputOnnxDef:
+            err |= checkVariableName(p->u.inputonnxdef_.variablename_, ctx);
+            err |= checkElementType(p->u.inputonnxdef_.elementtype_, ctx);
+            err |= checkString(p->u.inputonnxdef_.string_, ctx);
+
+            shapeDef = p->u.inputonnxdef_.tensorshape_;
+            if (shapeDef->kind == is_TensorDims) {
+                dims = shapeDef->u.tensordims_.listint_;
+            }
+            onnxName = p->u.inputonnxdef_.string_;
+            newSymbol = addSymbol(ctx, p->u.inputonnxdef_.variablename_, p->u.inputonnxdef_.elementtype_, dims, SYM_INPUT, onnxName);
+            if (!newSymbol) {
+                err = 1;
+            }
+            break;
+
+        case is_InputDef:
+            err |= checkVariableName(p->u.inputdef_.variablename_, ctx);
+            err |= checkElementType(p->u.inputdef_.elementtype_, ctx);
+
+            shapeDef = p->u.inputdef_.tensorshape_;
+            if (shapeDef->kind == is_TensorDims) {
+                dims = shapeDef->u.tensordims_.listint_;
+            }
+            newSymbol = addSymbol(ctx, p->u.inputdef_.variablename_, p->u.inputdef_.elementtype_, dims, SYM_INPUT, onnxName);
+            if (!newSymbol) {
+                err = 1;
+            }
+            break;
+
+        default:
+            fprintf(stderr, "Checker Error: Bad kind field in InputDefinition node.\n");
+            err = 1;
+            break;
     }
 
-    if (!addSymbol(ctx, p->u.inputdef_.variablename_, p->u.inputdef_.elementtype_, dims, SYM_INPUT)) {
+    if (newSymbol == NULL) {
         err = 1;
     }
     return err;
@@ -519,19 +766,21 @@ int checkHiddenDefinition(HiddenDefinition p, SemanticContext *ctx)
         fprintf(stderr, "Checker Error: HiddenDefinition node is NULL.\n");
         return 1;
     }
+
     int err = 0;
     err |= checkVariableName(p->u.hiddendef_.variablename_, ctx);
     err |= checkElementType(p->u.hiddendef_.elementtype_, ctx);
     err |= checkString(p->u.hiddendef_.string_, ctx);
     if (err) return err;
 
+    char *onnxName = p->u.hiddendef_.string_;
     TensorShape shape = p->u.hiddendef_.tensorshape_;
     ListInt dims = NULL;
     if (shape->kind == is_TensorDims) {
         dims = shape->u.tensordims_.listint_;
     }
 
-    if (!addSymbol(ctx, p->u.hiddendef_.variablename_, p->u.hiddendef_.elementtype_, dims, SYM_INTERMEDIATE)) {
+    if (!addSymbol(ctx, p->u.hiddendef_.variablename_, p->u.hiddendef_.elementtype_, dims, SYM_HIDDEN, onnxName)) {
         err = 1;
     }
     return err;
@@ -541,28 +790,62 @@ int checkHiddenDefinition(HiddenDefinition p, SemanticContext *ctx)
 int checkOutputDefinition(OutputDefinition p, SemanticContext *ctx)
 {
     if (!p) {
-        fprintf(stderr, "Checker Error: OutputDefinition node is NULL.\n");
+        fprintf(stderr, "Checker Error: InputDefinition node is NULL.\n");
         return 1;
     }
+
     int err = 0;
-    err |= checkVariableName(p->u.outputdef_.variablename_, ctx);
-    err |= checkElementType(p->u.outputdef_.elementtype_, ctx);
-    if (err) return err;
 
-    TensorShape shape = p->u.outputdef_.tensorshape_;
+    char *onnxName = NULL;
+    SymbolInfo *newSymbol = NULL;
+    TensorShape shapeDef = NULL;
     ListInt dims = NULL;
-    if (shape->kind == is_TensorDims) {
-        dims = shape->u.tensordims_.listint_;
+
+    switch (p->kind) {
+        case is_OutputOnnxDef:
+            err |= checkVariableName(p->u.outputonnxdef_.variablename_, ctx);
+            err |= checkElementType(p->u.outputonnxdef_.elementtype_, ctx);
+            err |= checkString(p->u.outputonnxdef_.string_, ctx);
+
+            shapeDef = p->u.outputonnxdef_.tensorshape_;
+            if (shapeDef->kind == is_TensorDims) {
+                dims = shapeDef->u.tensordims_.listint_;
+            }
+            onnxName = p->u.outputonnxdef_.string_;
+            newSymbol = addSymbol(ctx, p->u.outputonnxdef_.variablename_, p->u.outputonnxdef_.elementtype_, dims, SYM_OUTPUT, onnxName);
+            if (!newSymbol) {
+                err = 1;
+            }
+            break;
+
+        case is_OutputDef:
+            err |= checkVariableName(p->u.outputdef_.variablename_, ctx);
+            err |= checkElementType(p->u.outputdef_.elementtype_, ctx);
+
+            shapeDef = p->u.outputdef_.tensorshape_;
+            if (shapeDef->kind == is_TensorDims) {
+                dims = shapeDef->u.tensordims_.listint_;
+            }
+            newSymbol = addSymbol(ctx, p->u.outputdef_.variablename_, p->u.outputdef_.elementtype_, dims, SYM_OUTPUT, onnxName);
+            if (!newSymbol) {
+                err = 1;
+            }
+            break;
+
+        default:
+            fprintf(stderr, "Checker Error: Bad kind field in InputDefinition node.\n");
+            err = 1;
+            break;
     }
 
-    if (!addSymbol(ctx, p->u.outputdef_.variablename_, p->u.outputdef_.elementtype_, dims, SYM_OUTPUT)) {
+    if (newSymbol == NULL) {
         err = 1;
-    }
+    } 
     return err;
 }
 
 
-int checkListInputDefinition(ListInputDefinition p, SemanticContext *ctx)
+int checkListInputDefinition(ListInputDefinition p, int *usesOnnxNames, SemanticContext *ctx)
 {   
     if (!p) {
         fprintf(stderr, "Checker Error: Network definition requires at least one input. ListInputDefinition is NULL.\n");
@@ -572,6 +855,39 @@ int checkListInputDefinition(ListInputDefinition p, SemanticContext *ctx)
     while(p != 0)
     {
         err |= checkInputDefinition(p->inputdefinition_, ctx);
+
+        switch (*usesOnnxNames) {
+            case -1:
+                *usesOnnxNames = (p->inputdefinition_->kind == is_InputOnnxDef) ? 1 : 0;
+                break;
+            case 0:
+                if (p->inputdefinition_->kind == is_InputOnnxDef) {
+                    err = 1;
+                    addError(ctx, (VNNLibError) {
+                        .message = "Expected ordered input variables but got an ONNX-named input variable",
+                        .offendingSymbol = p->inputdefinition_->u.inputdef_.variablename_,
+                        .hint = "All (input/output) variables for a network must have an ONNX name OR no (input/output) variables may have an ONNX name.",
+                        .errorCode = UnexpectedOnnxName
+                    });
+                }
+                break;
+            case 1:
+                if (p->inputdefinition_->kind == is_InputDef) 
+                {
+                    err = 1;
+                    addError(ctx, (VNNLibError) {
+                        .message = "Expected ONNX-named input variable but got an ordered input variable",
+                        .offendingSymbol = p->inputdefinition_->u.inputdef_.variablename_,
+                        .hint = "All (input/output) variables for a network must have an ONNX name OR no (input/output) variables may have an ONNX name.",
+                        .errorCode = UnexpectedOnnxName
+                    });
+                }
+                break;
+            default:
+                fprintf(stderr, "Checker Error: Unexpected value for usesOnnxNames flag: %d\n", *usesOnnxNames);
+                return 1;   
+        }
+
         p = p->listinputdefinition_;
     }
     return err;
@@ -591,7 +907,7 @@ int checkListHiddenDefinition(ListHiddenDefinition p, SemanticContext *ctx)
 }
 
 
-int checkListOutputDefinition(ListOutputDefinition p, SemanticContext *ctx)
+int checkListOutputDefinition(ListOutputDefinition p, int *usesOnnxNames, SemanticContext *ctx)
 {
     if (!p) {
         fprintf(stderr, "Checker Error: Network definition requires at least one output. ListOutputDefinition is NULL.\n");
@@ -601,6 +917,39 @@ int checkListOutputDefinition(ListOutputDefinition p, SemanticContext *ctx)
     while(p  != 0 && err == 0)
     {
         err |= checkOutputDefinition(p->outputdefinition_, ctx);
+
+        switch (*usesOnnxNames) {
+            case -1:
+                *usesOnnxNames = (p->outputdefinition_->kind == is_OutputOnnxDef) ? 1 : 0;
+                break;
+            case 0:
+                if (p->outputdefinition_->kind == is_OutputOnnxDef) {
+                    err = 1;
+                    addError(ctx, (VNNLibError) {
+                        .message = "Expected ordered output variables but got an ONNX-named output variable",
+                        .offendingSymbol = p->outputdefinition_->u.outputonnxdef_.variablename_,
+                        .hint = "All (input/output) variables for a network must have an ONNX name OR no (input/output) variables may have an ONNX name.",
+                        .errorCode = UnexpectedOnnxName
+                    });
+                }
+                break;
+            case 1:
+                if (p->outputdefinition_->kind == is_OutputDef) 
+                {
+                    err = 1;
+                    addError(ctx, (VNNLibError) {
+                        .message = "Expected ONNX-named output variable but got an ordered output variable",
+                        .offendingSymbol = p->outputdefinition_->u.outputdef_.variablename_,
+                        .hint = "All (input/output) variables for a network must have an ONNX name OR no (input/output) variables may have an ONNX name.",
+                        .errorCode = UnexpectedOnnxName
+                    });
+                }
+                break;
+            default:
+                fprintf(stderr, "Checker Error: Unexpected value for usesOnnxNames flag: %d\n", *usesOnnxNames);
+                return 1;   
+        }
+
         p = p->listoutputdefinition_;
     }
     return err;
@@ -613,19 +962,24 @@ int checkNetworkDefinition(NetworkDefinition p, SemanticContext *ctx)
         fprintf(stderr, "Checker Error: NetworkDefinition node is NULL.\n");
         return 1;
     }
+
+    // Flag to track if any ONNX names are used for inputs/outputs
+    int usesOnnxNames = -1;
     int err = 0;
+
     switch(p->kind)
     {
         case is_NetworkDef:
             err |= checkVariableName(p->u.networkdef_.variablename_, ctx);
-            err |= checkListInputDefinition(p->u.networkdef_.listinputdefinition_, ctx);
+            err |= checkListInputDefinition(p->u.networkdef_.listinputdefinition_, &usesOnnxNames, ctx);
             err |= checkListHiddenDefinition(p->u.networkdef_.listhiddendefinition_, ctx);
-            err |= checkListOutputDefinition(p->u.networkdef_.listoutputdefinition_, ctx);
+            err |= checkListOutputDefinition(p->u.networkdef_.listoutputdefinition_, &usesOnnxNames, ctx);
             break;
         default:
             fprintf(stderr, "Checker Error: Bad kind field in NetworkDefinition node.\n");
             return 1; 
     }
+
     return err;
 }
 
@@ -677,7 +1031,7 @@ int checkIdent(Ident i, SemanticContext *ctx) { return 0; }
 int checkInteger(Integer i, SemanticContext *ctx) { return 0; }
 int checkDouble(Double d, SemanticContext *ctx) { return 0; }
 int checkChar(Char c, SemanticContext *ctx) { return 0; }
-int checkString(String s, SemanticContext *ctx) { return 0; }
+int checkString(char *s, SemanticContext *ctx) { return 0; }
 
 
 int checkTensorElement(VariableName tensorName, ListInt tensorIndex, SemanticContext *ctx) {
@@ -687,18 +1041,7 @@ int checkTensorElement(VariableName tensorName, ListInt tensorIndex, SemanticCon
     }
     int err = 0;
 
-    SymbolInfo *symbol = findSymbol(ctx, tensorName); 
-
-    if (!symbol) {
-        err = 1;
-        addError(ctx, (VNNLibError) {
-            .message = "Undeclared variable",
-            .offendingSymbol = tensorName,
-            .hint = "Variable must be declared before use.",
-            .errorCode = UndeclaredVariable
-        });
-        return err;
-    }
+    const SymbolInfo *symbol = findSymbol(ctx, tensorName); 
 
     if (!tensorIndex) {
         err = 1;

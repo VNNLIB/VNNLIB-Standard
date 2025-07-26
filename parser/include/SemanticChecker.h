@@ -5,8 +5,10 @@
 #include <stdarg.h> 
 #include <string.h> 
 #include <stdio.h>
+#include <stdbool.h>
 #include "Absyn.h" 
 #include "Util.h"
+#include "hashmap.h"
 
 #define MAX_DIMENSIONS 10 // Maximum number of dimensions for a tensor
 
@@ -18,6 +20,7 @@ typedef enum {
     IndexOutOfBounds,
     TooManyIndices,
     NotEnoughIndices,
+    UnexpectedOnnxName
 } ErrorCode;
 
 
@@ -35,27 +38,61 @@ typedef struct {
 typedef enum {
     SYM_INPUT,
     SYM_OUTPUT,
-    SYM_INTERMEDIATE
+    SYM_HIDDEN
 } SymbolKind;
+
+typedef enum { 
+    Real, 
+    F16, 
+    F32, 
+    F64, 
+    BF16, 
+    F8E4M3FN, 
+    F8E5M2, 
+    F8E4M3FNUZ, 
+    F8E5M2FNUZ, 
+    F4E2M1, 
+    I8, 
+    I16, 
+    I32, 
+    I64, 
+    U8, 
+    U16, 
+    U32, 
+    U64, 
+    C64, 
+    C128, 
+    Bool, 
+    Str, 
+    Undefined,
+    FloatConstant,
+    NegIntConstant,
+    PosIntConstant
+} ElementTypeKind;
+
+#define UNDEFINED_ELEMENT_TYPE Undefined
 
 
 // Structure to store information about a declared variable
 typedef struct SymbolInfo {
     char        *name;          // Pointer to the VariableName node
+    char        *onnxName;      // Optional ONNX name for the variable
     ElementType type;           // Pointer to the ElementType node 
-    int         numDimensions;  // Number of dimensions
-    int        *shape;          // Array of dimensions
+    int         numDimensions;  
+    int        *shape;         
     SymbolKind  kind;           // Kind of variable (input, output, intermediate)
-    struct SymbolInfo *next;    // Pointer to the next symbol in the linked list
 } SymbolInfo;
-
 
 // Structure to hold state during semantic checking
 typedef struct SemanticContext {
-    SymbolInfo *symbolTableHead;    // Head of the symbol linked list
-    VNNLibError *errors;            // List of semantic errors
-    int errorCapacity;              // Capacity of the error list
-    int errorCount;                 // Counter for detected errors
+    struct hashmap *symbolMap;                   
+
+    VNNLibError *errors;           
+    int errorCapacity;              
+    int errorCount;  
+
+    ElementTypeKind currentDataType;        // Current data type being checked
+    char *lastScannedVariable;       // Used to track the last scanned variable for error reporting
 } SemanticContext;
 
 
@@ -69,8 +106,8 @@ char *reportErrorsJSON(SemanticContext *ctx);
 // Context Management
 int initSemanticContext(SemanticContext *ctx);
 void destroySemanticContext(SemanticContext *ctx);
-SymbolInfo* addSymbol(SemanticContext *ctx, VariableName name, ElementType type, ListInt dims, SymbolKind kind);
-SymbolInfo* findSymbol(SemanticContext *ctx, VariableName name);
+SymbolInfo* addSymbol(SemanticContext *ctx, VariableName name, ElementType type, ListInt dims, SymbolKind kind, String onnxName);
+const SymbolInfo* findSymbol(SemanticContext *ctx, VariableName name);
 
 // Error Management
 void addError(SemanticContext *ctx, VNNLibError error);
@@ -79,11 +116,11 @@ void addError(SemanticContext *ctx, VNNLibError error);
 int checkQuery(Query p, SemanticContext *ctx);
 int checkListNetworkDefinition(ListNetworkDefinition listnetworkdefinition, SemanticContext *ctx);
 int checkNetworkDefinition(NetworkDefinition p, SemanticContext *ctx);
-int checkListInputDefinition(ListInputDefinition listinputdefinition, SemanticContext *ctx);
+int checkListInputDefinition(ListInputDefinition listinputdefinition, int *usesOnnxNames, SemanticContext *ctx);
 int checkInputDefinition(InputDefinition p, SemanticContext *ctx);
 int checkListHiddenDefinition(ListHiddenDefinition listintermediatedefinition, SemanticContext *ctx);
 int checkHiddenDefinition(HiddenDefinition p, SemanticContext *ctx);
-int checkListOutputDefinition(ListOutputDefinition listoutputdefinition, SemanticContext *ctx);
+int checkListOutputDefinition(ListOutputDefinition listoutputdefinition, int *usesOnnxNames, SemanticContext *ctx);
 int checkOutputDefinition(OutputDefinition p, SemanticContext *ctx);
 int checkElementType(ElementType p, SemanticContext *ctx);
 int checkListAssertion(ListAssertion listassertion, SemanticContext *ctx);
