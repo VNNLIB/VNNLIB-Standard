@@ -42,31 +42,35 @@ typedef enum {
 } SymbolKind;
 
 typedef enum { 
-    GenericElementType, 
-    ElementTypeF16, 
-    ElementTypeF32, 
-    ElementTypeF64, 
-    ElementTypeBF16, 
-    ElementTypeF8E4M3FN, 
-    ElementTypeF8E5M2, 
-    ElementTypeF8E4M3FNUZ, 
-    ElementTypeF8E5M2FNUZ, 
-    ElementTypeF4E2M1, 
-    ElementTypeI8, 
-    ElementTypeI16, 
-    ElementTypeI32, 
-    ElementTypeI64, 
-    ElementTypeU8, 
-    ElementTypeU16, 
-    ElementTypeU32, 
-    ElementTypeU64, 
-    ElementTypeC64, 
-    ElementTypeC128, 
-    ElementTypeBool, 
-    ElementTypeString, 
-    ElementTypeUndefined } ElementTypeKind;
+    Real, 
+    F16, 
+    F32, 
+    F64, 
+    BF16, 
+    F8E4M3FN, 
+    F8E5M2, 
+    F8E4M3FNUZ, 
+    F8E5M2FNUZ, 
+    F4E2M1, 
+    I8, 
+    I16, 
+    I32, 
+    I64, 
+    U8, 
+    U16, 
+    U32, 
+    U64, 
+    C64, 
+    C128, 
+    Bool, 
+    Str, 
+    Undefined,
+    FloatConstant,
+    NegIntConstant,
+    PosIntConstant
+} ElementTypeKind;
 
-#define UNDEFINED_ELEMENT_TYPE ElementTypeUndefined
+#define UNDEFINED_ELEMENT_TYPE Undefined
 
 
 // Structure to store information about a declared variable
@@ -86,6 +90,9 @@ typedef struct SemanticContext {
     VNNLibError *errors;           
     int errorCapacity;              
     int errorCount;  
+
+    ElementTypeKind currentDataType;        // Current data type being checked
+    char *lastScannedVariable;       // Used to track the last scanned variable for error reporting
 } SemanticContext;
 
 
@@ -120,8 +127,8 @@ int checkListAssertion(ListAssertion listassertion, SemanticContext *ctx);
 int checkAssertion(Assertion p, SemanticContext *ctx);
 int checkBoolExpr(BoolExpr p, SemanticContext *ctx);
 int checkListBoolExpr(ListBoolExpr listboolexpr, SemanticContext *ctx);
-int checkArithExpr(ArithExpr p, ElementTypeKind* currentDataType, SemanticContext *ctx);
-int checkListArithExpr(ListArithExpr listarithexpr, ElementTypeKind* currentDataType, SemanticContext *ctx);
+int checkArithExpr(ArithExpr p, SemanticContext *ctx);
+int checkListArithExpr(ListArithExpr listarithexpr, SemanticContext *ctx);
 int checkTensorElement(VariableName p, ListInt dims, SemanticContext *ctx);
 int checkVariableName(VariableName p, SemanticContext *ctx);
 int checkListInt(ListInt listint, SemanticContext *ctx, int *shape, int *numDimensions);

@@ -261,6 +261,10 @@ int initSemanticContext(SemanticContext *ctx) {
     ctx->symbolMap = hashmap_new(sizeof(SymbolInfo), 0, 0, 0,
         symbol_hash, symbol_compare, freeSymbolInfo, NULL);
     ctx->errorCount = 0;
+
+    ctx->currentDataType = UNDEFINED_ELEMENT_TYPE;
+    ctx->lastScannedVariable = NULL;
+
     return initErrorList(ctx);
 }
 
@@ -300,13 +304,86 @@ int checkListInt(ListInt p, SemanticContext *ctx, int *symbolShape, int *numDime
 }
 
 
-int checkArithExpr(ArithExpr p, ElementTypeKind *currentDataType, SemanticContext *ctx)
+bool isFloat(ElementTypeKind kind) {
+    return (kind == Real ||
+            kind == F16 || 
+            kind == F32 || 
+            kind == F64 || 
+            kind == BF16 || 
+            kind == F8E4M3FN || 
+            kind == F8E5M2 || 
+            kind == F8E4M3FNUZ || 
+            kind == F8E5M2FNUZ || 
+            kind == F4E2M1 ||
+            kind == FloatConstant);
+}
+
+
+bool isInteger(ElementTypeKind kind) {
+    return (kind == I8 || kind == I16 || 
+            kind == I32 || kind == I64 || 
+            kind == U8 || kind == U16 || 
+            kind == U32 || kind == U64 ||
+            kind == PosIntConstant);
+}
+
+
+bool isSignedInteger(ElementTypeKind kind) {
+    return (kind == I8 || kind == I16 || 
+            kind == I32 || kind == I64 || 
+            kind == NegIntConstant);
+}
+
+
+// Add this new helper function
+const char* elementTypeToString(ElementTypeKind kind) {
+    switch (kind) {
+        // Floats
+        case Real: return "Real";
+        case F16: return "float16";
+        case F32: return "float32";
+        case F64: return "float64";
+        case BF16: return "bfloat16";
+        case F8E4M3FN: return "float8e4m3fn";
+        case F8E5M2: return "float8e5m2";
+        case F8E4M3FNUZ: return "float8e4m3fuz";
+        case F8E5M2FNUZ: return "float8e5m2fuz";
+        case F4E2M1: return "float4e2m1";
+        case FloatConstant: return "Float";                // Generic float
+
+        // Integers
+        case I8: return "int8";
+        case I16: return "int16";
+        case I32: return "int32";
+        case I64: return "int64";
+        case U8: return "uint8";
+        case U16: return "uint16";
+        case U32: return "uint32";
+        case U64: return "uint64";
+        case PosIntConstant: return "Integer";             // Generic integer
+        case NegIntConstant: return "Signed Integer";      // Generic integer
+        
+        // Other types
+        case Bool: return "bool";
+        case Str: return "string";
+        default: return "UnknownType";
+    }
+}
+
+
+int checkArithExpr(ArithExpr p, SemanticContext *ctx)
 {
     if (!p) {
         fprintf(stderr, "Checker Error: ArithExpr node is NULL.\n");
         return 1;
     }
     int err = 0;
+    ElementTypeKind nodeType;
+    ElementTypeKind exprType = ctx->currentDataType;
+    bool isPreviousTypeUndefined = (exprType == UNDEFINED_ELEMENT_TYPE);
+
+    char hint_buffer[256];
+
     switch(p->kind)
     {
         case is_VarExpr:
@@ -322,14 +399,48 @@ int checkArithExpr(ArithExpr p, ElementTypeKind *currentDataType, SemanticContex
                 });
                 return 1;
             }
+            nodeType = (ElementTypeKind)symbol->type->kind;
+            bool isPreviousTypeConstant = (exprType == FloatConstant || exprType == NegIntConstant || exprType == PosIntConstant);
 
-            if (*currentDataType == UNDEFINED_ELEMENT_TYPE) {
-                *currentDataType = (ElementTypeKind)symbol->type->kind;
-            } else if (*currentDataType != (ElementTypeKind)symbol->type->kind) {
+            if (isPreviousTypeUndefined) {
+                ctx->currentDataType = nodeType;
+                ctx->lastScannedVariable = p->u.varexpr_.variablename_;
+
+            } else if (isPreviousTypeConstant) {
+                if ((exprType == FloatConstant && isFloat(nodeType)) || 
+                    (exprType == NegIntConstant && isSignedInteger(nodeType)) ||
+                    (exprType == PosIntConstant && isInteger(nodeType))) {
+                    ctx->currentDataType = nodeType;
+                    ctx->lastScannedVariable = p->u.varexpr_.variablename_;
+
+                } else {
+                    sprintf(hint_buffer, 
+                        "Expected a %s type to match constant '%s', but variable '%s' has type '%s'.",
+                        elementTypeToString(exprType), 
+                        ctx->lastScannedVariable,
+                        p->u.varexpr_.variablename_,
+                        elementTypeToString(nodeType));
+
+                    addError(ctx, (VNNLibError) {
+                        .message = "Type mismatch in arithmetic expression",
+                        .offendingSymbol = p->u.varexpr_.variablename_,
+                        .hint = hint_buffer,
+                        .errorCode = TypeMismatch
+                    });
+                    return 1;
+                }
+            } else if (exprType != nodeType) {
+                sprintf(hint_buffer, 
+                    "Expected type '%s' (from variable '%s'), but variable '%s' has type '%s'.",
+                    elementTypeToString(exprType), 
+                    ctx->lastScannedVariable,
+                    p->u.varexpr_.variablename_,
+                    elementTypeToString(nodeType));
+
                 addError(ctx, (VNNLibError) {
                     .message = "Type mismatch in arithmetic expression",
                     .offendingSymbol = p->u.varexpr_.variablename_,
-                    .hint = "All variables in an arithmetic expression must have the same data type.",
+                    .hint = hint_buffer,
                     .errorCode = TypeMismatch
                 });
                 return 1;
@@ -338,31 +449,94 @@ int checkArithExpr(ArithExpr p, ElementTypeKind *currentDataType, SemanticContex
 
         case is_DoubleExpr:
             err |= checkSDouble(p->u.doubleexpr_.sdouble_, ctx);
+            nodeType = FloatConstant;
+
+            if (isPreviousTypeUndefined) {
+                ctx->currentDataType = FloatConstant;
+                ctx->lastScannedVariable = p->u.doubleexpr_.sdouble_;
+
+            } else if (!isFloat(exprType)) {
+                sprintf(hint_buffer, 
+                    "Expected type '%s' (from '%s'), but found a floating-point constant '%s'.",
+                    elementTypeToString(exprType),
+                    ctx->lastScannedVariable, 
+                    p->u.doubleexpr_.sdouble_);
+
+                addError(ctx, (VNNLibError) {
+                    .message = "Type mismatch in arithmetic expression",
+                    .offendingSymbol = p->u.doubleexpr_.sdouble_,
+                    .hint = hint_buffer,
+                    .errorCode = TypeMismatch
+                });
+                return 1;
+            }
             break;
 
         case is_SIntExpr:
             err |= checkSInt(p->u.sintexpr_.sint_, ctx);
+            nodeType = NegIntConstant;
+
+            if (isPreviousTypeUndefined) {
+                ctx->currentDataType = NegIntConstant;
+                ctx->lastScannedVariable = p->u.sintexpr_.sint_;
+
+            } else if (!isSignedInteger(exprType)) {
+                sprintf(hint_buffer, 
+                    "Expected type '%s' (from '%s'), but found a negative integer constant '%s'.",
+                    elementTypeToString(exprType),
+                    ctx->lastScannedVariable, 
+                    p->u.sintexpr_.sint_);
+
+                addError(ctx, (VNNLibError) {
+                    .message = "Type mismatch in arithmetic expression",
+                    .offendingSymbol = p->u.sintexpr_.sint_,
+                    .hint = hint_buffer,
+                    .errorCode = TypeMismatch
+                });
+                return 1;
+            }
             break;
 
         case is_IntExpr:
             err |= checkInt(p->u.intexpr_.int_, ctx);
+            nodeType = PosIntConstant;
+
+            if (isPreviousTypeUndefined) {
+                ctx->currentDataType = PosIntConstant;
+                ctx->lastScannedVariable = p->u.intexpr_.int_;
+
+            } else if (!isInteger(exprType)) {
+                sprintf(hint_buffer, 
+                    "Expected type '%s' (from '%s'), but found an integer constant '%s'.",
+                    elementTypeToString(exprType),
+                    ctx->lastScannedVariable, 
+                    p->u.intexpr_.int_);
+
+                addError(ctx, (VNNLibError) {
+                    .message = "Type mismatch in arithmetic expression",
+                    .offendingSymbol = p->u.intexpr_.int_,
+                    .hint = hint_buffer,
+                    .errorCode = TypeMismatch
+                });
+                return 1;
+            }
             break;
 
         case is_Negate:
-            err |= checkArithExpr(p->u.negate_.arithexpr_, currentDataType, ctx);
+            err |= checkArithExpr(p->u.negate_.arithexpr_, ctx);
             break;
 
         case is_Plus:
-            err |= checkListArithExpr(p->u.plus_.listarithexpr_, currentDataType, ctx);
+            err |= checkListArithExpr(p->u.plus_.listarithexpr_, ctx);
             break;
 
         case is_Minus:
-            err |= checkArithExpr(p->u.minus_.arithexpr_, currentDataType, ctx);
-            err |= checkListArithExpr(p->u.minus_.listarithexpr_, currentDataType, ctx);
+            err |= checkArithExpr(p->u.minus_.arithexpr_, ctx);
+            err |= checkListArithExpr(p->u.minus_.listarithexpr_, ctx);
             break;
 
         case is_Multiply:
-            err |= checkListArithExpr(p->u.multiply_.listarithexpr_, currentDataType, ctx);
+            err |= checkListArithExpr(p->u.multiply_.listarithexpr_, ctx);
             break;
 
         default:
@@ -373,7 +547,7 @@ int checkArithExpr(ArithExpr p, ElementTypeKind *currentDataType, SemanticContex
 }
 
 
-int checkListArithExpr(ListArithExpr p, ElementTypeKind *currentDataType, SemanticContext *ctx)
+int checkListArithExpr(ListArithExpr p, SemanticContext *ctx)
 {
     if (!p) {
         fprintf(stderr, "Checker Error: ListArithExpr node is NULL where a list was expected.\n");
@@ -382,7 +556,7 @@ int checkListArithExpr(ListArithExpr p, ElementTypeKind *currentDataType, Semant
     int err = 0;
     while(p != 0 && err == 0)
     {
-        err |= checkArithExpr(p->arithexpr_, currentDataType, ctx);
+        err |= checkArithExpr(p->arithexpr_, ctx);
         p = p->listarithexpr_;
     }
     return err;
@@ -397,33 +571,33 @@ int checkBoolExpr(BoolExpr p, SemanticContext *ctx)
     }
 
     int err = 0;
-    ElementTypeKind currentDataType = UNDEFINED_ELEMENT_TYPE;
+    ctx->currentDataType = UNDEFINED_ELEMENT_TYPE;
 
     switch(p->kind)
     {
         case is_GreaterThan:
-            err |= checkArithExpr(p->u.greaterthan_.arithexpr_1, &currentDataType, ctx);
-            err |= checkArithExpr(p->u.greaterthan_.arithexpr_2, &currentDataType, ctx);
+            err |= checkArithExpr(p->u.greaterthan_.arithexpr_1, ctx);
+            err |= checkArithExpr(p->u.greaterthan_.arithexpr_2, ctx);
             break;
         case is_LessThan:
-            err |= checkArithExpr(p->u.lessthan_.arithexpr_1, &currentDataType, ctx);
-            err |= checkArithExpr(p->u.lessthan_.arithexpr_2, &currentDataType, ctx);
+            err |= checkArithExpr(p->u.lessthan_.arithexpr_1, ctx);
+            err |= checkArithExpr(p->u.lessthan_.arithexpr_2, ctx);
             break;
         case is_GreaterEqual:
-            err |= checkArithExpr(p->u.greaterequal_.arithexpr_1, &currentDataType, ctx);
-            err |= checkArithExpr(p->u.greaterequal_.arithexpr_2, &currentDataType, ctx);
+            err |= checkArithExpr(p->u.greaterequal_.arithexpr_1, ctx);
+            err |= checkArithExpr(p->u.greaterequal_.arithexpr_2, ctx);
             break;
         case is_LessEqual:
-            err |= checkArithExpr(p->u.lessequal_.arithexpr_1, &currentDataType, ctx);
-            err |= checkArithExpr(p->u.lessequal_.arithexpr_2, &currentDataType, ctx);
+            err |= checkArithExpr(p->u.lessequal_.arithexpr_1, ctx);
+            err |= checkArithExpr(p->u.lessequal_.arithexpr_2, ctx);
             break;
         case is_NotEqual:
-            err |= checkArithExpr(p->u.notequal_.arithexpr_1, &currentDataType, ctx);
-            err |= checkArithExpr(p->u.notequal_.arithexpr_2, &currentDataType, ctx);
+            err |= checkArithExpr(p->u.notequal_.arithexpr_1, ctx);
+            err |= checkArithExpr(p->u.notequal_.arithexpr_2, ctx);
             break;
         case is_Equal:
-            err |= checkArithExpr(p->u.equal_.arithexpr_1, &currentDataType, ctx);
-            err |= checkArithExpr(p->u.equal_.arithexpr_2, &currentDataType, ctx);
+            err |= checkArithExpr(p->u.equal_.arithexpr_1, ctx);
+            err |= checkArithExpr(p->u.equal_.arithexpr_2, ctx);
             break;
         case is_And:
             err |= checkListBoolExpr(p->u.and_.listboolexpr_, ctx);
