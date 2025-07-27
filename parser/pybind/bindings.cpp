@@ -5,6 +5,7 @@
 #include "VNNLib.h" 
 #include "Absyn.h" 
 #include "VNNLIBWrappers.hpp" 
+#include "LinearArithExpr.hpp"
 
 namespace py = pybind11;
 
@@ -352,6 +353,77 @@ PYBIND11_MODULE(vnnlib, m) {
         
         return query_ast_wrapper;
     }, py::doc("Parses a VNNLib file and returns a traversable AST Query object."));
+
+
+    // Linear Arithmetic Expression AST Bindings
+
+    py::class_<LinearQueryWrapper> linearQueryWrapper(m, "LinearQueryBase");
+    py::class_<LinearVNNLibQuery, LinearQueryWrapper>(m, "LinearVNNLibQuery")
+        .def_property_readonly("networks", [](const LinearVNNLibQuery &obj) {
+            return obj.networks;
+        }, py::return_value_policy::reference_internal)
+        .def_property_readonly("assertions", [](const LinearVNNLibQuery &obj) {
+            py::list assertions_list;
+            for (const auto &assertion_ptr : obj.assertions) {
+                assertions_list.append(py::cast(assertion_ptr.get(), py::return_value_policy::reference_internal));
+            }
+            return assertions_list;
+        });
+
+        
+    py::class_<LinearAssertionWrapper> linearAssertionWrapper(m, "LinearAssertionBase");
+    py::class_<LinearAssert, LinearAssertionWrapper>(m, "LinearAssertion")
+        .def_property_readonly("expr", [](const LinearAssert &obj) {
+            return obj.expr.get();
+        }, py::return_value_policy::reference_internal);
+
+
+    py::class_<LinearBoolExprWrapper> linearBoolExprWrapper(m, "LinearBoolExprBase");
+
+    py::class_<LinearComparisonExpr, LinearBoolExprWrapper>(m, "LinearComparisonExpr")
+        .def_property_readonly("expr1", [](const LinearComparisonExpr &obj) {
+            return obj.expr1.get();
+        }, py::return_value_policy::reference_internal)
+        .def_property_readonly("expr2", [](const LinearComparisonExpr &obj) {
+            return obj.expr2.get();
+        }, py::return_value_policy::reference_internal);
+
+
+    py::class_<LinearGreaterThan, LinearComparisonExpr>(m, "LinearGreaterThan");
+    py::class_<LinearLessThan, LinearComparisonExpr>(m, "LinearLessThan");
+    py::class_<LinearGreaterEqual, LinearComparisonExpr>(m, "LinearGreaterEqual");
+    py::class_<LinearLessEqual, LinearComparisonExpr>(m, "LinearLessEqual");
+    py::class_<LinearEqual, LinearComparisonExpr>(m, "LinearEqual");
+    py::class_<LinearNotEqual, LinearComparisonExpr>(m, "LinearNotEqual");
+
+    py::class_<LinearConnectiveExpr, LinearBoolExprWrapper>(m, "LinearConnectiveExpr")
+        .def_property_readonly("operands", [](const LinearConnectiveExpr &obj) {
+            py::list operands_list;
+            for (const auto &operand_ptr : obj.operands) {
+                operands_list.append(py::cast(operand_ptr.get(), py::return_value_policy::reference_internal));
+            }
+            return operands_list;
+        });
+
+    py::class_<LinearAnd, LinearConnectiveExpr>(m, "LinearAnd");
+    py::class_<LinearOr, LinearConnectiveExpr>(m, "LinearOr");
+
+
+    py::class_<LinearArithExpression>(m, "LinearArithExpression")
+        .def_readonly("coeffs", &LinearArithExpression::coeffs)
+        .def_readonly("vars", &LinearArithExpression::vars)
+        .def_readonly("constant", &LinearArithExpression::constant);
+
+
+    m.def("linearise_query", [](const QueryWrapper& query) -> std::unique_ptr<LinearQueryWrapper> {
+        if (!query.get_struct()) {
+            throw std::runtime_error("Cannot linearise a null query.");
+        }
+
+        // Assuming linearise_query is a function that converts QueryWrapper to LinearQueryWrapper
+        const auto *vnnlib_query = dynamic_cast<const VNNLibQuery*>(&query);
+        return lineariseQuery(vnnlib_query);
+    }, py::doc("Converts a VNNLib query AST to linearised form for easier processing."));
 
 
 #ifdef VERSION_INFO

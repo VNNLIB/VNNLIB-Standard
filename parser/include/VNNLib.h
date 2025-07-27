@@ -13,6 +13,7 @@ extern "C" {
 
 
 #include "Absyn.h"
+#include "ExtendedAbsyn.h"
 #include "Parser.h"
 #include "SemanticChecker.h"
 #include "Printer.h"
@@ -26,6 +27,7 @@ VNNLIB_API char* write_vnnlib_str(const Query q);
 
 VNNLIB_API char* check_query(const Query q, int json);
 
+VNNLIB_API LinearArithExpr linearise(ArithExpr arith_expr);
 
 #ifdef __cplusplus
 }
