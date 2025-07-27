@@ -20,12 +20,12 @@ void copyLinearArithExpr(LinearArithExpr dest, const LinearArithExpr src) {
     dest->num_terms = src->num_terms;
     dest->constant = src->constant;
 
-    dest->vars = (TensorElement *) malloc(src->num_terms * sizeof(TensorElement));
+    dest->vars = (VariableName *) malloc(src->num_terms * sizeof(VariableName));
     if (!dest->vars) {
         fprintf(stderr, "Error: out of memory when copying vars in LinearArithExpr!\n");
         return;
     }
-    memcpy(dest->vars, src->vars, src->num_terms * sizeof(TensorElement));
+    memcpy(dest->vars, src->vars, src->num_terms * sizeof(VariableName));
 
     dest->coeffs = (double *) malloc(src->num_terms * sizeof(double));
     if (!dest->coeffs) {
@@ -126,13 +126,13 @@ LinearArithExpr linearise(ArithExpr arith_expr) {
         // Handle the case of a single variable
         case is_VarExpr: {
             expr->num_terms = 1;
-            expr->vars = (TensorElement *) realloc(expr->vars, sizeof(TensorElement));
+            expr->vars = (VariableName *) realloc(expr->vars, sizeof(VariableName));
             if (!expr->vars) {
                 fprintf(stderr, "Error: out of memory when allocating vars in LinearArithExpr!\n");
                 freeLinearArithExpr(expr);
                 return NULL;
             }
-            expr->vars[0] = arith_expr->u.varexpr_.tensorelement_;
+            expr->vars[0] = arith_expr->u.varexpr_.variablename_;
             expr->coeffs = (double *) realloc(expr->coeffs, sizeof(double));
             if (!expr->coeffs) {
                 freeLinearArithExpr(expr);
@@ -169,14 +169,14 @@ LinearArithExpr linearise(ArithExpr arith_expr) {
             expr->num_terms = sub_expr->num_terms;
             expr->constant = -sub_expr->constant;
 
-            expr->vars = (TensorElement *) realloc(expr->vars, expr->num_terms * sizeof(TensorElement));\
+            expr->vars = (VariableName *) realloc(expr->vars, expr->num_terms * sizeof(VariableName));
             if (!expr->vars) {
                 fprintf(stderr, "Error: out of memory when allocating vars in LinearArithExpr!\n");
                 freeLinearArithExpr(sub_expr);
                 freeLinearArithExpr(expr);
                 return NULL;
             }
-            memcpy(expr->vars, sub_expr->vars, expr->num_terms * sizeof(TensorElement));
+            memcpy(expr->vars, sub_expr->vars, expr->num_terms * sizeof(VariableName));
 
             expr->coeffs = (double *) realloc(expr->coeffs, expr->num_terms * sizeof(double));
             if (!expr->coeffs) {
@@ -245,7 +245,7 @@ LinearArithExpr linearise(ArithExpr arith_expr) {
                     int new_total_terms = old_num_terms + num_new_terms;
 
                     // Reallocate memory for vars and coeffs
-                    TensorElement *temp_vars = realloc(expr->vars, new_total_terms * sizeof(TensorElement));
+                    VariableName *temp_vars = realloc(expr->vars, new_total_terms * sizeof(VariableName));
                     if (!temp_vars) {
                         fprintf(stderr, "Error: out of memory when reallocating vars in LinearArithExpr!\n");
                         free(found);
@@ -337,7 +337,7 @@ LinearArithExpr linearise(ArithExpr arith_expr) {
                     int new_total_terms = old_num_terms + num_new_terms;
 
                     // Reallocate memory for vars and coeffs
-                    TensorElement *temp_vars = realloc(expr->vars, new_total_terms * sizeof(TensorElement));
+                    VariableName *temp_vars = realloc(expr->vars, new_total_terms * sizeof(VariableName));
                     if (!temp_vars) {
                         fprintf(stderr, "Error: out of memory when reallocating vars in LinearArithExpr!\n");
                         free(found);
@@ -463,8 +463,8 @@ LinearArithExpr linearise(ArithExpr arith_expr) {
 
 static void debugBoolExpr(BoolExpr p, int indent_level);
 static void debugListBoolExpr(ListBoolExpr p, int indent_level);
-static void debugProperty(Property p, int indent_level);
-static void debugListProperty(ListProperty p, int indent_level);
+static void debugAssertion(Assertion p, int indent_level);
+static void debugListAssertion(ListAssertion p, int indent_level);
 
 /* --- Helper Functions --- */
 
@@ -564,30 +564,30 @@ static void debugListBoolExpr(ListBoolExpr p, int indent_level) {
 }
 
 /**
- * @brief Traverses a Property node.
+ * @brief Traverses a Assertion node.
 */
-static void debugProperty(Property p, int indent_level) {
+static void debugAssertion(Assertion p, int indent_level) {
     if (!p) return;
-    if (p->kind == is_Prop) {
+    if (p->kind == is_Assert) {
         print_indent(indent_level);
-        printf("Property {\n");
-        debugBoolExpr(p->u.prop_.boolexpr_, indent_level + 1);
+        printf("Assertion {\n");
+        debugBoolExpr(p->u.assert_.boolexpr_, indent_level + 1);
         print_indent(indent_level);
         printf("}\n");
     }
 }
 
 /**
- * @brief Traverses a list of Property nodes.
+ * @brief Traverses a list of Assertion nodes.
 */
-static void debugListProperty(ListProperty p, int indent_level) {
-    ListProperty current = p;
+static void debugListAssertion(ListAssertion p, int indent_level) {
+    ListAssertion current = p;
     int prop_num = 1;
     while (current) {
         print_indent(indent_level);
-        printf("--- Processing Property #%d ---\n", prop_num++);
-        debugProperty(current->property_, indent_level);
-        current = current->listproperty_;
+        printf("--- Processing Assertion #%d ---\n", prop_num++);
+        debugAssertion(current->assertion_, indent_level);
+        current = current->listassertion_;
         if (current) printf("\n");
     }
 }
@@ -606,7 +606,7 @@ void debugQuery(Query query) {
     printf("=======================================\n\n");
     if (query->kind == is_VNNLibQuery) {
         // We ignore network definitions and go straight to properties.
-        debugListProperty(query->u.vnnlibquery_.listproperty_, 0);
+        debugListAssertion(query->u.vnnlibquery_.listassertion_, 0);
     }
     printf("\n=======================================\n");
     printf("  FINISHED VNNLibQuery DEBUG         \n");
