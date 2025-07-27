@@ -31,45 +31,48 @@ isVariableNameMatched varBind varName = ⟦ varName ⟧asString == getBindingVar
 Context : Set
 Context = VariableBinding
 
-addToContext : Maybe Context → 𝐁.VariableName → Context
-addToContext (just x) varName = rest (varName , x)
-addToContext nothing varName = base varName
-
 -- Returns True/False if variable name is in the defined context
 doesVariableExist : Context → 𝐁.VariableName → Bool
 doesVariableExist (base x) varName = isVariableNameMatched (base x) varName
 doesVariableExist (rest x) varName = isVariableNameMatched (rest x) varName ∨ isVariableNameMatched (x .proj₂) varName
 
--- Increment and return the De Brujin's index
+-- Increment and return the De Brujin's index - assumes that the variable exists in the current context
 lookUpDeBrujinIndex : Context → Bool → 𝐁.VariableName → ℕ
 lookUpDeBrujinIndex (rest x) false varName = lookUpDeBrujinIndex (x .proj₂) (isVariableNameMatched (x .proj₂) (varName)) varName
 lookUpDeBrujinIndex (rest x) true varName  = suc (lookUpDeBrujinIndex (x .proj₂) true varName)
 lookUpDeBrujinIndex (base x) _ _ = zero -- defaults to 0 index
 
-addVarsᵢ : List 𝐁.InputDefinition → Maybe Context
-addVarsᵢ [] = nothing
-addVarsᵢ (inputDef x e t ∷ is) = just (addToContext (addVarsᵢ is) x)
-addVarsᵢ (inputOnnxDef x₁ e t x₂ ∷ is) = just (addToContext (addVarsᵢ is) x₁)
+-- Create Context from network definitions
+addToContext : Maybe Context → 𝐁.VariableName → Context
+addToContext (just x) varName = rest (varName , x)
+addToContext nothing varName = base varName
 
-addVarsₕ : List 𝐁.InputDefinition → List 𝐁.HiddenDefinition → Maybe Context
-addVarsₕ [] _ = nothing
-addVarsₕ (x ∷ is) hs = foldl
-  (λ Γ → λ { (hiddenDef x₁ _ _ _) → just (addToContext Γ x₁) }) (addVarsᵢ (x ∷ is)) hs
+addVarsᵢ : Maybe Context → List 𝐁.InputDefinition → Maybe Context
+addVarsᵢ Γ is = foldl (λ Γ → λ {(inputDef x₁ _ _) → just (addToContext Γ x₁) ; (inputOnnxDef x₁ _ _ _) → just (addToContext Γ x₁)}) Γ is
 
-addVarsₒ : List 𝐁.InputDefinition → List 𝐁.HiddenDefinition → List 𝐁.OutputDefinition → Maybe Context
-addVarsₒ [] _ _ = nothing
-addVarsₒ (xᵢ ∷ is) _ [] = nothing
-addVarsₒ (xᵢ ∷ is) hs (xₒ ∷ os) = foldl
+addVarsₕ : Maybe Context → List 𝐁.InputDefinition → List 𝐁.HiddenDefinition → Maybe Context
+addVarsₕ Γ is hs = foldl (λ Γ → λ {(hiddenDef x₁ _ _ _) → just (addToContext Γ x₁) }) (addVarsᵢ Γ is) hs
+
+addVarsₒ : Maybe Context → List 𝐁.InputDefinition → List 𝐁.HiddenDefinition → List 𝐁.OutputDefinition → Maybe Context
+addVarsₒ Γ [] _ _ = nothing
+addVarsₒ Γ (xᵢ ∷ is) _ [] = nothing
+addVarsₒ Γ (xᵢ ∷ is) hs (xₒ ∷ os) = foldl
   (λ Γ → λ { (outputDef x₁ _ _) → just (addToContext Γ x₁) ; (outputOnnxDef x₁ _ _ _) → just (addToContext Γ x₁) })
-  (addVarsₕ (xᵢ ∷ is) hs) (xₒ ∷ os)
+  (addVarsₕ Γ (xᵢ ∷ is) hs) (xₒ ∷ os)
 
 addNetworkDefToContext : Maybe Context → 𝐁.NetworkDefinition → Maybe Context
-addNetworkDefToContext Γ (networkDef x is hs os) = addVarsₒ is hs os
+addNetworkDefToContext Γ (networkDef x is hs os) = addVarsₒ Γ is hs os
 
 mkContext : List 𝐁.NetworkDefinition → Maybe Context
-mkContext [] = nothing
-mkContext (x ∷ networkDefs) = foldl (λ Γ n → addNetworkDefToContext Γ n) nothing (x ∷ networkDefs)
+mkContext networkDefs = foldl (λ Γ n → addNetworkDefToContext Γ n) nothing networkDefs
 
 
--- scope checking
-postulate scopeCheck : 𝐁.Query → 𝐕.Query
+-- scope checking: produces an error or VNNLIB Query
+data ScopeCheckResult : Set where
+  error : ScopeCheckResult
+  success : 𝐕.Query → ScopeCheckResult
+
+scopeCheck : 𝐁.Query → ScopeCheckResult
+scopeCheck (vNNLibQuery ns []) = error
+scopeCheck (vNNLibQuery [] (x ∷ as)) = error
+scopeCheck (vNNLibQuery (x₁ ∷ ns) (x ∷ as)) = {!!}
