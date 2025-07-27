@@ -15,7 +15,7 @@ typedef struct LinearArithExpr_ *LinearArithExpr;
 
 struct LinearArithExpr_ {
     double *coeffs;  // Coefficients for the linear terms
-    TensorElement *vars; // Variables in the linear expression
+    VariableName *vars; // Variables in the linear expression
     int num_terms;   // Number of terms in the linear expression
     double constant; // Constant term
 };
