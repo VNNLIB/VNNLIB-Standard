@@ -43,21 +43,26 @@ lookUpDeBrujinIndex (rest x) true varName  = suc (lookUpDeBrujinIndex (x .proj�
 lookUpDeBrujinIndex (base x) _ _ = zero -- defaults to 0 index
 
 -- Create Context from network definitions
-addToContext : Maybe Context → 𝐁.VariableName → Context
-addToContext (just x) varName = rest (varName , x)
-addToContext nothing varName = base varName
+-- WIP: change from Maybe type to error type so it can "exit"
+repeatedNameInContext : Context → 𝐁.VariableName → Bool → Maybe Context
+repeatedNameInContext x varName false = just (rest (varName , x))
+repeatedNameInContext x varName true = nothing
+
+addToContext : Maybe Context → 𝐁.VariableName → Maybe Context
+addToContext (just x) varName = repeatedNameInContext x varName (doesVariableExist x varName)
+addToContext nothing varName = just (base varName)
 
 addVarsᵢ : Maybe Context → List 𝐁.InputDefinition → Maybe Context
-addVarsᵢ Γ is = foldl (λ Γ → λ {(inputDef x₁ _ _) → just (addToContext Γ x₁) ; (inputOnnxDef x₁ _ _ _) → just (addToContext Γ x₁)}) Γ is
+addVarsᵢ Γ is = foldl (λ Γ → λ {(inputDef x₁ _ _) → addToContext Γ x₁ ; (inputOnnxDef x₁ _ _ _) → addToContext Γ x₁}) Γ is
 
 addVarsₕ : Maybe Context → List 𝐁.InputDefinition → List 𝐁.HiddenDefinition → Maybe Context
-addVarsₕ Γ is hs = foldl (λ Γ → λ {(hiddenDef x₁ _ _ _) → just (addToContext Γ x₁) }) (addVarsᵢ Γ is) hs
+addVarsₕ Γ is hs = foldl (λ Γ → λ {(hiddenDef x₁ _ _ _) → addToContext Γ x₁ }) (addVarsᵢ Γ is) hs
 
 addVarsₒ : Maybe Context → List 𝐁.InputDefinition → List 𝐁.HiddenDefinition → List 𝐁.OutputDefinition → Maybe Context
 addVarsₒ Γ [] _ _ = nothing
 addVarsₒ Γ (xᵢ ∷ is) _ [] = nothing
 addVarsₒ Γ (xᵢ ∷ is) hs (xₒ ∷ os) = foldl
-  (λ Γ → λ { (outputDef x₁ _ _) → just (addToContext Γ x₁) ; (outputOnnxDef x₁ _ _ _) → just (addToContext Γ x₁) })
+  (λ Γ → λ { (outputDef x₁ _ _) → addToContext Γ x₁ ; (outputOnnxDef x₁ _ _ _) → addToContext Γ x₁ })
   (addVarsₕ Γ (xᵢ ∷ is) hs) (xₒ ∷ os)
 
 addNetworkDefToContext : Maybe Context → 𝐁.NetworkDefinition → Maybe Context
