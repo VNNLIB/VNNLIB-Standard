@@ -6,7 +6,12 @@
 \usepackage{amsfonts}
 \usepackage{amssymb}
 \usepackage{graphicx}
-\usepackage{hyperref}
+\usepackage[colorlinks = true,
+            linkcolor = black,
+            urlcolor  = blue,
+            %citecolor = blue,
+            %anchorcolor = blue
+            ]{hyperref}
 \usepackage{todonotes}
 \usepackage{xcolor}
 \usepackage{listings}
@@ -16,10 +21,23 @@
 \usepackage{booktabs} 
 \usepackage{longtable} 
 \usepackage{array}
+\usepackage{geometry}
+\usepackage[font={small,it}]{caption}
+\usepackage{nameref}
 
-
+\renewcommand{\lstlistingname}{Example}
 \newcommand{\ie}{\textit{i.e.}}
-%customized todo
+\newcommand{\vnnlib}{VNN-LIB}
+
+\usepackage{tikz}
+\usetikzlibrary{
+    arrows.meta,    % For arrow styles
+    positioning,    % For relative positioning of nodes (e.g., below=of)
+    shapes.geometric, % For shapes like rounded rectangles
+    trees           % For drawing tree structures
+}
+
+%customized colours
 \definecolor{lightgreen}{rgb}{0.8,1.0,0.8}
 \definecolor{red}{rgb}{0.8,0,0}
 \definecolor{green}{rgb}{0,0.8,0}
@@ -53,7 +71,7 @@
     frame=lines,
     xleftmargin=2em,
     framexleftmargin=1.5em,
-    escapeinside={\%*}{*} 
+    escapeinside={\%*}{*}
 }
 
 % Listings style for Bash/CLI commands
@@ -81,13 +99,41 @@
 }
 
 
+% Stops splitting over multiple pages
+\lstnewenvironment{code}[1][]%
+{
+   \noindent
+   \minipage{\linewidth} 
+   \vspace{0.5\baselineskip}
+   \lstset{basicstyle=\ttfamily\footnotesize,frame=single,#1}}
+{\endminipage}
+
 \newcommand{\mytodo}[1]{\todo[inline,color=lightgreen]{TODO:#1}}
-\newcommand{\mnote}[2][]{\todo[inline,color=blue!10,#1]{Matthew: #2}}
+\newcommand{\mnote}[2][]{\todo[inline,color=red!10,#1]{Matthew: #2}}
 \newcommand{\myremark}[1]{\todo[inline, color=lightgreen]{\textbf{Remark:} #1}}
 
+% Theories
+
+\newcommand{\theory}[1]{\texttt{#1}}
+\newcommand{\nh}{\theory{NH}}
+\newcommand{\h}{\theory{H}}
+\newcommand{\snet}{\theory{SNET}}
+\newcommand{\mnet}{\theory{MNET}}
+\newcommand{\sio}{\theory{SIO}}
+\newcommand{\mio}{\theory{MIO}}
+\newcommand{\snc}{\theory{SNC}}
+\newcommand{\mnc}{\theory{MNC}}
+\newcommand{\bnd}{\theory{BND}}
+\newcommand{\lin}{\theory{LIN}}
+\newcommand{\poly}{\theory{POLY}}
+
+\newcommand{\logic}[1]{\texttt{#1}}
+
+\newcommand{\inlinevnn}[1]{\lstinline[style=lbnf]{#1}}
+
 \title{
-	The VNN-LIB Standard \\ 
-	Version 2.0 (draft)
+	The \vnnlib{} Standard \\ 
+	Version 2.0.0 (draft)
 }
 
 \author[1]{Stefano Demarchi}
@@ -99,63 +145,60 @@
 \author[3]{Allen Antony}
 \author[3]{Matthew Daggitt}
 
-\affil[1]{University of Genoa, Viale Causa 13, 16145 Genoa, Italy}
-\affil[2]{University of Sassari, Via Roma 151, 07100 Sassari, Italy}
-\affil[3]{University of Western Australia, 35 Stirling Hwy, Crawley WA 6009, Australia}
+\affil[1]{University of Genoa, Italy}
+\affil[2]{University of Sassari, Italy}
+\affil[3]{University of Western Australia, Australia}
   
 \begin{document}
 
 \maketitle
 
 \begin{abstract}
-This document presents VNN-LIB, a standard that formalises the query language for neural network verifiers. The standard uses the 
+This document presents \vnnlib{}, a standard that formalises the query language for neural network verifiers. The standard uses the 
 Open Neural Network Exchange (ONNX) format for model description and builds upon the Satisfiability Modulo Theories Library (SMT-LIB) 
 format for query specification. Key among the standard is a formally defined syntax and semantics, complimentary tooling, as well as a 
 command-line interface for verifiers. The goal is to foster greater robustness and interoperability in the neural network verification 
 landscape.
 \end{abstract}
 
+\tableofcontents
+
 \input{chapters/introduction.tex}
 \input{chapters/models.tex}
 \input{chapters/query_language.tex}
 \input{chapters/logics.tex}
-\input{chapters/verifier_interface}
-
-\chapter{Examples}
-\label{sec:examples}
-
-\mnote{Examples should be included throughout. I don't think we need a specific chapter for them.}
+\input{chapters/verifier_interface.tex}
 
 \appendix
-\chapter{VNN-LIB LBNF Grammar}\label{app:lbnf_grammar}
-\myremark{The full LBNF grammar, as developed using BNFC, should be included here.}
+\input{chapters/changelog.tex}
 
-\begin{thebibliography}{9} 
+\chapter{Query Language Grammar}\label{app:lbnf_grammar}
 
-\bibitem{1} 
-D. Tang, B. Qin, and T. Liu, ``Document modelling with gated recurrent neural network for sentiment classification,'' in \emph{Proceedings of the 2015 Conference on Empirical Methods in Natural Language Processing}, 2015, pp. 1422--1432.
+\mnote{TODO Allen Anthony}
 
-\bibitem{2} 
-M. Bojarski, et al., ``End to end learning for self-driving cars,'' \emph{arXiv preprint arXiv:1604.07316}, 2016.
+\bibliography{bibliography}
+\bibliographystyle{plain}
 
-\bibitem{3} 
-C. Szegedy, et al., ``Intriguing properties of neural networks,'' \emph{arXiv preprint arXiv:1312.6199}, 2013.
-
-\bibitem{4} 
-P. Zhang et al., ``White-box fairness testing through adversarial sampling,'' in \emph{2020 IEEE/ACM 42nd International Conference on Software Engineering (ICSE)}, New York, NY, USA:\@ ACM, 2020, pp. 949--960.\'doi: \href{https://doi.org/10.1145/3377811.3380331}{10.1145/3377811.3380331}.
-
-\bibitem{5} 
-S. Demarchi, D. Guidotti, L. Pulina, and A. Tacchella, ``Supporting Standardization of Neural Networks Verification with VNN-LIB and CoCoNet,'' in \emph{Proc. 6th Int. Workshop on Formal Methods for ML-Enabled Autonomous Systems (FoMLAS 2023)}, 2023, pp. 47--58.
-
-\bibitem{6} 
-C. Brix, S. Bak, C. Liu, and T. T. Johnson, ``The Fourth International Verification of Neural Networks Competition (VNN-COMP 2023): Summary and Results,'' 2023, doi: \href{https://doi.org/10.48550/arxiv.2312.16760}{10.48550/arxiv.2312.16760}.
-
-\bibitem{7} 
-L. C. Cordeiro et al., ``Neural Network Verification is a Programming Language Challenge,'' 2025, doi: \href{https://doi.org/10.48550/arxiv.2501.05867}{10.48550/arxiv.2501.05867}.
-
-\bibitem{8} 
-M. Forsberg and A. Ranta, ``The Labelled BNF Grammar Formalism,'' Department of Computing Science, Chalmers University of Technology and the University of Gothenburg, Gothenburg, Sweden, Feb. 11, 2005. [Online]. Available: \url{https://bnfc.digitalgrammars.com/LBNF-report.pdf}
-
-\end{thebibliography}
+%\begin{thebibliography}{9} 
+%
+%\bibitem{1} 
+%D. Tang, B. Qin, and T. Liu, ``Document modelling with gated recurrent neural network for sentiment classification,'' in \emph{Proceedings of the 2015 Conference on Empirical Methods in Natural Language Processing}, 2015, pp. 1422--1432.
+%
+%\bibitem{2} 
+%M. Bojarski, et al., ``End to end learning for self-driving cars,'' \emph{arXiv preprint arXiv:1604.07316}, 2016.
+%
+%\bibitem{4} 
+%P. Zhang et al., ``White-box fairness testing through adversarial sampling,'' in \emph{2020 IEEE/ACM 42nd International Conference on Software Engineering (ICSE)}, New York, NY, USA:\@ ACM, 2020, pp. 949--960.\'doi: \href{https://doi.org/10.1145/3377811.3380331}{10.1145/3377811.3380331}.
+%
+%\bibitem{5} 
+%S. Demarchi, D. Guidotti, L. Pulina, and A. Tacchella, ``Supporting Standardization of Neural Networks Verification with VNN-LIB and CoCoNet,'' in \emph{Proc. 6th Int. Workshop on Formal Methods for ML-Enabled Autonomous Systems (FoMLAS 2023)}, 2023, pp. 47--58.
+%
+%\bibitem{6} 
+%C. Brix, S. Bak, C. Liu, and T. T. Johnson, ``The Fourth International Verification of Neural Networks Competition (VNN-COMP 2023): Summary and Results,'' 2023, doi: \href{https://doi.org/10.48550/arxiv.2312.16760}{10.48550/arxiv.2312.16760}.
+%
+%\bibitem{7} 
+%L. C. Cordeiro et al., ``Neural Network Verification is a Programming Language Challenge,'' 2025, doi: \href{https://doi.org/10.48550/arxiv.2501.05867}{10.48550/arxiv.2501.05867}.
+%
+%\end{thebibliography}
 
 \end{document}

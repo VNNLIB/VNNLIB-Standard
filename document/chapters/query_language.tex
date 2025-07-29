@@ -1,153 +1,202 @@
 \chapter{Query Language}\label{sec:specification_language}
 
-The SMT-LIB language is a well-known language used to formalize 
-Satisfiability Modulo Theories problems, and is expressive enough to
-represent the verification properties of interest. In this language, 
-it is possible to define both the \textit{pre-} and 
-\textit{post-}conditions at once, by defining the variables for the
-input and the output of the neural network. In the following we
-show some examples of networks and corresponding properties in the
-SMT-LIB language.
+At the heart of the \vnnlib{} standard is the \vnnlib{} query language. Heavily influenced by SMT-LIB, this language is designed as a standardised computer-readable format for expressing a wide range of satisfiability problems over neural networks. This chapter describes the syntax, scoping, typing and semantics of the query language.
 
 \section{Syntax}
 \label{sec:syntax}
 
 
-The syntax of VNN-LIB is formally defined using Labelled Backus-Naur Form (LBNF)\cite{8}. LBNF is a variant of BNF that allows for 
-annotations (labels) on productions, facilitating the automatic generation of abstract syntax trees, parsers, and other language processing tools. 
-This formal grammar provides a rigorous foundation for the language, eliminating ambiguities present in previous versions and ensuring consistent 
-parsing across different tools.
+Similar to SMT-LIB, the syntax of \vnnlib{} is primarily designed with machine-readability in mind. Although the syntax is somewhat human-readable, maximising human-readability is not a primary goal of the language. Instead it is envisaged that \vnnlib{} queries will be generated automatically by higher level tools that provide better human-orientated interfaces.
 
-The full LBNF grammar for VNN-LIB is provided in the Appendix~\ref{}. The following subsections highlight key syntactic constructs of the language,
-with examples illustrating their usage.
+The syntax of \vnnlib{} is formally defined by the Labelled Backus-Naur Form~\cite{forsberg2005labelled} (LBNF) grammar found in Appendix~\ref{app:lbnf_grammar}. Although we won't describe each of the production rules in detail, we will now describe the key syntactic constructs of the language via illustrative examples.
 
-\subsection{Network declarations}
+Firstly, all \vnnlib{} queries are split into two parts: a list of network declarations and a list of assertions. The former allow users to specify an interface for the networks and bring new abstract variables into scope that represent the input and output values of the network. The latter than reference those variables in order to express the desired constraints that should be satisfied. Currently, the standard does not permit the interleaving of network declarations and assertions. Figure~\ref{fig:simple-query} shows an example of a simple query.
 
-A network declaration is introduced by the keyword \texttt{declare-network}, followed by a user-defined variable name for the network, 
-and then its associated input, hidden (hidden), and output variable declarations. All variables are declared inside of network declarations and variable 
-names must be unique within the scope of the entire VNN-LIB specification.
+\subsection{Simple network declarations}
+\label{sec:network-declarations}
 
-\begin{lstlisting}[
-    caption=Network Definition Example, 
-    style=lbnf,
-    label={lst:network-definition}
-]
-(declare-network acc
-    (declare-input X Real 3)
-    (declare-hidden N Real 1 2 onnx-node:"node_name_in_onnx")
-    (declare-output Y Real 3)
-) 
-\end{lstlisting}
-\mnote{What does `acc' mean? Is there a better example name?}
-\mnote{I would remove the hidden node in this initial example. Let's start off simple!}
-\mnote{Also for all of these it would be great to have a picture of a tiny ONNX network that satisfies them on the RHS. You can build the models in Python and visualise them with https://netron.app/ }
-\mnote{We should also say that the variable names are used in the query, but the network name is not used in the query but to link the networks up to the verifier. Again with suitable forward references.}
+ At its simplest, a network is introduced by the keyword \texttt{declare-network}, followed by a user-defined name for the network, and then declarations for its associated input and output. An input is declared using the \texttt{declare-input} keyword, followed by a variable name, its element type (e.g., \texttt{Real}, \texttt{float64}), 
+and the shape of the tensor. Similarly, an output variable uses the \texttt{declare-output} keyword. In the case of Figure~\ref{fig:simple-query}, the network is named \texttt{myNetwork}, and it has one input called \texttt{X} consisting of a $1 \times 10$ tensor of real numbers and one output called \texttt{Y} consisting of a $1 \times 2$ tensor of real numbers. 
+\begin{figure}[t]
+    \begin{minipage}[c]{0.6\textwidth}
+        \begin{lstlisting}[style=lbnf]
+(declare-network myNetwork
+    (declare-input  X Real [1,10])
+    (declare-output Y Real [1,2])
+)
 
-For instance, Listing~\ref{lst:network-definition} declares a network named \texttt{acc}, with an input tensor \texttt{X}, hidden tensor \texttt{N}, 
-and output tensor \texttt{Y}. 
-\mnote{Can call these "Example" rather than "Listing"? And this text should probably go into the caption rather than below.}
+(assert (>= X[0,2] 0.0))
+(assert (<= X[0,2] 1.0))
+(assert (<= Y[0,1] 0.5))\end{lstlisting}
+    \end{minipage}%
+    \begin{minipage}[c]{0.45\textwidth}
+        \centering
+        \includegraphics[height=5cm]{imgs/simple_net.onnx.png}
+    \end{minipage}
+    \caption{A simple \vnnlib{} specification which declares a network with a single input and output. An example of one of the many possible ONNX models compatible with this declaration is shown on the right. Note that the variable names in the declared inputs and outputs do not have to match the node names in the ONNX file.}
+    \label{fig:simple-query}
+\end{figure}
 
 
+It is important to clarify that a network declaration only declares an \emph{interface} and by default does not refer in any way to a particular ONNX network model. When passing a query and a network to the verifier, the name of the network does not need to match the name of the ONNX model file. Instead, as described in Section~\ref{sec:verify_command}, the user will explicitly associate a network declaration to the relevant model file via the command line.
+Neither do the declared names of the inputs and outputs need to match the names of the input and output nodes within the model file. This flexibility allows many different alternative ONNX models to be compatible with the same query.
 
-\paragraph{Input and Output Variable Declarations}
-An input variable is declared using the \texttt{declare-input} keyword, followed by a variable name, its element type (e.g., \texttt{Real}, \texttt{int8}), 
-and a space-seperated list of integers representing the shape of the tensor. Similarly, an output variable uses the \texttt{declare-output} keyword. Multiple 
-input and output variables can be declared within a single network declaration, and the order of declaration determines the mapping to the nodes in the ONNX model.
-The variables may be explicitly associated with ONNX node names using the \texttt{onnx-node} keyword and a string identifer, only under the condition that all input 
-and output variables are associated with an ONNX node name.
+All variable names follow the same syntax conventions: they are case-sensitive, must start with a letter, and may only contain letters, digits and underscores. All variable names must be unique within the query (see Section~\ref{sec:scoping_and_typing} for a more in-depth discussion). 
 
-\begin{lstlisting}[
-  caption=Input and Output Definition Example,
-  style=lbnf,
-  label={lst:input-output}
-]
-(declare-input X Real 1 28 28) 
-\end{lstlisting}
-\mnote{Can this example be the full network declaration with multiple inputs and outputs?}
-\mnote{Can you then give a second equivalent definition for the same network using the ONNX names instead?}
-\mnote{This section also needs to list the rules for what are valid variable names?}
 
-For example, Listing~\ref{lst:input-output} declares an input tensor named \texttt{X} of real numbers with shape $1 \times 28 \times 28$. 
+% The \texttt{@} character is a reserved character which is used to denote multiple applications of the same network, for the purpose of defining  hyperproperties such as monotonicity. For example \texttt{(declare-network acasXu@1 ...)} and \texttt{(declare-network acasXu@2 ...)} define two networks that are both instances of the same ONNX model,  denoted as \texttt{acasXu} in the command line interface of the verifier (See Chapter~\ref{sec:solver_interface} for more details).
 
-\paragraph{Hidden Node Declarations}
-A hidden node is declared using the \texttt{declare-hidden} keyword. This declaration includes a variable name for use within the VNN-LIB specification, 
-its element type, its tensor shape, and crucially, a string identifier that specifies the corresponding node name in the ONNX graph. The ability to declare hidden nodes
-allows for properties to reference key intermediate computations within the network, such as encoding features, attention mechanisms, or other internal states. Multiple
-hidden nodes can be trivially declared within a single network declaration.
+\subsection{Assertions}
 
-\begin{lstlisting}[
-    caption=hidden Node Declaration Example, 
-    style=lbnf,
-    label={lst:hidden-node}
-]
-(declare-hidden H1 Real 100 onnx-node:"layer3/relu_out") 
-\end{lstlisting}
-\mnote{Again, the full network declaration with an example network on the RHS would be great?}
+The second part of a \vnnlib{} query is a list of assertions that constrain the abstract tensor variables introduced by the network declarations. \vnnlib{} supports quantifier-free logical formulas as \textit{assertions}. Assertions are defined using parenthesized \texttt{(assert\ldots)} expressions, and following an SMT-LIB-like prefix syntax with the 
+operator preceding its operands. An assertion is a logical formula that may include logical connectives, relational comparisons, and arithmetic expressions over declared tensors and constants.
+The final satisfiability problem is then the conjunction of all the assertions.
+ 
+\paragraph{Constants}
 
-Listing~\ref{lst:hidden-node} declares an hidden variable \texttt{H1} of type \texttt{Real} with a shape of `(100)`. The \texttt{onnx-node} attribute 
-specifies that this variable corresponds to the tensor named \texttt{"layer3/relu\_out"} in the associated ONNX graph. 
+Numeric constant values may be referenced using basic standard integer or floating point syntax (e.g. \inlinevnn{0}, \inlinevnn{0.0}, \inlinevnn{-0.5}). 
+
+\paragraph{Variables} 
+
+Standard indexing notation may be used to refer to a specific element within the tensor variable. For example, Line 6 in Figure~\ref{fig:simple-query} uses \inlinevnn{X[0,2]}, to refer to the value of the element of the input tensor at row~0, column~2. All indices are zero based and currently the number of indices provided must be equal to the number of dimensions of the variable, i.e. partial indexing is not allowed.
+
+\paragraph{Arithmetic expressions}
+
+One forms arithmetic expressions by recursively combining constant and variable values via prefix notation. Currently the following operators are supported:
+\begin{itemize}
+	\item \inlinevnn{(- a)}: Negation of a term.
+    \item \inlinevnn{(+ a b ...)}: Addition of two or more terms. 
+    \item \inlinevnn{(* a b ...)}: Multiplication of two or more terms. 
+    \item \inlinevnn{(- a b ...)}: Subtraction of two or more terms. Note that subtraction associates to the left, e.g. \inlinevnn{(- 1 2 3 4)} is the same as \inlinevnn{(- (- (- 1 2) 3) 4)} .
+\end{itemize}
+Arithmetic operations currently only operate over individual tensor elements and cannot be used to operate over multi-dimensional tensors (see Section~\ref{sec:scoping_and_typing} for detailed typing rules).
+
+\paragraph{Comparisons}
+
+The comparison operators \inlinevnn{<=}, \inlinevnn{>=}, \inlinevnn{<}, \inlinevnn{>}, \inlinevnn{=}, \inlinevnn{!=} can be used to compare the values of two arithmetic operations.
+For example, \inlinevnn{(<= a b)} returns true if $a$ is less than or equal to $b$.
+    
+\paragraph{Boolean expressions} 
+
+One forms boolean expressions by recursively combining comparisons via the following supported logical connectives:
+\begin{itemize}
+    \item \inlinevnn{(and a b ...)}: Conjunction of two or more terms.
+    \item \inlinevnn{(or a b ...)}: Disjunction of two or more terms.
+\end{itemize}
+
+\subsection{More complex network declarations}
+\label{sec:complex-networks-decls}
+
+Although queries usually relate the input of a single network to its output in some way, queries can be far more complex in general. The neural network may have multiple input or output nodes, or the query may refer to intermediate hidden layers of the network or it may relate the behaviour of multiple networks. All of these use cases can be expressed within the query language.
+
+\paragraph{Multiple input and output declarations}
+
+Neural network that take multi-modal input or produce multi-modal output are becoming increasingly common. For example, the network in Figure~\ref{fig:multi-inputs-outputs} shows a model that takes both an image and meta-data about that image as inputs, and outputs both a bounding box around an identified object of interest and a probability distribution over the possible classs that the object belongs to. 
+
+The query language supports such networks by allowing a network declaration to declare an arbitrary number of inputs and outputs. The question is then how is the list of declared inputs and outputs mapped to the list of inputs and outputs nodes in the ONNX model. There are two ways to specify this mapping: 
+\begin{itemize}
+    \item \textbf{By order:} the default is that declared inputs and outputs are mapped to the ONNX graph's inputs and outputs by matching the order of declaration in the query to the order of declaration in the ONNX model file. This is demonstrated in the top code snippet in Figure~\ref{fig:multi-inputs-outputs}
+    \item \textbf{By name:} alternatively, variables can be explicitly mapped using the names of the nodes within the ONNX graph. If this method is used, all input and output variables within that network declaration must be given an explicit ONNX node name. This is demonstrated in the bottom code snippet in Figure~\ref{fig:multi-inputs-outputs}.
+\end{itemize}
+
+\begin{figure}[h!]
+    \centering
+    \begin{lstlisting}[style=lbnf]
+(declare-network multi_io_net
+    (declare-input  image    Real [1,3,224,224])
+    (declare-input  metadata Real [1,10])
+    (declare-output bbox     Real [1 4])
+    (declare-output logits   Real [1,1000])
+)\end{lstlisting}
+
+    \begin{lstlisting}[style=lbnf]
+(declare-network multi_io_net
+    (declare-input  metadata Real [1,10]        "metadata")
+    (declare-input  image    Real [1,3,224,224] "image")
+    (declare-output logits   Real [1,1000]      "logits")
+    (declare-output bbox     Real [1,4,2]       "bbox")
+)\end{lstlisting}
+
+    \vspace{0.5cm}
+    \includegraphics[width=\textwidth]{imgs/multi_io_net.onnx.png}
+    \caption{A network with multiple inputs/outputs. The first code snippet shows the declared inputs and outputs mapped to the ONNX inputs and outputs nodes by declaration order, while the second snippet shows them explicitly mapped by the name of the ONNX node.}
+    \label{fig:multi-inputs-outputs}
+\end{figure}
+
+
+\paragraph{Hidden output declarations}
+\label{sec:hidden-output-declarations}
+
+In some use cases it is desirable to constrain the result of intermediate computation at the output of hidden nodes within the network. For example, when reasoning about the encodings in an encoder-decoder architecture or when reasoning about attention mechanisms. This can be achieved by declaring hidden nodes using the \texttt{declare-hidden} keyword. This declaration includes a variable name for use within the \vnnlib{} specification,  its element type, its tensor shape, and crucially, a string identifier that specifies the corresponding node name in the ONNX graph.  Multiple hidden nodes can be trivially declared within a single network declaration. Figure~\ref{fig:hidden-node} shows a \vnnlib{} network declaration with a hidden node.
+
+The hidden node declaration crucially refers to the uniquely identified outputs of a node, rather than the node (or operator) itself. It declares that an output of the node is to be used as a variable in the \vnnlib{} query.
+
+\begin{figure}[h!]
+    \begin{minipage}[c]{0.72\textwidth}
+        \begin{lstlisting}[style=lbnf]   
+(declare-network encoder
+    (declare-input  X Real [1,28,28])
+    (declare-hidden Z Real [1,128] "hidden")
+    (declare-output Y Real [1,10])
+)\end{lstlisting}
+    \end{minipage}%
+    \begin{minipage}[c]{0.25\textwidth}
+        \centering
+        \includegraphics[height=6cm]{imgs/encoder_net.onnx.png}
+    \end{minipage}
+    \caption{\vnnlib{} network declaration that declares a hidden node}
+    \label{fig:hidden-node}
+\end{figure}
 
 \paragraph{Multiple networks}
 
-VNN-LIB supports the definition of more than one neural networks within a single specification file. This is crucial for properties that need to refer to
-multiple networks (e.g. ...). 
+Often you may want to relate the behaviour of one neural network to that of another. Classic examples include: teacher-student networks where you try to train a smaller, more efficient network to mimic the output of the larger network, or observer-controller architectures.
 
-\mnote{TODO, would be good to have an example with multiple networks}
+\vnnlib{} supports defining multiple networks in by including multiple \inlinevnn{(declare-network ...)} expressions in the same query. Figure~\ref{fig:multiple-networks} 
+shows an example which declares two networks representing a teacher and a student network.
 
-\subsection{Assertion declarations}
-VNN-LIB supports quantifier-free logic formulas. Assertions are defined using parenthesised \texttt{(assert\ldots)} expressions, and follows an SMT-LIB-like syntax with the 
-operand preceding its arguments. The operands can be logical operators (e.g., \texttt{and}, \texttt{or}) or arithmetic operators (e.g., \texttt{+}, \texttt{-}, \texttt{*}).
-An assertion is a logical formula that consists of logical and arithmetic operations over one or more elements of the declared tensors.
-
-\paragraph{Variables}
-Let $X \in I$ be an $n$-dimensional tensor in some generic input domain $I = I^{d_1 \times \cdots \times d_n}$. The ``matrix notation'' represents a specific 
-element $x_{i_1, i_2, \dots, i_n}$ of the tensor $X$ as \texttt{X\_$i_1$-$i_2$-\dots-$i_n$}, where $i_1, \dots, i_n$ are the indices of the element of interest in the 
-dimensions $d_1, \dots, d_n$. To better clarify, if we consider the 1-D tensor $X \in I^n$, the 2-D tensor $Y \in I^{n \times m}$, and the 3-D tensor 
-$Z \in I^{n \times m \times p}$, we will have the following representations:
-\begin{itemize}
-    \item \texttt{X\_0}, \texttt{X\_1}, \dots, \texttt{X\_$i$}, \dots, \texttt{X\_$n$};
-    \item \texttt{Y\_0-0}, \texttt{Y\_0-1}, \dots, \texttt{Y\_$i$-$j$}, \dots, \texttt{Y\_$n$-$m$};
-    \item \texttt{Z\_0-0-0}, \texttt{Z\_0-0-1}, \dots, \texttt{Z\_$i$-$j$-$k$}, \dots, \texttt{Z\_$n$-$m$-$p$};
-\end{itemize}
-In such a representation, \texttt{Z\_$i$-$j$-$k$} corresponds to the element $z_{i,j,k}$ of the tensor $Z$. 
-\mnote{Did we really go for dashes in betweens the indices? Why could we not use underscores everywhere?}
-
-\paragraph{Arithmetic expressions}
-\mnote{Discuss the supported arithmetic combinators}
-
-\paragraph{Boolean assertions}
-\mnote{Discuss the supported boolean combinators}
-
-For example, Listing~\ref{lst:assertion-example} asserts that for a given range of the input neuron $A_1$, the output neuron $B_0$ 
-is greater than another output neuron $B_1$. More complex properties, including those referencing multiple networks or hidden nodes, 
-can be constructed using these foundational elements.
-
-\begin{lstlisting} [
-	caption=Assertion Example, 
-	style=lbnf,
-    label={lst:assertion-example}
-]
-(assert 
-    (and 
-        (and (>= A_0 0.0) (<= B_0 1.0)) 
-        (> B_0 B_1)
-    )
+\begin{figure}[h!]
+    \begin{minipage}[c]{0.6\textwidth}
+        \begin{lstlisting}[style=lbnf]
+(declare-network teacher
+    (declare-input  tX Real [1,32])
+    (declare-output tY Real [1,2])
 )
-\end{lstlisting}
-\mnote{Talk about whether whitespace is important or not?}
 
-\section{Scoping}
-\label{sec:scoping}
+(declare-network student
+    (declare-input  sX Real [1,32])
+    (declare-output sY Real [1,2])
+)\end{lstlisting}
+    \end{minipage}
+    \begin{minipage}[c]{0.4\textwidth}
+        \centering
+        \includegraphics[height=7cm]{imgs/teacher_net.onnx.png}
+        \vspace{0.5cm} 
+        \includegraphics[height=5cm]{imgs/student_net.onnx.png}
+    \end{minipage}
+    \caption{Two networks declared in \vnnlib{}: \texttt{teacher\_net} and \texttt{student\_net} respectively.}
+    \label{fig:multiple-networks}
+\end{figure}
 
-TODO Ann
 
-\section{Typing}
-\label{sec:typing}
+\subsection{Comments and whitespace}
 
-TODO Ann
+Comments in \vnnlib{} are denoted by a semicolon (\texttt{;}) and extend to the end of the line. They are used for annotation, explaining logic, or providing additional context. Whitespace in \vnnlib{} is used to separate tokens and improve readability. It can include spaces, tabs, and newlines. Whitespace is ignored by the parser, except where it is necessary to separate tokens.
+
+
+\section{Scoping and Typing}
+\label{sec:scoping_and_typing}
+
+\mnote{TODO: Ann Roy}
+
+\begin{itemize}
+\item Unique variable names
+\item Well-scoped indices within tensor dimensions
+\item Inputs/hidden/output declarations in order.
+\end{itemize}
+
 
 \section{Semantics}
 \label{sec:semantics}
 
-TODO Ann
-
+\mnote{TODO: Ann Roy}

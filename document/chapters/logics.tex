@@ -1,68 +1,303 @@
+\tikzset{
+    % Style for the logic identifiers - reduced padding and height
+    theory/.style={
+        draw, 
+        thick, 
+        rectangle, 
+        rounded corners=2pt, 
+        fill=blue!10, 
+        align=center, 
+        minimum height=2.3em, %<-- Reduced height
+        inner sep=3pt,       %<-- Reduced internal padding
+        font=\small\ttfamily
+    },
+    dtheory/.style={
+    		theory,
+		text width=5cm    
+    },
+    % Style for the main category titles
+    category/.style={
+        font=\bfseries,
+        align=center
+    },
+    % Style for the connecting arrows
+    arrow/.style={
+        ->,
+        thick,
+        >=Stealth
+    }
+}
+   
 
-\chapter{Logics}
-\label{sec:query_categories}
+\chapter{Theories and Logics}
+\label{sec:theories-logics}
 
-\mnote{I've been looking at the SMT-LIB standard (a really useful document! You should definitely have a browse!) and what these really are \emph{logics}: https://smt-lib.org/logics.shtml
+The query language described in Chapter~\ref{sec:specification_language} is is relatively expressive. However, in practice very few verifiers are capable of handling the full range of queries it permits.  To address this, the \vnnlib{} standard takes a similar approach to SMTLib by using the notion of \emph{logics} and \emph{theories} to define subsets of the language.
 
-We should have a similar, much smaller tree, but should cover all possible combinations of these.}
+Each \emph{theory} represents a particular syntactic restriction on the query language, and a \emph{theory set} represents a set of related restrictions that are partially ordered under the inclusion relation. A \emph{logic} represents a subset of the query language and is constructed by selecting exactly one theory from the list of orthogonal theory sets. 
+By reporting the theories supported, a verifier can precisely describe the subset of the query language it supports. The formal reporting mechanism is introduced in Chapter~\ref{sec:global_capabilities}.
 
-\section{Linearity}\label{sec:linearity}
+\section{Theory sets}
 
-\section{Reachability}\label{sec:reachability}
+The currently supported theory sets are:
+\begin{enumerate}
+\item \textbf{Hidden nodes}: Are queries with hidden node declarations  are supported.
+\item \textbf{Multiple networks}: Are queries with more than one network declaration are supported.
+\item \textbf{Multiple input/output nodes}: Are queries with network declarations that declare more than one input/output node  are supported.
+\item \textbf{Multi-node comparisons}: Are queries that contain constraints relating variables from more than one ONNX node are supported.
+\item \textbf{Arithmetic complexity}: What level of mathematical complexity of constraints are supported (e.g. bounds, linear, polynomial). 
+\item \textbf{Datatypes}: What datatypes are supported (e.g. 32-bit floats, reals).
+\end{enumerate}
+The following sections examine each of these theory sets in more detail.
 
-Inputs and outputs of operators are \emph{tensors}, i.e.,
-multidimensional arrays over some domain, usually numerical. 
-If we let $\mathbb{D}$ be any such domain, a $k$-dimensional 
-tensor on $\mathbb{D}$ is denoted as $x \in \mathbb{D}^{n_1 
-	\times \ldots \times n_k}$.
-For example, a vector of $n$ real numbers is a 1-dimensional
-tensor $x \in \mathbb{R}^n$, whereas a matrix of $n \times n$ 
-Booleans is a 2-dimensional tensor $x \in \mathbb{B}^{n 
-	\times n}$ with $\mathbb{B} = \{0, 1\}$. A specific element 
-of a tensor can be singled-out via \emph{subscripting}. 
+\subsection{Hidden nodes}
 
-Given a $k$-dimensional tensor $x \in \mathbb{D}^{n_1 \times 
-	\ldots \times n_k}$, the element $x_{i_1, \ldots, i_k} \in 
-	\mathbb{D}$ is a scalar corresponding to the indexes 
-${i_1, \ldots, i_k}$. For example, in a vector of real numbers 
-$x \in \mathbb{R}^n$, $x_1$ is the first element, $x_2$ the second 
-and so on. In a matrix of Boleans $x \in \mathbb{B}^{n \times
-  n}$, $x_{1,1}$ is the first element of the first row, $x_{2,1}$ 
-is the first element of the second and so on.
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+   \node (h) [theory] {\h \\ (Hidden nodes)};
+   \node (nh) [theory, left=of h, xshift=-1.2cm]  {\nh \\ (No hidden nodes)};
 
-An \emph{operator} $f$ is a function on tensors 
-$f: \mathbb{D}^{n_{1} \times n_h} \to \mathbb{D}^{m_{1} \times m_k}$
-where $h$ is the dimension of the input tensor and $k$ is the 
-dimension of the output tensor. Given a set $F = \{f_1, \ldots, 
-	f_p\}$ of $p$ operators, a \emph{feedforward neural network}
-is a function $\nu = f_p(f_{p-1}(\ldots f_2(f_1(x))\ldots))$ obtained
-through the composition of the operators in $F$ assuming that the 
-dimensions of their inputs and outputs are \emph{compatible}, i.e.,
-if the  output of $f_i$ is a $k$-dimensional tensor, then the input
-of $f_{i+1}$ is also a $k$-dimensional tensor, for all $1 \leq i < p$.
+   \draw [arrow] (nh) -- (h);
+\end{tikzpicture}
+\caption{The ``Hidden nodes'' theory set}
+\label{fig:hidden-nodes-theory-set}
+\end{figure}
 
-Given a neural network $\nu : \mathbb{D}^{n_{1} \times n_h} \to
-\mathbb{D}^{m_{1} \times m_k}$ built on the set of operators $\{f_1,
-\ldots, f_p\}$, let $x \in \mathbb{D}^{n_{1} \times n_h}$ denote
-the input of $\nu$ and $y_1, \ldots, y_p$ denote the outputs of the
-operators $f_1, \ldots, f_p$ --- therefore $y_p$ is also the output
-$y$ of $\nu$. We assume that, in general, a \emph{property} is a first
-order formula $P(x, y_1, \ldots y_p)$ which should be satisfied given 
-$\nu$. More formally, given $p$ bounded sets $X_1, \ldots, X_p$ in $I$ 
-such that $\Pi = \bigcup_{i=1}^p X_i$ and $s$ bounded sets $Y_1, 
-\ldots, Y_s$ in $O$ such that $\Sigma = \bigcup_{i=1}^s Y_i$, we wish
-to prove that  
-\begin{equation}
-	\label{eq:verif}
-	\forall x \in \Pi \rightarrow \nu(x) \in \Sigma.
-\end{equation}
-The definition of the property given in equation (\ref{eq:verif})
-consists of a \textit{pre-}condition $x \in \Pi$ and a 
-\textit{post-}condition $\nu(x) \in \Sigma$. The 
-\textit{pre-}condition encodes the bounds of the input space, i.e.,
-bounds the variables that are fed to the network, and the 
-\textit{post-}condition defines the safe zone, outside which the 
-verification task fails.
+Some neural network verifiers do not support reasoning about hidden nodes. The ``Hidden nodes'' theory set therefore contains two theories \nh{} and \h{}, representing queries that contain networks that do not declare hidden nodes, and queries that contain networks that declare hidden nodes. Therefore \nh{} is a subset of \h{}. For example the following query is a member of both \nh{} and \h{}:
 
-\section{Disjunctive Normal Form}\label{sec:dnf}
+\begin{code}[style=lbnf]
+(declare-network f
+    (declare-input  X Real [1])
+    (declare-output Y Real [1])
+)
+\end{code}
 
+but the following query is only a member of \h{}:
+
+\begin{code}[style=lbnf]
+(declare-network f
+    (declare-input  X Real [1])
+    (declare-hidden H Real [1])
+    (declare-output Y Real [1])
+)
+\end{code}
+
+\subsection{Multiple networks}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+   \node (mnet) [theory] {\mnet{} \\ (Multiple networks)};
+   \node (snet) [theory, left=of mnet]  {\snet{} \\ (Single network)};
+
+   \draw [arrow] (snet) -- (mnet);
+\end{tikzpicture}
+\caption{The ``Multiple networks'' theory set}
+\label{fig:multiple-networks-theory-set}
+\end{figure}
+
+Many neural network verifiers only support reasoning about a single network. The ``Multiple networks'' theory set therefore contains two theories \snet{} and \mnet{}, representing queries that contain a single network and queries that an arbitrary number of network declarations. Therefore \snet{} is a subset of \mnet{}. For example the following query is a member of both \snet{} and \mnet{}:
+
+\begin{code}[style=lbnf]
+(declare-network f
+    (declare-input  X Real [1])
+    (declare-output Y Real [1])
+)
+\end{code}
+
+but the following query is only a member of \mnet{}:
+
+\begin{code}[style=lbnf]
+(declare-network f
+    (declare-input  X Real [1])
+    (declare-output Y Real [1])
+)
+(declare-network g
+    (declare-input  U Real [1])
+    (declare-output W Real [1])
+)
+\end{code}
+
+\subsection{Multiple inputs/output}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+   \node (mio) [theory] {\mio{} \\ (Multiple inputs and outputs)};
+   \node (sio) [theory, left=of mnet, xshift=-1.2cm]  {\sio{} \\ (Single input and output)};
+
+   \draw [arrow] (sio) -- (mio);
+\end{tikzpicture}
+\caption{The ``Multiple inputs/outputs'' theory set}
+\label{fig:multiple-inputs-outputs-set}
+\end{figure}
+
+Many neural network verifiers only support reasoning about networks with a single input and output node. The ``Multiple inputs/outputs'' theory set therefore contains two theories \sio{} and \mio{}, representing queries that contain network declarations that only contain a single input and output node, and queries that contain network declarations that declare an arbitrary number of inputs and outputs. Therefore \sio{} is a subset of \mio{}. For example the following query is a member of both \sio{} and \mio{}:
+
+\begin{code}[style=lbnf]
+(declare-network f
+    (declare-input  X Real [1])
+    (declare-output Y Real [1])
+)
+\end{code}
+
+but the following query is only a member of \mio{}:
+
+\begin{code}[style=lbnf]
+(declare-network f
+    (declare-input  X1 Real [1])
+    (declare-input  X2 Real [1])
+    (declare-output Y  Real [1])
+)
+\end{code}
+
+\subsection{Multi-node comparisons}\label{sec:arch}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+   \node (mnc) [theory] {\mnc{} \\ (Multi-node comparisons)};
+   \node (snc) [theory, left=of mnc]  {\snc{} \\ (Single node comparisons)};
+
+   \draw [arrow] (snc) -- (mnc);
+\end{tikzpicture}
+\caption{The ``Multi-node comparisons'' theory set}
+\label{fig:multi-node-comparisons-theory-set}
+\end{figure}
+
+Many verifiers are based on some variant of abstract interpretation or reachability analysis where an over-approximation of the set of reachable values is computed for each layer in turn.
+One consequence of this is that they cannot easily verify queries that contain a comparison involving variables from different nodes in the same network.
+
+The ``Multi-node comparisons'' theory set therefore contains two theories \snc{} and \mnc{}, representing queries that contain comparisons that do not reference variables from different nodes of the same network, and queries that may contain such comparisons respectively. Therefore \snc{} is a subset of \mnc{}. For example, consider queries that declare the following networks:
+
+\begin{code}[style=lbnf]
+(declare-network f
+    (declare-input  X Real [2])
+    (declare-output Y Real [1])
+)
+
+(declare-network g
+    (declare-input  A Real [2])
+    (declare-hidden H Real [1])
+    (declare-output B Real [1])
+)
+\end{code}
+
+\noindent then queries containing the following comparisons all belong to both \snc{} and \mnc{}:
+
+\begin{code}[style=lbnf]
+(<= (+ X[0] X[1]) 0.1)
+(<= Y[0] 0.1)
+(<= H[0] 0.5)
+(== Y[0] A[0])
+\end{code}
+
+\noindent Note in particular, the last comparison is still allowed even through it references multiple different nodes as they belong to different networks. 
+
+However, the following comparisons only belong to \mnc{}:
+
+\begin{code}[style=lbnf]
+(<= (+ X[0] Y[0]) 0.1)
+(<= H[0] A[1])
+(== B[0] H[0])
+\end{code}
+
+\subsection{Arithmetic complexity}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+   \node (poly)     [theory] {\poly{} \\ (Polynomial arithmetic)};
+   \node (linear)   [theory, left=of poly] {\lin{} \\ (Linear arithmetic)};
+   \node (bounds)   [theory, left=of linear]   {\bnd{} \\ (Bounds)};
+   
+   \draw [arrow] (bounds) -- (linear);
+   \draw [arrow] (linear) -- (poly);  
+\end{tikzpicture}
+\caption{The ``Arithmetic complexity'' theory set.}
+\label{fig:arithmetic-complexities}
+\end{figure}
+
+The more complex the arithmetic constraints the more computationally expensive the verification is. Therefore, the ``Arithmetic complexity'' query set is used to restrict the complexity of the arithmetic constraints by dividing them into three theories:
+
+\begin{enumerate}
+\item \textbf{\bnd{}} - 
+The simplest level of arithmetic complexity is \bnd{}, which restricts query assertions to equalities or inequalities that relate a single variable representing 
+inputs, outputs or hidden nodes to a constant. For example, the following assertions live within \bnd{}:
+
+\begin{code}[style=lbnf]
+(assert (and (<= X[0] 1.0) (<= X[0] 1.0)))
+(assert (>= Y[0] 0.5))
+\end{code}
+
+\item \textbf{\lin{}} - Linear arithmetic restricts query assertions to linear expressions over the variables representing inputs, outputs or hidden nodes. Every query in LIN is also a query in BND. For example, the following assertion belongs in \lin{} but not in \bnd{} e.g. 
+
+\begin{code}[style=lbnf]
+(assert (<= (+ (* 0.5 X[0]) (* 0.75 X[1])) 1.0))
+\end{code}
+
+\item \textbf{\poly{}} - Polynomial arithmetic restricts query assertions to polynomial expressions over the variables representing inputs, outputs or hidden nodes. 
+Every query in POLY is also a query in LIN.
+For example, the following assertion belongs in \poly{} but not in \lin{}
+
+\begin{code}[style=lbnf]
+(assert (<= (* X[0] X[1]) 1.0)
+\end{code}
+
+\end{enumerate}
+
+
+
+\subsection{Datatypes}
+
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}    
+    \node (onnx) [category] at (-2,0) {ONNX defined \\ datatypes};
+    
+    \draw [dashed] (3.3,0.5) -- (3.3,-11);
+    
+    \node (other) [category] at (5,0) {Additional \\ datatypes};
+    
+    
+   \node (d)   [theory, below=of onnx, xshift=-2cm]  {\theory{DOUBLE} \\ (64-bit floats)};
+   \node (f)   [theory, below=of d]  {\theory{FLOAT} \\ (32-bit floats)};
+   \node (f16)   [theory, below=of f]  {\theory{FLOAT16} \\ (16-bit floats)};
+   \node (dots1)   [below=of f16]  {\textbf{...}};
+   \node (bool)   [theory, below=of dots1]  {\theory{BOOL} \\ (booleans)};
+   \node (dots3)   [below=of bool]  {\textbf{...}};
+   
+  \node (i64)   [theory, below=of onnx, xshift=2cm]  {\theory{INT64} \\ (64-bit integers)};
+   \node (i32)   [theory, below=of i64]  {\theory{INT32} \\ (32-bit integers)};
+   \node (i16)   [theory, below=of i32]  {\theory{INT16} \\ (16-bit integers)};
+   \node (dots2)   [below=of i16]  {\textbf{...}};
+   \node (uint4)   [theory, below=of dots2]  {\theory{UINT4} \\ (4-bit unsigned integers)};
+   \node (dots4)   [below=of uint4]  {\textbf{...}};
+   
+   \node (real)        [theory, below=of other] {R \\ (Real)};
+\end{tikzpicture}
+\caption{The ``Datatypes'' theory set. Not all ONNX defined datatypes are shown.}
+\label{fig:vnnlib_capabilities}
+\end{figure}
+
+As discussed in Section~\ref{sec:onnx_overview}, the ONNX format supports a range of different datatypes such \theory{FLOAT} (32-bit floats), \theory{FLOAT16} (16-bit floats), \theory{INT64} (64-bit integers), \theory{BOOL} among many others. Most verifiers will support a particular precision of floating point, or assume real number semantics. 
+
+Therefore every datatype in the ONNX \href{https://onnx.ai/onnx/intro/concepts.html#element-type}{specification} is associated with a \vnnlib{} theory of the same name. A solver supporting a particular datatype theory means that it supports variable declarations that use that datatype. For example, the following network declaration belongs to the \theory{FLOAT16} theory:
+
+\begin{code}[style=lbnf]
+(declare-network f
+    (declare-input  X FLOAT16 [2])
+    (declare-output Y FLOAT16 [1])
+)
+\end{code}
+
+In addition to the supported ONNX datatypes, many verifiers assume real number semantics while performing verification. Although assuming neural networks operate over real numbers is well known to compromise the soundness of verification, it is important for trust in the field that verifiers accurately report their assumptions. Therefore, the VNNLib standard also supports an additional datatype theory \theory{Real} to provide compatability in this case.  There is no inclusion relation between any datatype theories.
+\mnote{Double check?}
+
+\mnote{What about network declarations that mix datatypes?}
+
+\section{Logics}
+
+Logics are therefore composed by the combination of theories from each of the above orthogonal categories. For example, the logic \logic{\h{}-\snet{}-\sio{}-\mnc{}-\lin{}-\theory{FLOAT}} represents the class of queries that contain hidden nodes declarations, a single network declaration with a single input and output using the 32-bit floats, with linear comparisons between arbitrary declared variables.

@@ -7,25 +7,16 @@ parser/bin
 VNNLIBWrappers.hpp
 
 *.so
-build
-
-.vscode
-
-document/*.log
-document/*.out
-document/*.err
-document/*.aux
-document/*.pdf
-document/*.synctex.gz
-
-parser/src/bisonParser/*
-parser/bin
-
-VNNLIBWrappers.hpp
 *.egg-info
 
-*.so
 build
-
 .vscode
 
+document/**/*.log
+document/**/*.out
+document/**/*.err
+document/**/*.aux
+document/**/*.pdf
+document/**/*.synctex.gz
+document/**/*.blg
+document/**/*.toc
