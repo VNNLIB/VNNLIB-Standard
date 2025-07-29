@@ -22,7 +22,6 @@
 \usepackage{longtable} 
 \usepackage{array}
 \usepackage{geometry}
-\usepackage{tikz}
 \usepackage[font={small,it}]{caption}
 \usepackage{nameref}
 
@@ -30,7 +29,15 @@
 \newcommand{\ie}{\textit{i.e.}}
 \newcommand{\vnnlib}{VNN-LIB}
 
-%customized todo
+\usepackage{tikz}
+\usetikzlibrary{
+    arrows.meta,    % For arrow styles
+    positioning,    % For relative positioning of nodes (e.g., below=of)
+    shapes.geometric, % For shapes like rounded rectangles
+    trees           % For drawing tree structures
+}
+
+%customized colours
 \definecolor{lightgreen}{rgb}{0.8,1.0,0.8}
 \definecolor{red}{rgb}{0.8,0,0}
 \definecolor{green}{rgb}{0,0.8,0}
@@ -91,15 +98,42 @@
     escapeinside={\%*}{*} 
 }
 
-\newcommand{\inlinevnn}[1]{\lstinline[style=lbnf]{#1}}
+
+% Stops splitting over multiple pages
+\lstnewenvironment{code}[1][]%
+{
+   \noindent
+   \minipage{\linewidth} 
+   \vspace{0.5\baselineskip}
+   \lstset{basicstyle=\ttfamily\footnotesize,frame=single,#1}}
+{\endminipage}
 
 \newcommand{\mytodo}[1]{\todo[inline,color=lightgreen]{TODO:#1}}
-\newcommand{\mnote}[2][]{\todo[inline,color=blue!10,#1]{Matthew: #2}}
+\newcommand{\mnote}[2][]{\todo[inline,color=red!10,#1]{Matthew: #2}}
 \newcommand{\myremark}[1]{\todo[inline, color=lightgreen]{\textbf{Remark:} #1}}
+
+% Theories
+
+\newcommand{\theory}[1]{\texttt{#1}}
+\newcommand{\nh}{\theory{NH}}
+\newcommand{\h}{\theory{H}}
+\newcommand{\snet}{\theory{SNET}}
+\newcommand{\mnet}{\theory{MNET}}
+\newcommand{\sio}{\theory{SIO}}
+\newcommand{\mio}{\theory{MIO}}
+\newcommand{\snc}{\theory{SNC}}
+\newcommand{\mnc}{\theory{MNC}}
+\newcommand{\bnd}{\theory{BND}}
+\newcommand{\lin}{\theory{LIN}}
+\newcommand{\poly}{\theory{POLY}}
+
+\newcommand{\logic}[1]{\texttt{#1}}
+
+\newcommand{\inlinevnn}[1]{\lstinline[style=lbnf]{#1}}
 
 \title{
 	The \vnnlib{} Standard \\ 
-	Version 2.0 (draft)
+	Version 2.0.0 (draft)
 }
 
 \author[1]{Stefano Demarchi}
@@ -111,9 +145,9 @@
 \author[3]{Allen Antony}
 \author[3]{Matthew Daggitt}
 
-\affil[1]{University of Genoa, Viale Causa 13, 16145 Genoa, Italy}
-\affil[2]{University of Sassari, Via Roma 151, 07100 Sassari, Italy}
-\affil[3]{University of Western Australia, 35 Stirling Hwy, Crawley WA 6009, Australia}
+\affil[1]{University of Genoa, Italy}
+\affil[2]{University of Sassari, Italy}
+\affil[3]{University of Western Australia, Australia}
   
 \begin{document}
 
@@ -132,6 +166,7 @@ landscape.
 \input{chapters/introduction.tex}
 \input{chapters/models.tex}
 \input{chapters/query_language.tex}
+\input{chapters/logics.tex}
 \input{chapters/verifier_interface.tex}
 
 \appendix

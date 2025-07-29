@@ -33,7 +33,7 @@ This chapter defines the CLI for neural network verifiers that conform to the \v
 
 \section{Invocation}
 
-All verifiers adhering to the \vnnlib{} specification should be an executable invokable by the command line, referred to in this document as \texttt{<verifier>}. The general syntax for interacting with the verifier via the CLI is:
+All verifiers adhering to the \vnnlib{} specification should be available as an executable or script invokable by the command line, which will be referred to in this chapter as \texttt{<verifier>}. The general syntax for interacting with the verifier via the CLI is:
 \begin{lstlisting}[style=bash]
 <verifier>
     [global-options] 
@@ -43,8 +43,8 @@ All verifiers adhering to the \vnnlib{} specification should be an executable in
 \end{lstlisting}
 Throughout the following sections, \texttt{<...>} is used to indicate required values and \texttt{[...]} is used to indicate optional values. To illustrate the example usages, we will  use an imaginary verifier called \texttt{\exampleVerifier}.
 
-Naturally invoking the verifier will produce output in the format described in the rest of this section. Unless stated otherwise all output should be printed on \texttt{stdout}. Detailed logs, warnings, or error messages must be printed on \texttt{stderr}.
-At the moment, the \vnnlib{} standard contains two commands: \emph{verify} and \emph{capabilities}. Compliant verifiers can provide additional other non-standard functionality under different commands.
+Invoking the verifier will produce output in the format described in the rest of this section. Unless stated otherwise all output should be printed on \texttt{stdout}. Detailed logs, warnings, or error messages must be printed on \texttt{stderr}.
+At the moment, the \vnnlib{} standard contains two commands: \emph{verify} and \emph{capabilities}. Compliant verifiers can provide additional other non-standard functionality under different commands. 
 
 \section{Global options}
 
@@ -132,7 +132,9 @@ C[1,0]=...
 C[0,0]=...
 Z[0]=...
 \end{lstlisting}
+Compliant verifiers may also support additional non-standard arguments to the \texttt{verify} command to affect the internal behaviour of the verification algorithm. However, such additional non-standard arguments must be optional.
 
+\mnote{TODO: Is there a way to output these tensors more efficiently in a standardised format?}
 
 \section{The \texttt{supports} command}
 \label{sec:global_capabilities}
@@ -150,7 +152,7 @@ and the verifier should be able to report the following capabilities:
 
 \clOutputOption
 {--vnnlib-versions}
-{Prints a newline-separated pair of the minimum and maximum versions of \vnnlib{} that the verifier supports.}
+{Prints a newline-separated pair of the minimum and maximum versions (inclusive) of \vnnlib{} that the verifier supports.}
 {Two version strings}
 \begin{lstlisting}[style=bash]
 %*\exampleVerifier* supports --vnnlib-versions
@@ -182,7 +184,7 @@ FLOAT32
 
 \clOutputOption
 {--onnx-operators}
-{Reports the ONNX operator types (e.g., ``Conv'', ``Relu'', ``Gemm'') that are supported by the verifier. See Section~\ref{sec:model} for more details on the ONNX standard and its operators.
+{Reports the ONNX operator types (e.g., ``Conv'', ``Relu'', ``Gemm'') that are supported by the verifier. See Section~\ref{sec:models} for more details on the ONNX standard and its operators.
 }
 {A newline-separated list of ONNX operators}
 \begin{lstlisting}[style=bash]
@@ -225,7 +227,7 @@ true
 \end{lstlisting}
 
 \clOutputOption
-{--logics}
+{--arithmetic-complexity}
 {Prints a list of supported \vnnlib{} logics, indicating the scope of theoretical support. See Section~\ref{sec:query_categories} for 
     details on each of the logics (e.g., NRA for non-linear real arithmetic support) that may be represented in \vnnlib{}.
 }
