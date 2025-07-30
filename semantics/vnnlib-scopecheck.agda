@@ -5,18 +5,26 @@ open import Data.Product as Product
 open import Data.Bool as Bool
 open import Data.String as String using (String; _==_)
 open import Data.List as List
-open import Data.Maybe using (Maybe; just; nothing)
-
 open import Syntax.AST as 𝐁 hiding (String)
 open import vnnlib-syntax as 𝐕 hiding (Context; mkContext)
+
 
 -- convert the BNFC VariableName to agda string type
 ⟦_⟧asString : 𝐁.VariableName → String
 ⟦ (variableName name) ⟧asString = name
 
+-- The result type
+data Result (A : Set) : Set where
+  error : Result A
+  success : A → Result A
+
+
+-- change to non-empty list using Data.List.Relation.Unary.Any
+
 -- De Brujin's variable binding
 data VariableBinding : Set where
   base : 𝐁.VariableName → VariableBinding
+  -- change to function not pair
   rest : 𝐁.VariableName × VariableBinding → VariableBinding
 
 getBindingVarName : VariableBinding → String
@@ -28,6 +36,7 @@ isVariableNameMatched : VariableBinding → 𝐁.VariableName → Bool
 isVariableNameMatched varBind varName = ⟦ varName ⟧asString == getBindingVarName varBind
 
 -- Context for Scope Checking
+--> Scoping Context
 Context : Set
 Context = VariableBinding
 
@@ -43,41 +52,44 @@ lookUpDeBrujinIndex (rest x) true varName  = suc (lookUpDeBrujinIndex (x .proj�
 lookUpDeBrujinIndex (base x) _ _ = zero -- defaults to 0 index
 
 -- Create Context from network definitions
--- WIP: change from Maybe type to error type so it can "exit"
-repeatedNameInContext : Context → 𝐁.VariableName → Bool → Maybe Context
-repeatedNameInContext x varName false = just (rest (varName , x))
-repeatedNameInContext x varName true = nothing
+addToContext : Result Context → 𝐁.VariableName → Result Context
+addToContext (success x) varName = if (doesVariableExist x varName) then error else success (rest (varName , x))
+addToContext error varName = success (base varName)
 
-addToContext : Maybe Context → 𝐁.VariableName → Maybe Context
-addToContext (just x) varName = repeatedNameInContext x varName (doesVariableExist x varName)
-addToContext nothing varName = just (base varName)
+isErrorContext : Result Context → Bool
+isErrorContext error = true
+isErrorContext (success x) = false
 
-addVarsᵢ : Maybe Context → List 𝐁.InputDefinition → Maybe Context
-addVarsᵢ Γ is = foldl (λ Γ → λ {(inputDef x₁ _ _) → addToContext Γ x₁ ; (inputOnnxDef x₁ _ _ _) → addToContext Γ x₁}) Γ is
+inputVars : 𝐁.InputDefinition → 𝐁.VariableName
+inputVars (inputDef x e t) = x
+inputVars (inputOnnxDef x₁ e t x₂) = x₁
 
-addVarsₕ : Maybe Context → List 𝐁.InputDefinition → List 𝐁.HiddenDefinition → Maybe Context
-addVarsₕ Γ is hs = foldl (λ Γ → λ {(hiddenDef x₁ _ _ _) → addToContext Γ x₁ }) (addVarsᵢ Γ is) hs
+hiddenVars : 𝐁.HiddenDefinition → 𝐁.VariableName
+hiddenVars (hiddenDef x₁ e t x₂) = x₁
 
-addVarsₒ : Maybe Context → List 𝐁.InputDefinition → List 𝐁.HiddenDefinition → List 𝐁.OutputDefinition → Maybe Context
-addVarsₒ Γ [] _ _ = nothing
-addVarsₒ Γ (xᵢ ∷ is) _ [] = nothing
-addVarsₒ Γ (xᵢ ∷ is) hs (xₒ ∷ os) = foldl
-  (λ Γ → λ { (outputDef x₁ _ _) → addToContext Γ x₁ ; (outputOnnxDef x₁ _ _ _) → addToContext Γ x₁ })
-  (addVarsₕ Γ (xᵢ ∷ is) hs) (xₒ ∷ os)
+outputVars : 𝐁.OutputDefinition → 𝐁.VariableName
+outputVars (outputDef x e t) = x
+outputVars (outputOnnxDef x₁ e t x₂) = x₁
 
-addNetworkDefToContext : Maybe Context → 𝐁.NetworkDefinition → Maybe Context
-addNetworkDefToContext Γ (networkDef x is hs os) = addVarsₒ Γ is hs os
+addVars : Result Context → List 𝐁.InputDefinition → List 𝐁.HiddenDefinition → List 𝐁.OutputDefinition → Result Context
+addVars Γ [] _ _ = error
+addVars Γ (xᵢ ∷ is) _ [] = error
+addVars Γ (xᵢ ∷ is) hs (xₒ ∷ os) = Γ₃
+  where
+    Γ₁ = foldl (λ ctx i → addToContext ctx (inputVars i)) Γ (xᵢ ∷ is)                                         -- input definitions to Γ
+    Γ₂ = if isErrorContext Γ₁ then error else foldl (λ ctx h → addToContext ctx (hiddenVars h)) Γ₁ hs         -- then, hidden definitions to Γ
+    Γ₃ = if isErrorContext Γ₂ then error else foldl (λ ctx o → addToContext ctx (outputVars o)) Γ₂ (xₒ ∷ os)  -- finally, output definitions to Γ
 
-mkContext : List 𝐁.NetworkDefinition → Maybe Context
-mkContext networkDefs = foldl (λ Γ n → addNetworkDefToContext Γ n) nothing networkDefs
+addNetworkDefToContext : Result Context → 𝐁.NetworkDefinition → Result Context
+addNetworkDefToContext Γ (networkDef x is hs os) = addVars Γ is hs os
 
+mkContext : List 𝐁.NetworkDefinition → Result Context
+mkContext networkDefs = foldl (λ Γ n → addNetworkDefToContext Γ n) error networkDefs
 
--- scope checking: produces an error or VNNLIB Query
-data ScopeCheckResult : Set where
-  error : ScopeCheckResult
-  success : 𝐕.Query → ScopeCheckResult
+postulate checkAssertions : Result Context → List 𝐁.Assertion → Result 𝐕.Query  
 
-scopeCheck : 𝐁.Query → ScopeCheckResult
+-- change to non-empty list
+scopeCheck : 𝐁.Query → Result 𝐕.Query
 scopeCheck (vNNLibQuery ns []) = error
 scopeCheck (vNNLibQuery [] (x ∷ as)) = error
-scopeCheck (vNNLibQuery (x₁ ∷ ns) (x ∷ as)) = {!!}
+scopeCheck (vNNLibQuery (x₁ ∷ ns) (x ∷ as)) = checkAssertions (mkContext (x₁ ∷ ns)) (x ∷ as)
