@@ -65,12 +65,24 @@ jₒ ε i j = subst Fin (codomainCardinality-eq ε i) j
 
 
 module _ (Γ : Context) (ε : Environment Γ) where
-         
+  open NetworkImplementation
+  open NetworkType
+  
   ⟦_⟧ₐ : ArithExpr Γ → ℚ
   ⟦ (constant a) ⟧ₐ         = a
-  ⟦(negate a) ⟧ₐ            = 0ℚ ℚ.- ⟦ a ⟧ₐ 
-  ⟦ (varInput i j n ) ⟧ₐ    = tensorLookup n (projₙ (NetworkImplementation.domainCardinality (ε i)) {!!} (NetworkImplementation.inputTensors (ε i)))
-  ⟦ (varOutput i j n ) ⟧ₐ   = tensorLookup n (projₙ (NetworkImplementation.codomainCardinality (ε i)) {!!} (NetworkImplementation.networkFunction (ε i) (NetworkImplementation.inputTensors (ε i)))) 
+  ⟦ (negate a) ⟧ₐ            = 0ℚ ℚ.- ⟦ a ⟧ₐ 
+  ⟦ (varInput i j n ) ⟧ₐ    = tensorLookup n tensor
+    where
+      tensor : Tensor ℚ (List.lookup (inputShape (List.lookup Γ i)) j )
+      tensor = projₙ {!!} {!!} tensorsᵢ×
+        where
+          tensorsᵢ× : ProductOfTensors (inputShape (List.lookup Γ i))
+          tensorsᵢ× = {!!}
+          
+  ⟦ (varOutput i j n ) ⟧ₐ   = tensorLookup n tensor -- (projₙ (codomainCardinality (ε i)) {!!} (networkFunction (ε i) (inputTensors (ε i))))
+    where
+      tensor : Tensor ℚ (List.lookup ((outputShape (List.lookup Γ i))) j)
+      tensor = projₙ {!!} {!!} {!!} -- (projₙ (codomainCardinality (ε i)) {!!} (networkFunction (ε i) (inputTensors (ε i))))
   -- Cannot simplify similar cases with fold as context is implicit
   ⟦ (add []) ⟧ₐ             = 0ℚ
   ⟦ (add (a₀ ∷ a)) ⟧ₐ       = ⟦ a₀ ⟧ₐ ℚ.+ ⟦ (add a) ⟧ₐ
