@@ -1,4 +1,5 @@
 ; lunarlander property safe_80
+(vnnlib-version 2.0)
 
 (declare-network lunarlander
     (declare-input X Real [8])
