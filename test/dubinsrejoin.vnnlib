@@ -1,4 +1,5 @@
 ; dubinsrejoin property safe_6
+(vnnlib-version 2.0)
 
 (declare-network dubinsrejoin
 	(declare-input X Real [8] "input_onnx_node")
