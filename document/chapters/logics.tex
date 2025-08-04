@@ -204,6 +204,7 @@ However, the following comparisons only belong to \mnc{}:
 \end{code}
 
 \subsection{Arithmetic complexity}
+\label{sec:arithmetic_complexity}
 
 \begin{figure}[h]
 \centering
@@ -288,15 +289,15 @@ Therefore every datatype in the ONNX \href{https://onnx.ai/onnx/intro/concepts.h
 
 \begin{code}[style=lbnf]
 (declare-network f
-    (declare-input  X FLOAT16 [2])
-    (declare-output Y FLOAT16 [1])
+    (declare-input  X float16 [2])
+    (declare-output Y float16 [1])
 )
 \end{code}
 
 In addition to the supported ONNX datatypes, many verifiers assume real number semantics while performing verification. Although assuming neural networks operate over real numbers is well known to compromise the soundness of verification, it is important for trust in the field that verifiers accurately report their assumptions. Therefore, the VNNLib standard also supports an additional datatype theory \theory{Real} to provide compatability in this case.  There is no inclusion relation between any datatype theories.
-\mnote{Double check?}
 
-\mnote{What about network declarations that mix datatypes?}
+Variables of different ONNX datatypes can be present within the same query, or even the same network. However, arithmetic operations and comparisons can only be performed between variables of the same ONNX datatype.
+The rules governing type checking are described in Section~\ref{sec:scoping_and_typing}
 
 \section{Logics}
 
