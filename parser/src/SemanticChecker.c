@@ -18,7 +18,7 @@ int initErrorList(SemanticContext *ctx) {
 }
 
 
-// Add an error to the list
+// Add an error to the error list stored in the SemanticContext.
 void addError(SemanticContext *ctx, VNNLibError error) {
     int errorCount = ctx->errorCount;
     int errorCapacity = ctx->errorCapacity;
@@ -47,7 +47,7 @@ void addError(SemanticContext *ctx, VNNLibError error) {
 }
 
 
-// Helper to free the error list
+// Free the error list and its contents
 void freeErrorList(SemanticContext *ctx) {
     for (int i = 0; i < ctx->errorCount; i++) {
         free_safe(ctx->errors[i].message);
@@ -61,7 +61,7 @@ void freeErrorList(SemanticContext *ctx) {
 }
 
 
-// Basic error reporting to stderr
+// Report a formatted error message to stderr.
 void reportError(SemanticContext *ctx, const char *format, ...) {
     if (ctx) {
         fprintf(stderr, "Semantic Error: ");
@@ -76,7 +76,7 @@ void reportError(SemanticContext *ctx, const char *format, ...) {
 }
 
 
-// Helper to convert error codes to strings
+// Convert an ErrorCode to a human-readable string.
 const char *errorCodeToString(ErrorCode code) {
     switch (code) {
         case MultipleDeclaration: return "MultipleDeclaration";
@@ -90,7 +90,7 @@ const char *errorCodeToString(ErrorCode code) {
 }
 
 
-// Helper to return errors as a string in a human-readable format
+// Produce a formatted human-readable string of all errors in the context.
 char *reportErrors(SemanticContext *ctx) {
     size_t size = 1024;
     size_t used = 0;
@@ -124,7 +124,7 @@ char *reportErrors(SemanticContext *ctx) {
 }
 
 
-// Helper to return errors as a JSON string
+// Produce a JSON formatted string of all errors in the context.
 char *reportErrorsJSON(SemanticContext *ctx) {
     size_t size = 1024;
     size_t used = 0;
@@ -172,6 +172,7 @@ char *reportErrorsJSON(SemanticContext *ctx) {
 
 // --- Semantic Context Initialization and Cleanup ---
 
+// Compare symbols based on their names
 int symbol_compare(const void *a, const void *b, void *udata) {
     const SymbolInfo *symA = (const SymbolInfo *)a;
     const SymbolInfo *symB = (const SymbolInfo *)b;
@@ -179,13 +180,14 @@ int symbol_compare(const void *a, const void *b, void *udata) {
 }
 
 
+// Hash function for symbols based on their names
 uint64_t symbol_hash(const void *item, uint64_t seed0, uint64_t seed1) {
     const SymbolInfo *sym = (const SymbolInfo *)item;
     return hashmap_sip(sym->name, strlen(sym->name), seed0, seed1);
 }
 
 
-// Helper to free symbol info (does not free nodes from original AST)
+// Helper to free memory allocated when creating a symbol
 void freeSymbolInfo(void *info) {
     if (!info) return;
     SymbolInfo *symbol = (SymbolInfo *)info;
@@ -193,7 +195,8 @@ void freeSymbolInfo(void *info) {
 }
 
 
-// Add symbol to table
+// Add symbol to the symbol map in the SemanticContext. 
+// Produces an error if the symbol already exists.
 // Returns the added symbol or NULL if an error occurred
 SymbolInfo *addSymbol(SemanticContext *ctx, VariableName name, ElementType type, ListInt listInt, SymbolKind kind, char *onnxName) {
     SymbolInfo lookup_key = { .name = name };
@@ -245,7 +248,8 @@ SymbolInfo *addSymbol(SemanticContext *ctx, VariableName name, ElementType type,
 }
 
 
-// Find symbol by name
+// Find symbol by name in the symbol map of the SemanticContext.
+// Returns the SymbolInfo if found, or NULL if not found.
 const SymbolInfo *findSymbol(SemanticContext *ctx, VariableName name) {
     SymbolInfo lookup_key = {.name = name};
     return hashmap_get(ctx->symbolMap, &lookup_key);
@@ -304,6 +308,7 @@ int checkListInt(ListInt p, SemanticContext *ctx, int *symbolShape, int *numDime
 }
 
 
+// Check if the ElementType is in the float family
 bool isFloat(ElementTypeKind kind) {
     return (kind == Real ||
             kind == F16 || 
@@ -319,23 +324,27 @@ bool isFloat(ElementTypeKind kind) {
 }
 
 
+// check if the ElementType is an integer type, including both signed and unsigned integers
 bool isInteger(ElementTypeKind kind) {
     return (kind == I8 || kind == I16 || 
             kind == I32 || kind == I64 || 
             kind == U8 || kind == U16 || 
             kind == U32 || kind == U64 ||
-            kind == PosIntConstant);
-}
-
-
-bool isSignedInteger(ElementTypeKind kind) {
-    return (kind == I8 || kind == I16 || 
-            kind == I32 || kind == I64 || 
+            kind == PosIntConstant ||
             kind == NegIntConstant);
 }
 
 
-// Add this new helper function
+// check if the ElementType is a signed integer type
+bool isSignedInteger(ElementTypeKind kind) {
+    return (kind == I8 || kind == I16 || 
+            kind == I32 || kind == I64 ||
+            kind == PosIntConstant ||
+            kind == NegIntConstant);
+}
+
+
+// Return a string representation of the ElementTypeKind
 const char* elementTypeToString(ElementTypeKind kind) {
     switch (kind) {
         // Floats
@@ -363,7 +372,7 @@ const char* elementTypeToString(ElementTypeKind kind) {
         case PosIntConstant: return "Integer";             // Generic integer
         case NegIntConstant: return "Signed Integer";      // Generic integer
         
-        // Other types
+        // Non-numeric types
         case Bool: return "bool";
         case Str: return "string";
         default: return "UnknownType";
@@ -378,8 +387,8 @@ int checkArithExpr(ArithExpr p, SemanticContext *ctx)
         return 1;
     }
     int err = 0;
-    ElementTypeKind nodeType;
-    ElementTypeKind exprType = ctx->currentDataType;
+    ElementTypeKind nodeType;                           // The type of the current node
+    ElementTypeKind exprType = ctx->currentDataType;    // The type of the last scanned variable or expression
     bool isPreviousTypeUndefined = (exprType == UNDEFINED_ELEMENT_TYPE);
 
     char hint_buffer[256];
@@ -402,14 +411,18 @@ int checkArithExpr(ArithExpr p, SemanticContext *ctx)
             nodeType = (ElementTypeKind)symbol->type->kind;
             bool isPreviousTypeConstant = (exprType == FloatConstant || exprType == NegIntConstant || exprType == PosIntConstant);
 
+            // If the previous type was undefined, set the current data type to the variable's type
             if (isPreviousTypeUndefined) {
                 ctx->currentDataType = nodeType;
                 ctx->lastScannedVariable = p->u.varexpr_.variablename_;
-
+            
+            // Check if the expression type is a constant type
             } else if (isPreviousTypeConstant) {
+                // Check if the variable type is compatible with the constant expression type
                 if ((exprType == FloatConstant && isFloat(nodeType)) || 
                     (exprType == NegIntConstant && isSignedInteger(nodeType)) ||
                     (exprType == PosIntConstant && isInteger(nodeType))) {
+                    // If there is a match, promote the current data type to the variable's type
                     ctx->currentDataType = nodeType;
                     ctx->lastScannedVariable = p->u.varexpr_.variablename_;
 
@@ -429,6 +442,8 @@ int checkArithExpr(ArithExpr p, SemanticContext *ctx)
                     });
                     return 1;
                 }
+
+            // If the expression type is a variable type, check if the variable type exactly matches the expression type
             } else if (exprType != nodeType) {
                 sprintf(hint_buffer, 
                     "Expected type '%s' (from variable '%s'), but variable '%s' has type '%s'.",
@@ -451,10 +466,12 @@ int checkArithExpr(ArithExpr p, SemanticContext *ctx)
             err |= checkSDouble(p->u.doubleexpr_.sdouble_, ctx);
             nodeType = FloatConstant;
 
+            // If the previous type was undefined, set the current data type to FloatConstant
             if (isPreviousTypeUndefined) {
                 ctx->currentDataType = FloatConstant;
                 ctx->lastScannedVariable = p->u.doubleexpr_.sdouble_;
 
+            // If the expression type is a variable type, check the constant node is compatible
             } else if (!isFloat(exprType)) {
                 sprintf(hint_buffer, 
                     "Expected type '%s' (from '%s'), but found a floating-point constant '%s'.",
@@ -476,10 +493,12 @@ int checkArithExpr(ArithExpr p, SemanticContext *ctx)
             err |= checkSInt(p->u.sintexpr_.sint_, ctx);
             nodeType = NegIntConstant;
 
+            // If the previous type was undefined, set the current data type to NegIntConstant
             if (isPreviousTypeUndefined) {
                 ctx->currentDataType = NegIntConstant;
                 ctx->lastScannedVariable = p->u.sintexpr_.sint_;
-
+            
+            // If the expression type is a variable type, check that the constant node is compatible
             } else if (!isSignedInteger(exprType)) {
                 sprintf(hint_buffer, 
                     "Expected type '%s' (from '%s'), but found a negative integer constant '%s'.",
@@ -501,10 +520,12 @@ int checkArithExpr(ArithExpr p, SemanticContext *ctx)
             err |= checkInt(p->u.intexpr_.int_, ctx);
             nodeType = PosIntConstant;
 
+            // If the previous type was undefined, set the current data type to PosIntConstant
             if (isPreviousTypeUndefined) {
                 ctx->currentDataType = PosIntConstant;
                 ctx->lastScannedVariable = p->u.intexpr_.int_;
-
+            
+            // If the expression type is a variable type, check that the constant node matches the expected family
             } else if (!isInteger(exprType)) {
                 sprintf(hint_buffer, 
                     "Expected type '%s' (from '%s'), but found an integer constant '%s'.",
@@ -857,10 +878,10 @@ int checkListInputDefinition(ListInputDefinition p, int *usesOnnxNames, Semantic
         err |= checkInputDefinition(p->inputdefinition_, ctx);
 
         switch (*usesOnnxNames) {
-            case -1:
+            case -1: // Initial state, not yet determined
                 *usesOnnxNames = (p->inputdefinition_->kind == is_InputOnnxDef) ? 1 : 0;
                 break;
-            case 0:
+            case 0: // Previously determined to be ordered inputs/outputs
                 if (p->inputdefinition_->kind == is_InputOnnxDef) {
                     err = 1;
                     addError(ctx, (VNNLibError) {
@@ -871,7 +892,7 @@ int checkListInputDefinition(ListInputDefinition p, int *usesOnnxNames, Semantic
                     });
                 }
                 break;
-            case 1:
+            case 1: // Previously determined to be ONNX-named inputs/outputs
                 if (p->inputdefinition_->kind == is_InputDef) 
                 {
                     err = 1;
@@ -919,10 +940,10 @@ int checkListOutputDefinition(ListOutputDefinition p, int *usesOnnxNames, Semant
         err |= checkOutputDefinition(p->outputdefinition_, ctx);
 
         switch (*usesOnnxNames) {
-            case -1:
+            case -1: // Initial state, not yet determined
                 *usesOnnxNames = (p->outputdefinition_->kind == is_OutputOnnxDef) ? 1 : 0;
                 break;
-            case 0:
+            case 0: // Previously determined to be ordered inputs/outputs
                 if (p->outputdefinition_->kind == is_OutputOnnxDef) {
                     err = 1;
                     addError(ctx, (VNNLibError) {
@@ -933,7 +954,7 @@ int checkListOutputDefinition(ListOutputDefinition p, int *usesOnnxNames, Semant
                     });
                 }
                 break;
-            case 1:
+            case 1: // Previously determined to be ONNX-named inputs/outputs
                 if (p->outputdefinition_->kind == is_OutputDef) 
                 {
                     err = 1;
@@ -1034,6 +1055,8 @@ int checkChar(Char c, SemanticContext *ctx) { return 0; }
 int checkString(char *s, SemanticContext *ctx) { return 0; }
 
 
+// Check that the indices provided for a tensor element access are valid and within bounds.
+// Returns 0 if valid, 1 if there are errors.
 int checkTensorElement(VariableName tensorName, ListInt tensorIndex, SemanticContext *ctx) {
     if (!tensorName) {
         fprintf(stderr, "Checker Error: tensorName is NULL in checkTensorElement.\n");
