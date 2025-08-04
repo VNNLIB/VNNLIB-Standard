@@ -107,18 +107,18 @@ char* write_vnnlib_str(const Query q) {
 char* check_query(const Query q, int json) {
 	char *errorReport = NULL;
 
-    SemanticContext ctx;
-    initSemanticContext(&ctx);
+    SemanticContext *ctx = malloc(sizeof(SemanticContext));
+    initSemanticContext(ctx);
 
     // Start traversal
-    int returnCode = checkQuery(q, &ctx);
+    int returnCode = checkQuery(q, ctx);
 
     // Check for semantic errors
-    if (ctx.errorCount > 0) {
+    if (ctx->errorCount > 0) {
         if (json) {
-            errorReport = reportErrorsJSON(&ctx);
+            errorReport = reportErrorsJSON(ctx);
         } else {
-            errorReport = reportErrors(&ctx);
+            errorReport = reportErrors(ctx);
         }
     } else if (returnCode != 0) {
 		fprintf(stderr, "Semantic checking failed with return code: %d\n", returnCode);
@@ -126,7 +126,7 @@ char* check_query(const Query q, int json) {
 	}
 
 	// Free the semantic context
-	destroySemanticContext(&ctx);
+	destroySemanticContext(ctx);
 
 	return errorReport;
 }
