@@ -467,7 +467,7 @@ class CodeWriter:
 
 if __name__ == "__main__":
 	# Create the CodeWriter instance
-	output_path = os.path.join(os.path.dirname(__file__), "VNNLIBWrappers.hpp")
+	output_path = os.path.join(os.path.dirname(__file__), "vnnlib", "VNNLibWrappers.hpp")
 	code_writer = CodeWriter(HEADER_FILE)
 
 	# Write the constructed code to a file
