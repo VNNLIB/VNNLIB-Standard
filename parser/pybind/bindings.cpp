@@ -1,17 +1,30 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>      
 #include <memory>
+#include <exception>
 
 #include "VNNLib.h" 
 #include "Absyn.h" 
 #include "VNNLIBWrappers.hpp" 
 
-namespace py = pybind11;
 
-std::unique_ptr<QueryWrapper> generate(Query ptr);
+class VNNLibException : public std::exception{
+    private:
+        std::string message_;
+    public:
+        VNNLibException(const std::string &message) : message_(message) {}
+        const char* what() const noexcept override {
+            return message_.c_str();
+        }
+};
+
+
+namespace py = pybind11;
 
 PYBIND11_MODULE(vnnlib, m) {
     m.doc() = "Python bindings for VNNLib parsing and AST traversal";
+
+    py::register_exception<VNNLibException>(m, "VNNLibError");
 
     // --- Base ElementType Wrappers ---
     py::class_<ElementTypeWrapper> elemTypeWrapper(m, "ElementType");
@@ -326,32 +339,63 @@ PYBIND11_MODULE(vnnlib, m) {
         }, py::return_value_policy::reference_internal);
 
 
-    // Main Parsing Function
+    // --- Parsing Functions ---
+    // These functions will call the C functions from VNNLib.h and return a QueryWrapper
+    // They will also handle scope checking and type checking
+    
+    // Function to parse a VNNLib file and return a QueryWrapper
     m.def("parse_vnnlib", [](const std::string& path) -> std::unique_ptr<QueryWrapper> {
         // This calls the C function from VNNLib.h
         Query raw_c_query = parse_vnnlib(path.c_str());
         if (!raw_c_query) {
-            throw std::runtime_error("Failed to parse VNNLib file: C parser returned null.");
+            throw VNNLibException("Failed to parse VNNLib file: C parser returned null.");
         }
 
         // Scope Checking
         char *error_message = check_query(raw_c_query, 1);
         if (error_message != nullptr) {
             std::string error_str(error_message);
-            free(error_message); 
-            free_Query(raw_c_query); 
-            throw std::runtime_error("VNNLib query parsing error:\n" + error_str);
+            free(error_message);
+            free_Query(raw_c_query);
+            throw VNNLibException(error_str);
         }
 
         std::unique_ptr<QueryWrapper> query_ast_wrapper = generate(raw_c_query);
         
         if (!query_ast_wrapper) {
             free_Query(raw_c_query); // Clean up the raw C pointer if wrapper generation failed
-            throw std::runtime_error("Failed to generate C++ AST wrappers from parsed VNNLib query.");
+            throw VNNLibException("Failed to generate C++ AST wrappers from parsed VNNLib query.");
         }
         
         return query_ast_wrapper;
     }, py::doc("Parses a VNNLib file and returns a traversable AST Query object."));
+
+    // Function to parse a VNNLib file from a string and return a QueryWrapper
+    m.def("parse_vnnlib_str", [](const std::string& path) -> std::unique_ptr<QueryWrapper> {
+        // This calls the C function from VNNLib.h
+        Query raw_c_query = parse_vnnlib_str(path.c_str());
+        if (!raw_c_query) {
+            throw VNNLibException("Failed to parse VNNLib file: C parser returned null.");
+        }
+
+        // Scope Checking
+        char *error_message = check_query(raw_c_query, 1);
+        if (error_message != nullptr) {
+            std::string error_str(error_message);
+            free(error_message);
+            free_Query(raw_c_query);
+            throw VNNLibException(error_str);
+        }
+
+        std::unique_ptr<QueryWrapper> query_ast_wrapper = generate(raw_c_query);
+        
+        if (!query_ast_wrapper) {
+            free_Query(raw_c_query); // Clean up the raw C pointer if wrapper generation failed
+            throw VNNLibException("Failed to generate C++ AST wrappers from parsed VNNLib query.");
+        }
+        
+        return query_ast_wrapper;
+    }, py::doc("Parses a VNNLib string and returns a traversable AST Query object."));
 
 
 #ifdef VERSION_INFO
