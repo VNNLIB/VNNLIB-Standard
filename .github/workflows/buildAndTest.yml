@@ -62,8 +62,15 @@ jobs:
         run: |
           echo "Generating and building the Python wrapper..."
           python generate_wrappers.py
-          python setup.py build_ext --inplace
 
+          python -m pip install -e . --no-deps
+
+          printf '%s\n' 'from ._core import *' > vnnlib/__init__.pyi
+          pybind11-stubgen vnnlib._core -o .
+          touch vnnlib/py.typed\
+
+          pip install -e . --upgrade --no-deps
+          
           echo "Build complete."
 
       - name: Test Python parser

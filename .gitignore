@@ -3,14 +3,15 @@ Syntax
 
 parser/src/bisonParser/*
 parser/bin
-
-VNNLIBWrappers.hpp
-
-*.so
+VNNLibWrappers.hpp
+*.pyi
+py.typed
 *.egg-info
-
+*.so
 build
+
 .vscode
+__pycache__
 
 document/**/*.log
 document/**/*.out

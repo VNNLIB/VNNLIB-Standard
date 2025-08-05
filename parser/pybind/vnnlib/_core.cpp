@@ -5,7 +5,7 @@
 
 #include "VNNLib.h" 
 #include "Absyn.h" 
-#include "VNNLIBWrappers.hpp" 
+#include "VNNLibWrappers.hpp" 
 
 
 class VNNLibException : public std::exception{
@@ -21,7 +21,7 @@ class VNNLibException : public std::exception{
 
 namespace py = pybind11;
 
-PYBIND11_MODULE(vnnlib, m) {
+PYBIND11_MODULE(_core, m) {
     m.doc() = "Python bindings for VNNLib parsing and AST traversal";
 
     py::register_exception<VNNLibException>(m, "VNNLibError");
