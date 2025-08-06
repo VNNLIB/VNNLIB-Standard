@@ -26,8 +26,8 @@ convertMaybeToResult : {A : Set} → Maybe A → Result A
 convertMaybeToResult (just x) = success x
 convertMaybeToResult nothing = error
 
-convertListToNonEmptyList : {A : Set} → List A → Result (List⁺ A)
-convertListToNonEmptyList lst = convertMaybeToResult (fromList lst)
+convertListToList⁺ : {A : Set} → List A → Result (List⁺ A)
+convertListToList⁺ lst = convertMaybeToResult (fromList lst)
 
 -- Context for scope checking
 ScopeContext : Set
@@ -37,19 +37,6 @@ ScopeContext = List⁺ (𝐁.VariableName) -- × with 𝐁.TensorShape
 doesVariableNameExist : ScopeContext → 𝐁.VariableName → Bool
 doesVariableNameExist(head₁ ∷ []) name = ⟦ head₁ ⟧asString == ⟦ name ⟧asString
 doesVariableNameExist (head₁ ∷ x ∷ tail₁) name = false ∨ (⟦ x ⟧asString == ⟦ name ⟧asString) ∨ (doesVariableNameExist (head₁ ∷ tail₁) name)
-
--- Takes the ScopeContext and a variable Name, and produces an `Any Bool List` with `here true` where the Scope Context == variableName
-variableNameInContext : (l : ScopeContext) → 𝐁.VariableName → Result (Any (λ z → Bool) (toList l))
-variableNameInContext (head₁ ∷ []) name = if doesVariableNameExist (head₁ ∷ []) name then success (here true) else error
-variableNameInContext (head₁ ∷ x ∷ tail₁) name = if doesVariableNameExist (x ∷ []) name then {!!} else {!!}
-  where
-    varHead : ScopeContext → 𝐁.VariableName → Bool
-    varHead ctx vname = doesVariableNameExist ctx vname
-
--- Assumes that the variable name is already in context
-getDeBrujin'sIndex : {l : ScopeContext} → Any (λ z → Bool) (toList l) → Fin (List.length (toList l))
-getDeBrujin'sIndex actx = index actx
-
 
 -- Create Context from network definitions
 -- -- The first addition to the scope context - the only instance where an error ScopeContext can be built on
@@ -73,7 +60,6 @@ outputVars : 𝐁.OutputDefinition → 𝐁.VariableName
 outputVars (outputDef x e t) = x
 outputVars (outputOnnxDef x₁ e t x₂) = x₁
 
-
 -- Utilized for the first network definition, to first construct the context
 addVars₁ : Result ScopeContext → List⁺ 𝐁.InputDefinition → List 𝐁.HiddenDefinition → List⁺ 𝐁.OutputDefinition → Result ScopeContext
 addVars₁ Γ is hs os = Γ₃ 
@@ -90,7 +76,7 @@ addVarsₙ Γ is hs os = Γ₃
     Γ₂ = List.foldl (λ ctx h → addToContextₙ ctx (hiddenVars h)) Γ₁ hs                                 -- then, hidden definitions to Γ
     Γ₃ = foldl (λ ctx o → addToContextₙ ctx (outputVars o)) (λ o → addToContextₙ Γ (outputVars o)) os  -- finally, output definitions to Γ
 
--- Convert the input and output definitions from List to List⁺
+-- Convert the input and output definitions from List to List⁺ i.e. inputs and outputs MUST be NonEmpty Lists
 addDefinitionVarsToContext :
   (Result ScopeContext → List⁺ 𝐁.InputDefinition → List 𝐁.HiddenDefinition → List⁺ 𝐁.OutputDefinition → Result ScopeContext) →
     Result ScopeContext → Result (List⁺ 𝐁.InputDefinition) → List 𝐁.HiddenDefinition → Result (List⁺ 𝐁.OutputDefinition) → Result ScopeContext
@@ -104,19 +90,35 @@ mkScopeContext networkDefs = List⁺.foldl addNetworkDefToContext (addNetworkDef
   where
     addNetworkDefToContext₁ : 𝐁.NetworkDefinition → Result ScopeContext
     addNetworkDefToContext₁ (networkDef x is hs os) = addDefinitionVarsToContext
-      addVars₁ error ((λ lₙ → convertListToNonEmptyList lₙ) is) hs ((λ lₙ → convertListToNonEmptyList lₙ) os)
+      addVars₁ error ((λ lₙ → convertListToList⁺ lₙ) is) hs ((λ lₙ → convertListToList⁺ lₙ) os)
       
     addNetworkDefToContext : Result ScopeContext → 𝐁.NetworkDefinition → Result ScopeContext
     addNetworkDefToContext error (networkDef x is hs os) = error
     addNetworkDefToContext (success x₁) (networkDef x is hs os) = addDefinitionVarsToContext
-      addVarsₙ (success x₁) ((λ lₙ → convertListToNonEmptyList lₙ) is) hs ((λ lₙ → convertListToNonEmptyList lₙ) os)
-    
-      
-postulate checkAssertions : Result ScopeContext → List⁺ 𝐁.Assertion → Result 𝐕.Query  
+      addVarsₙ (success x₁) ((λ lₙ → convertListToList⁺ lₙ) is) hs ((λ lₙ → convertListToList⁺ lₙ) os)
+
+-- -- -- -- Checking assertions -- -- -- -- 
+-- Takes the ScopeContext and a variable Name, and produces an `Any Bool List` with `here true` where the Scope Context == variableName
+-- -- Data.List.Relation.Unary.Any
+variableNameInContext : (l : ScopeContext) → 𝐁.VariableName → Result (Any (λ z → Bool) (toList l))
+variableNameInContext (head₁ ∷ []) name = if doesVariableNameExist (head₁ ∷ []) name then success (here true) else error
+variableNameInContext (head₁ ∷ x ∷ tail₁) name = if doesVariableNameExist (x ∷ []) name then {!!} else {!!}
+  where
+    varHead : ScopeContext → 𝐁.VariableName → Bool
+    varHead ctx vname = doesVariableNameExist ctx vname
+
+-- Assumes that the variable name is already in context
+getDeBrujin'sIndex : {l : ScopeContext} → Any (λ z → Bool) (toList l) → Fin (List.length (toList l))
+getDeBrujin'sIndex actx = index actx
+
+-- Check Assertions from the constructed Scope Context
+checkAssertions : Result ScopeContext → List⁺ 𝐁.Assertion → Result 𝐕.Query
+checkAssertions error asserts = error
+checkAssertions (success x) asserts = {!!}
 
 -- change to non-empty list
 scopeCheck : 𝐁.Query → Result 𝐕.Query
-scopeCheck (vNNLibQuery ns as) = queries⁺ ((λ lₙ → convertListToNonEmptyList lₙ) ns) ((λ lₙ → convertListToNonEmptyList lₙ) as)
+scopeCheck (vNNLibQuery ns as) = queries⁺ ((λ lₙ → convertListToList⁺ lₙ) ns) ((λ lₙ → convertListToList⁺ lₙ) as)
   where
     queries⁺ : Result (List⁺ 𝐁.NetworkDefinition) → Result (List⁺ 𝐁.Assertion) → Result 𝐕.Query
     queries⁺ error net = error
