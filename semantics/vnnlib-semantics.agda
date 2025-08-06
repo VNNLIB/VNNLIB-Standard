@@ -24,6 +24,12 @@ stabulate : ∀ n → (f : Fin n → Level) → (g : (i : Fin n) → Set (f i)) 
 stabulate ℕ.zero f g = _
 stabulate (suc n) f g = g Fin.zero , stabulate n (f ∘′ Fin.suc) (λ u → g (Fin.suc u))
 
+-- special proj for nnary products from stabulate
+projₙ-stabulate : ∀ n (f : Fin n → Level) (g : (i : Fin n) → Set (f i)) k → Product n (stabulate n f g) → g k
+projₙ-stabulate (ℕ.suc ℕ.zero) f g Fin.zero prod = prod
+projₙ-stabulate (2+ n) f g Fin.zero prod = proj₁ prod
+projₙ-stabulate (2+ n) f g (Fin.suc k) prod = projₙ-stabulate (ℕ.suc n) (f ∘′ Fin.suc) (λ u → g (Fin.suc u))  k (proj₂ prod)
+
     
 -- Network Implementation Representation
 ProductOfTensorsLevel : List TensorShape → Level
@@ -41,36 +47,20 @@ record NetworkImplementation (networkType : NetworkType) : Set
   field
     networkFunction : ProductOfTensors inputShape → ProductOfTensors outputShape
     inputTensors : ProductOfTensors inputShape
-  domainCardinality : ℕ
-  domainCardinality = List.length inputShape
-  codomainCardinality : ℕ
-  codomainCardinality = List.length outputShape
 
 Environment : Context → Setω
 Environment Γ =
   (i : Fin (List.length Γ)) → let networkType = List.lookup Γ i in NetworkImplementation networkType
 
--- WIP: proofs that NetworkImplementation.domainCardinality and codomainCardinality is the same value as the list length of the number of inputs and outputs
-domainCardinality-eq : ∀ {Γ} (ε : Environment Γ) (i : Fin (List.length Γ)) → NetworkImplementation.domainCardinality (ε i) ≡ List.length (NetworkType.inputShape (List.lookup Γ i))
-domainCardinality-eq ε i = Eq.refl
-
-jᵢ : ∀ {Γ} (ε : Environment Γ) (i : Fin (List.length Γ)) (j : Fin (List.length (NetworkType.inputShape (List.lookup Γ i)))) →  Fin (NetworkImplementation.domainCardinality (ε i))
-jᵢ ε i j = subst Fin (domainCardinality-eq ε i) j
-
-codomainCardinality-eq : ∀ {Γ} (ε : Environment Γ) (i : Fin (List.length Γ)) → NetworkImplementation.codomainCardinality (ε i) ≡ List.length (NetworkType.outputShape (List.lookup Γ i))
-codomainCardinality-eq ε i = Eq.refl
-
-jₒ : ∀ {Γ} (ε : Environment Γ) (i : Fin (List.length Γ)) (j : Fin (List.length (NetworkType.outputShape (List.lookup Γ i)))) →  Fin (NetworkImplementation.codomainCardinality (ε i))
-jₒ ε i j = subst Fin (codomainCardinality-eq ε i) j
-
 
 module _ (Γ : Context) (ε : Environment Γ) where
+  open NetworkImplementation
          
   ⟦_⟧ₐ : ArithExpr Γ → ℚ
   ⟦ (constant a) ⟧ₐ         = a
   ⟦(negate a) ⟧ₐ            = 0ℚ ℚ.- ⟦ a ⟧ₐ 
-  ⟦ (varInput i j n ) ⟧ₐ    = tensorLookup n (projₙ (NetworkImplementation.domainCardinality (ε i)) {!!} (NetworkImplementation.inputTensors (ε i)))
-  ⟦ (varOutput i j n ) ⟧ₐ   = tensorLookup n (projₙ (NetworkImplementation.codomainCardinality (ε i)) {!!} (NetworkImplementation.networkFunction (ε i) (NetworkImplementation.inputTensors (ε i)))) 
+  ⟦ (varInput iₙₑₜ jᵢₙₚ indices ) ⟧ₐ    = tensorLookup indices (projₙ-stabulate _ _ _ jᵢₙₚ (inputTensors (ε iₙₑₜ)))
+  ⟦ (varOutput iₙₑₜ jₒᵤₜ indices ) ⟧ₐ   = tensorLookup indices (projₙ-stabulate _ _ _ jₒᵤₜ (networkFunction (ε iₙₑₜ) (inputTensors (ε iₙₑₜ))))
   -- Cannot simplify similar cases with fold as context is implicit
   ⟦ (add []) ⟧ₐ             = 0ℚ
   ⟦ (add (a₀ ∷ a)) ⟧ₐ       = ⟦ a₀ ⟧ₐ ℚ.+ ⟦ (add a) ⟧ₐ
