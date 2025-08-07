@@ -20,7 +20,8 @@ typedef enum {
     IndexOutOfBounds,
     TooManyIndices,
     NotEnoughIndices,
-    UnexpectedOnnxName
+    UnexpectedOnnxName,
+    InvalidDimensions,
 } ErrorCode;
 
 
@@ -92,7 +93,7 @@ typedef struct SemanticContext {
     int errorCount;  
 
     ElementTypeKind currentDataType;        // Current data type being checked
-    char *lastScannedVariable;       // Used to track the last scanned variable for error reporting
+    char *lastScannedVariable;              // Used to track the last scanned variable for error reporting
 } SemanticContext;
 
 

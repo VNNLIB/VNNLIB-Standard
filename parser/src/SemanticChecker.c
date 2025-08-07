@@ -85,6 +85,8 @@ const char *errorCodeToString(ErrorCode code) {
         case IndexOutOfBounds: return "IndexOutOfBounds";
         case TooManyIndices: return "TooManyIndices";
         case NotEnoughIndices: return "NotEnoughIndices";
+        case UnexpectedOnnxName: return "UnexpectedOnnxName";
+        case InvalidDimensions: return "InvalidDimensions";
         default: return "UnknownErrorCode";
     }
 }
@@ -209,6 +211,7 @@ SymbolInfo *addSymbol(SemanticContext *ctx, VariableName name, ElementType type,
         });
         return NULL;
     }
+    ctx->lastScannedVariable = name;
 
     SymbolInfo newSymbol;
     int *symbolShape = malloc(sizeof(int) * MAX_DIMENSIONS);
@@ -299,8 +302,19 @@ int checkListInt(ListInt p, SemanticContext *ctx, int *symbolShape, int *numDime
             fprintf(stderr, "Checker Error: Too many dimensions in ListInt, exceeds MAX_DIMENSIONS.\n");
             return 1;
         }
+        int dim = strtol(p->int_, NULL, 10);
 
-        symbolShape[*numDimensions] = strtol(p->int_, NULL, 10);
+        if (dim < 1) {
+            addError(ctx, (VNNLibError) {
+                .message = "Invalid dimension size",
+                .offendingSymbol = ctx->lastScannedVariable,
+                .hint = "Dimension sizes must be positive integers.",
+                .errorCode = InvalidDimensions
+            });
+            return 1;
+        }
+
+        symbolShape[*numDimensions] = dim;
         p = p->listint_;
         (*numDimensions)++;
     }
@@ -396,9 +410,7 @@ int checkArithExpr(ArithExpr p, SemanticContext *ctx)
     switch(p->kind)
     {
         case is_VarExpr:
-            err |= checkTensorElement(p->u.varexpr_.variablename_, p->u.varexpr_.listint_, ctx);
             const SymbolInfo *symbol = findSymbol(ctx, p->u.varexpr_.variablename_);
-
             if (!symbol) {
                 addError(ctx, (VNNLibError) {
                     .message = "Undeclared variable",
@@ -408,6 +420,9 @@ int checkArithExpr(ArithExpr p, SemanticContext *ctx)
                 });
                 return 1;
             }
+
+            err |= checkTensorElement(p->u.varexpr_.variablename_, p->u.varexpr_.listint_, ctx);
+
             nodeType = (ElementTypeKind)symbol->type->kind;
             bool isPreviousTypeConstant = (exprType == FloatConstant || exprType == NegIntConstant || exprType == PosIntConstant);
 
@@ -878,6 +893,8 @@ int checkListInputDefinition(ListInputDefinition p, int *usesOnnxNames, Semantic
         err |= checkInputDefinition(p->inputdefinition_, ctx);
 
         switch (*usesOnnxNames) {
+            case -2: // Already detected an error
+                break;
             case -1: // Initial state, not yet determined
                 *usesOnnxNames = (p->inputdefinition_->kind == is_InputOnnxDef) ? 1 : 0;
                 break;
@@ -885,11 +902,12 @@ int checkListInputDefinition(ListInputDefinition p, int *usesOnnxNames, Semantic
                 if (p->inputdefinition_->kind == is_InputOnnxDef) {
                     err = 1;
                     addError(ctx, (VNNLibError) {
-                        .message = "Expected ordered input variables but got an ONNX-named input variable",
-                        .offendingSymbol = p->inputdefinition_->u.inputdef_.variablename_,
+                        .message = "Expected ordered input variables but got an ONNX-named input variable. Input",
+                        .offendingSymbol = p->inputdefinition_->u.inputonnxdef_.variablename_,
                         .hint = "All (input/output) variables for a network must have an ONNX name OR no (input/output) variables may have an ONNX name.",
                         .errorCode = UnexpectedOnnxName
                     });
+                    *usesOnnxNames = -2; 
                 }
                 break;
             case 1: // Previously determined to be ONNX-named inputs/outputs
@@ -902,6 +920,7 @@ int checkListInputDefinition(ListInputDefinition p, int *usesOnnxNames, Semantic
                         .hint = "All (input/output) variables for a network must have an ONNX name OR no (input/output) variables may have an ONNX name.",
                         .errorCode = UnexpectedOnnxName
                     });
+                    *usesOnnxNames = -2; 
                 }
                 break;
             default:
@@ -947,11 +966,12 @@ int checkListOutputDefinition(ListOutputDefinition p, int *usesOnnxNames, Semant
                 if (p->outputdefinition_->kind == is_OutputOnnxDef) {
                     err = 1;
                     addError(ctx, (VNNLibError) {
-                        .message = "Expected ordered output variables but got an ONNX-named output variable",
+                        .message = "Expected ordered output variables but got an ONNX-named output variable. Output",
                         .offendingSymbol = p->outputdefinition_->u.outputonnxdef_.variablename_,
                         .hint = "All (input/output) variables for a network must have an ONNX name OR no (input/output) variables may have an ONNX name.",
                         .errorCode = UnexpectedOnnxName
                     });
+                    *usesOnnxNames = -2; 
                 }
                 break;
             case 1: // Previously determined to be ONNX-named inputs/outputs
@@ -964,6 +984,7 @@ int checkListOutputDefinition(ListOutputDefinition p, int *usesOnnxNames, Semant
                         .hint = "All (input/output) variables for a network must have an ONNX name OR no (input/output) variables may have an ONNX name.",
                         .errorCode = UnexpectedOnnxName
                     });
+                    *usesOnnxNames = -2; 
                 }
                 break;
             default:
@@ -1032,6 +1053,7 @@ int checkQuery(Query p, SemanticContext *ctx)
     {
     case is_VNNLibQuery:
         err |= checkListNetworkDefinition(p->u.vnnlibquery_.listnetworkdefinition_, ctx);
+        if (err) return err;
         err |= checkListAssertion(p->u.vnnlibquery_.listassertion_, ctx);
         break;
     default:
@@ -1065,17 +1087,6 @@ int checkTensorElement(VariableName tensorName, ListInt tensorIndex, SemanticCon
     int err = 0;
 
     const SymbolInfo *symbol = findSymbol(ctx, tensorName); 
-
-    if (!tensorIndex) {
-        err = 1;
-        addError(ctx, (VNNLibError) {
-            .message = "No indices provided for tensor element",
-            .offendingSymbol = tensorName,
-            .hint = "Tensor element access requires indices.",
-            .errorCode = NotEnoughIndices
-        });
-        return err;
-    }
 
     if (symbol->numDimensions == 0) {
         int firstIndex = atoi(tensorIndex->int_);
