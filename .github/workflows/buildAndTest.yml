@@ -36,7 +36,7 @@ jobs:
           sudo apt-get install -y clang
 
       - name: Install Python dependencies
-        run: pip install pybind11 libclang setuptools
+        run: pip install pybind11 libclang setuptools pytest pybind11-stubgen
 
       - name: Install BNFC and Haskell dependencies
         run: |
@@ -70,12 +70,13 @@ jobs:
           touch vnnlib/py.typed\
 
           pip install -e . --upgrade --no-deps
-          
+
           echo "Build complete."
 
       - name: Test Python parser
         working-directory: parser/pybind
         run: |
           python test_vnnlib.py
-
+          pytest --maxfail=1 --disable-warnings -q
+          
           echo "Python parser tests completed successfully."
