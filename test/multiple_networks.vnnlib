@@ -1,3 +1,5 @@
+(vnnlib-version 2.0)
+
 (declare-network AcasXu
 	(declare-input A Real [5])
 	(declare-output B Real [5])

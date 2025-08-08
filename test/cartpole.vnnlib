@@ -1,4 +1,5 @@
 ; cartpole property unsafe_44
+(vnnlib-version 2.0)
 
 (declare-network cartpole
     (declare-input X Real [4])
