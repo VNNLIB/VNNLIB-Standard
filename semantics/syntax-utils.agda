@@ -71,3 +71,10 @@ hiddenVars (hiddenDef x₁ e t x₂) = x₁
 outputVars : 𝐁.OutputDefinition → 𝐁.VariableName
 outputVars (outputDef x e t) = x
 outputVars (outputOnnxDef x₁ e t x₂) = x₁
+
+getInputDefs : 𝐁.NetworkDefinition → List 𝐁.InputDefinition
+getInputDefs (networkDef _ is _ _) = is
+
+getOutputDefs : 𝐁.NetworkDefinition → List 𝐁.OutputDefinition
+getOutputDefs (networkDef _ _ _ os) = os
+    
