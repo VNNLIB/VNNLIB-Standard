@@ -1,0 +1,23 @@
+[build-system]
+requires = ["pybind11>=2.6.0", "setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vnnlib"
+version = "1.0.0"
+description = "Python bindings for VNNLib parsing and AST manipulation"
+license = {text = "MIT"}
+authors = [
+    {name = "Allen Antony", email = "allenantony2001@gmail.com"},
+]
+requires-python = ">=3.7"
+dependencies = [
+    "pybind11>=2.6.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["vnnlib*"]
+
+[tool.setuptools.package-data]
+vnnlib = ["*.so", "py.typed", "*.pyi"]
