@@ -1,43 +1,233 @@
 
-# Remove old parser directory if it exists
-echo "Cleaning up old parser directory..."
+#!/bin/bash
 
-if [ -d "parser/src/bisonParser" ]; then
-    rm -rf parser/src/bisonParser
-fi
+# Script for building the C++ BNFC-based VNNLib parser
 
-cd parser/pybind
-python setup.py clean --all
-rm vnnlib/*.so
-cd ../..
+set -e  # Exit on any error
+set -u  # Exit on undefined variables
 
-# Build the BNFC parser and make the C library
-echo "Building BNFC parser..."
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
 
-bnfc --c -m -o parser/src/bisonParser syntax.cf 
+# Helper functions
+log_info() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+}
 
-# make the C parser and terminate if it fails
-echo "Building C parser..."
+log_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+}
 
-make clean -C parser
-make -C parser || { echo "Make failed"; exit 1; }
+log_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
+}
 
-sed -i '/#define PRINTER_HEADER/a\
-\nextern char *buf_;\
-' parser/src/bisonParser/Printer.h
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
 
-# Generate the Python library
-echo "Building Python parser..."
+# Clean previous builds
+clean_build() {
+    log_info "Cleaning previous builds..."
+    
+    # Clean C++ parser
+    if [ -d "parser_cpp/cpp/build" ]; then
+        rm -rf parser_cpp/cpp/build
+        log_info "Removed C++ build directory"
+    fi
+    
+    if [ -d "parser_cpp/cpp/bin" ]; then
+        rm -rf parser_cpp/cpp/bin
+        log_info "Removed C++ bin directory"
+    fi
+    
+    # Clean generated parser files
+    if [ -d "parser_cpp/cpp/src/generated" ]; then
+        cd parser_cpp/cpp/src/generated
+        rm -f Parser.C Lexer.C Bison.H *.o
+        cd ../../../../
+        log_info "Cleaned generated parser files"
+    fi
+    
+    # Clean Python builds
+    if [ -d "parser_cpp/python/build" ]; then
+        rm -rf parser_cpp/python/build
+        log_info "Removed Python build directory"
+    fi
+    
+    if [ -d "parser_cpp/python/vnnlib.egg-info" ]; then
+        rm -rf parser_cpp/python/vnnlib.egg-info
+        log_info "Removed Python egg-info"
+    fi
+    
+    log_success "Build cleanup completed"
+}
 
-cd parser/pybind
-python generate_wrappers.py
+# Generate BNFC parser
+generate_parser() {
+    log_info "Generating BNFC parser..."
+    
+    cd parser_cpp/cpp/src/generated
+    
+    # Generate C++ parser from grammar
+    bnfc --cpp -m -o . ../../../../syntax.cf || {
+        log_error "BNFC generation failed"
+        exit 1
+    }
+    
+    cd ../../../../
+    log_success "BNFC parser generated"
+}
 
-python -m pip install -e . --no-deps
+# Build C++ library
+build_cpp() {
+    log_info "Building C++ parser library..."
+    
+    # Check C++ dependencies
+    local missing_deps=()
+    command -v bnfc >/dev/null 2>&1 || missing_deps+=("bnfc")
+    command -v make >/dev/null 2>&1 || missing_deps+=("make")
+    command -v g++ >/dev/null 2>&1 || missing_deps+=("g++")
+    
+    if [ ${#missing_deps[@]} -ne 0 ]; then
+        log_error "Missing C++ dependencies: ${missing_deps[*]}"
+        echo "Please install the missing dependencies and try again."
+        exit 1
+    fi
+    
+    cd parser_cpp
+    
+    # Build using Makefile
+    make clean >/dev/null 2>&1 || true  # Don't fail if already clean
+    make || {
+        log_error "C++ build failed"
+        exit 1
+    }
+    
+    cd ..
+    log_success "C++ parser library built successfully"
+}
 
-printf '%s\n' 'from ._core import *' > vnnlib/__init__.pyi
-pybind11-stubgen vnnlib._core -o .
-touch vnnlib/py.typed
+# Build Python bindings
+build_python() {
+    log_info "Building Python bindings..."
+    
+    # Check Python dependencies
+    local missing_deps=()
+    command -v python3 >/dev/null 2>&1 || missing_deps+=("python3")
+    command -v pip >/dev/null 2>&1 || missing_deps+=("pip")
+    
+    # Check for Python packages
+    if command -v python3 >/dev/null 2>&1; then
+        python3 -c "import pybind11" >/dev/null 2>&1 || missing_deps+=("pybind11 (Python package)")
+    fi
+    
+    if [ ${#missing_deps[@]} -ne 0 ]; then
+        log_error "Missing Python dependencies: ${missing_deps[*]}"
+        echo "Please install the missing dependencies and try again."
+        echo "For pybind11, run: pip install pybind11"
+        exit 1
+    fi
+    
+    cd parser_cpp/python
+    
+    # Install in development mode with force reinstall
+    python3 -m pip install -e . --force-reinstall || {
+        log_error "Python bindings build failed"
+        exit 1
+    }
+    
+    cd ../..
+    log_success "Python bindings built and installed"
+}
 
-pip install -e . --upgrade --no-deps
-cd ../../
+# Run tests
+run_tests() {
+    log_info "Running test suite..."
+    
+    cd parser_cpp
+    
+    # Run pytest
+    python3 -m pytest test/ -v || {
+        log_error "Tests failed"
+        exit 1
+    }
+    
+    cd ..
+    log_success "All tests passed"
+}
+
+# Main build process
+main() {
+    echo
+    log_info "Starting VNNLib C++ Parser Build Process"
+    echo "========================================"
+    echo
+    
+    clean_build
+    echo
+    
+    generate_parser
+    echo
+    
+    build_cpp
+    echo
+    
+    build_python
+    echo
+    
+    run_tests
+    echo
+    
+    log_success "🎉 VNNLib C++ parser build completed successfully!"
+    echo
+    echo "The parser is now ready to use. You can import it with:"
+    echo "  import vnnlib"
+    echo
+    echo "Available functions:"
+    echo "  - vnnlib.parse_vnnlib(filename)"
+    echo "  - vnnlib.parse_vnnlib_str(content)"
+    echo "  - vnnlib.check_query(query)"
+    echo
+}
+
+# Handle script arguments
+case "${1:-}" in
+    "clean")
+        clean_build
+        ;;
+    "cpp")
+        generate_parser
+        build_cpp
+        ;;
+    "python")
+        build_python
+        ;;
+    "test")
+        run_tests
+        ;;
+    "help"|"-h"|"--help")
+        echo "Usage: $0 [command]"
+        echo
+        echo "Commands:"
+        echo "  (no args)  - Full build process"
+        echo "  clean      - Clean build artifacts"
+        echo "  cpp        - Build only C++ components"
+        echo "  python     - Build only Python bindings"
+        echo "  test       - Run test suite"
+        echo "  help       - Show this help"
+        ;;
+    "")
+        main
+        ;;
+    *)
+        log_error "Unknown command: $1"
+        echo "Use '$0 help' for usage information"
+        exit 1
+        ;;
+esac
 
