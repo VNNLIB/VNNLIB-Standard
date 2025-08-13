@@ -19,7 +19,7 @@ jobs:
         - name: Test the parser
           run: chmod +x test.sh && ./test.sh
 
-  buildAndTestParser:
+  buildAndTestCppParser:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -30,13 +30,21 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Install system dependencies (clang)
+      - name: Cache Haskell dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cabal
+          key: ${{ runner.os }}-cabal-${{ hashFiles('**/*.cabal') }}
+          restore-keys: |
+            ${{ runner.os }}-cabal-
+
+      - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang
+          sudo apt-get install -y build-essential flex bison
 
       - name: Install Python dependencies
-        run: pip install pybind11 libclang setuptools pytest pybind11-stubgen
+        run: pip install pybind11 pytest
 
       - name: Install BNFC and Haskell dependencies
         run: |
@@ -44,39 +52,15 @@ jobs:
           cabal install alex happy BNFC
           echo "$HOME/.cabal/bin" >> $GITHUB_PATH
 
-      - name: Compile grammar to C language
+      - name: Build C++ parser with Python bindings
         run: |
-          echo "Building the BNFC parser for C..."
-          bnfc --c -m -o parser/src/bisonParser syntax.cf
+          echo "Building the C++ VNNLib parser..."
+          chmod +x build_parser.sh
+          ./build_parser.sh
 
-      - name: Build C parser
+      - name: Test C++ parser
         run: |
-          echo "Compiling the C parser library..."
-          make -C parser || { echo "Make failed"; exit 1; }
-
-          echo "Modifying Printer.h for pybind wrapper..."
-          sed -i '/#define PRINTER_HEADER/a\\nextern char *buf_;' parser/src/bisonParser/Printer.h
-
-      - name: Build Python wrapper
-        working-directory: parser/pybind
-        run: |
-          echo "Generating and building the Python wrapper..."
-          python generate_wrappers.py
-
-          python -m pip install -e . --no-deps
-
-          printf '%s\n' 'from ._core import *' > vnnlib/__init__.pyi
-          pybind11-stubgen vnnlib._core -o .
-          touch vnnlib/py.typed\
-
-          pip install -e . --upgrade --no-deps
-
-          echo "Build complete."
-
-      - name: Test Python parser
-        working-directory: parser/pybind
-        run: |
-          python test_vnnlib.py
-          pytest --maxfail=1 --disable-warnings -q
+          echo "Running C++ parser tests..."
+          ./build_parser.sh test
           
-          echo "Python parser tests completed successfully."
+          echo "C++ parser tests completed successfully."
