@@ -66,38 +66,21 @@ std::string write_vnnlib_str(VNNLibQuery *q) {
     return result;
 }
 
-int check_query(VNNLibQuery *q, int json) {
+std::string check_query(VNNLibQuery *q) {
     if (q == nullptr) {
-        if (json) {
-            std::cout << "{\"status\":\"error\",\"errors\":[{\"type\":\"fatal\",\"message\":\"Null query provided\"}]}" << std::endl;
-        } else {
-            std::cerr << "Error: Null query provided" << std::endl;
-        }
-        return EXIT_FAILURE;
+        std::cerr << "Error: Null query provided" << std::endl;
+        return "";
     }
 
     auto typeChecker = std::make_unique<TypeChecker>();
     typeChecker->visitVNNLibQuery(q);
     
     if (typeChecker->hasErrors()) {
-        std::string report = typeChecker->getErrorReport(json != 0);
-        
-        if (json) {
-            std::cout << report << std::endl;
-        } else {
-            std::cerr << report << std::endl;
-        }
-        
-        return EXIT_FAILURE;
+        std::string report = typeChecker->getErrorReport();
+        return report;
     }
-    
-    if (json) {
-        std::cout << "{\"status\":\"success\",\"errors\":[]}" << std::endl;
-    } else {
-        std::cout << "No errors found." << std::endl;
-    }
-    
-    return EXIT_SUCCESS;
+
+    return "";
 }
 
 

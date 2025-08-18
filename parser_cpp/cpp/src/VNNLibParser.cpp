@@ -30,7 +30,7 @@ inline file_ptr make_file_ptr(FILE* f) {
 }
 
 
-int do_check(VNNLibQuery *parse_tree, bool verbose, bool json) {
+int do_check(VNNLibQuery *parse_tree, bool verbose) {
     if (verbose) {
         std::printf("Running semantic checks...\n\n");
     }
@@ -40,25 +40,13 @@ int do_check(VNNLibQuery *parse_tree, bool verbose, bool json) {
     typeChecker->visitVNNLibQuery(parse_tree);
     
     if (typeChecker->hasErrors()) {
-        std::string report = typeChecker->getErrorReport(json);
-        
-        if (json) {
-            std::cout << report << std::endl;
-        } else {
-            std::cerr << report << std::endl;
-        }
-        
+        std::string report = typeChecker->getErrorReport();
+        std::cout << report << std::endl;
         return EXIT_FAILURE;
     }
     
     if (verbose) {
         std::printf("Semantic checks completed successfully.\n");
-    }
-    
-    if (json) {
-        std::cout << "{\"status\":\"success\",\"errors\":[]}" << std::endl;
-    } else {
-        std::cout << "No errors found." << std::endl;
     }
     
     return EXIT_SUCCESS;
@@ -73,14 +61,12 @@ int main(int argc, char** argv) {
     int exit_status = EXIT_SUCCESS;
 
     bool verbose = false;
-    bool json = false;
     std::string output_path;
     std::string spec_file;
 
     // Add global options
     auto *check = app.add_subcommand("check", "Parse and perform semantic checks on the VNNLIB file");
     check->add_flag("-v,--verbose", verbose, "Produce verbose output");
-    check->add_flag("-j,--json", json, "Output in JSON format");
     check->add_option("VNNLIBFILE", spec_file, "Path to the input VNNLIB specification file")
          ->required()
          ->check(CLI::ExistingFile);
@@ -128,7 +114,7 @@ int main(int argc, char** argv) {
         }
 
         // 3) Run semantic checks
-        if (do_check(parse_tree, verbose, json) != 0) {
+        if (do_check(parse_tree, verbose) != 0) {
             exit_status = EXIT_FAILURE;
         }
     });

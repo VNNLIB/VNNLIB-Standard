@@ -28,10 +28,10 @@ ext_modules = [
 
 setup(
     name="vnnlib",
-    version="0.1.0",
+    version="0.0.1",
     description="Python bindings for VNNLib parsing and AST manipulation",
     long_description="",
-    author="Your Name",
+    author="Allen Antony",
     author_email="allenantony2001@gmail.com",
     url="https://github.com/VNNLIB/VNNLIB-Standard",
     packages=["vnnlib"],

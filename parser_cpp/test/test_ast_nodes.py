@@ -4,9 +4,6 @@
 import sys
 import os
 
-# Add the parser path to import vnnlib
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'parser_cpp', 'python'))
-
 try:
     import vnnlib
     
@@ -128,7 +125,7 @@ try:
         print()
     
     print("=" * 60)
-    print("✓ Analysis complete!")
+    print("Analysis complete!")
     
 except Exception as e:
     print(f"Error: {e}")

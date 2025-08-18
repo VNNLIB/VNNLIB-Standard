@@ -45,11 +45,11 @@ typedef enum {
 
 class SymbolInfo {
 public:
-    std::string name;                   // Variable name
-    std::string onnxName;               // Optional ONNX name for the variable
-    ElementType *type;                   // Pointer to the ElementType node
-    std::vector<int> shape;             // Shape of the tensor
-    SymbolKind kind;                    // Kind of variable (input, output, intermediate)
+    std::string name;                       // Variable name
+    std::string onnxName;                   // Optional ONNX name for the variable
+    ElementType *type;                      // Pointer to the ElementType node
+    std::vector<int> shape;                 // Shape of the tensor
+    SymbolKind kind;                        // Kind of variable (input, output, intermediate)
 
     SymbolInfo(std::string name, ElementType *type, std::vector<int> shape, SymbolKind kind, std::string onnxName = "")
         : name(name), onnxName(onnxName), type(type), shape(std::move(shape)), kind(kind) {}
@@ -58,6 +58,7 @@ public:
 };
 
 
+// Stores information about a type checking error
 class TypeCheckError final : public std::runtime_error {
 public:
     TypeCheckError(ErrorCode code,
@@ -78,7 +79,6 @@ private:
 };
 
 
-// Forward declaration
 class TypeChecker;
 
 class Context {
@@ -87,12 +87,12 @@ public:
     bool addSymbol(VariableName name, ElementType *type, ListInt shape, SymbolKind kind, std::string onnxName = "");
     SymbolInfo *getSymbol(const VariableName &name);
     
-    ElementType *currentDataType;                               // Current data type being checked
-    VariableName lastScannedVariable;
-    OnnxNamesUsage usesOnnxNames;                               // Whether ONNX names are used in the current context
+    ElementType *currentDataType;                               // Data type of the last scanned variable
+    VariableName lastScannedVariable;                           // Name of the last scanned variable
+    OnnxNamesUsage usesOnnxNames;                               // Whether ONNX names are used in the current input/output definitions
 
 private:
-    std::unordered_map<std::string, SymbolInfo> symbolMap;     // Map to store symbols
+    std::unordered_map<std::string, SymbolInfo> symbolMap;      // Map to store symbols
     TypeChecker* checker;                                       // Reference to parent TypeChecker for error reporting
 };
 
@@ -188,7 +188,7 @@ class TypeChecker : public Visitor {
                      const std::string& hint = "");
         bool hasErrors() const;
         size_t getErrorCount() const;
-        std::string getErrorReport(bool json = false) const;
+        std::string getErrorReport() const;
         void clearErrors();
 
         static std::vector<int> convertListIntToVector(const ListInt *list) {
