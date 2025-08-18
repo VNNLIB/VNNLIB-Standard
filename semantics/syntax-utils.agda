@@ -12,6 +12,9 @@ open import Data.Integer as ℤ using (∣_∣)
 ⟦_⟧asString : 𝐁.VariableName → String
 ⟦ (variableName name) ⟧asString = name
 
+⟦_⟧asStringᵥ : 𝐕.VariableName → String
+⟦ (SVariableName name) ⟧asStringᵥ = name
+
 convertElementType : 𝐁.ElementType → 𝐕.ElementType
 convertElementType genericElementType = real
 convertElementType elementTypeF16 = float16
@@ -77,4 +80,7 @@ getInputDefs (networkDef _ is _ _) = is
 
 getOutputDefs : 𝐁.NetworkDefinition → List 𝐁.OutputDefinition
 getOutputDefs (networkDef _ _ _ os) = os
+
+getNetworkName : 𝐁.NetworkDefinition → 𝐁.VariableName
+getNetworkName (networkDef x _ _ _) = x
     
