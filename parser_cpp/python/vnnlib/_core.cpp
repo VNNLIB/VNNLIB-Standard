@@ -321,7 +321,7 @@ PYBIND11_MODULE(_core, m) {
         auto typeChecker = std::make_unique<TypeChecker>();
         typeChecker->visitVNNLibQuery(result);
         if (typeChecker->hasErrors()) {
-            std::string errorReport = typeChecker->getErrorReport(true); // Get JSON format
+            std::string errorReport = typeChecker->getErrorReport(); // Get errors in JSON format
             throw VNNLibException(errorReport);
         }
         return result;
@@ -337,7 +337,7 @@ PYBIND11_MODULE(_core, m) {
         auto typeChecker = std::make_unique<TypeChecker>();
         typeChecker->visitVNNLibQuery(result);
         if (typeChecker->hasErrors()) {
-            std::string errorReport = typeChecker->getErrorReport(true); // Get JSON format
+            std::string errorReport = typeChecker->getErrorReport(); // Get errors in JSON form
             throw VNNLibException(errorReport);
         }
         return result;
@@ -345,16 +345,7 @@ PYBIND11_MODULE(_core, m) {
        py::doc("Parses a VNNLib string and returns a VNNLibQuery AST object."));
 
     m.def("write_vnnlib_str", &write_vnnlib_str,
-          py::doc("Converts a VNNLibQuery AST object back to a VNNLIB string."));
-
-    m.def("check_query", [](VNNLibQuery* query, bool json = false) -> py::dict {
-        int result = check_query(query, json ? 1 : 0);
-        py::dict ret;
-        ret["success"] = (result == 0);
-        ret["exit_code"] = result;
-        return ret;
-    }, py::arg("query"), py::arg("json") = false,
-       py::doc("Performs semantic checks on a VNNLibQuery and returns the result."));
+        py::doc("Converts a VNNLibQuery AST object back to a VNNLIB string."));
 
 #ifdef VERSION_INFO
     m.attr("__version__") = VERSION_INFO;

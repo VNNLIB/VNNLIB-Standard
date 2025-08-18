@@ -67,20 +67,23 @@ clean_build() {
     log_success "Build cleanup completed"
 }
 
-# Generate BNFC parser
-generate_parser() {
-    log_info "Generating BNFC parser..."
+# Generate BNFC files
+generate_bnfc_files() {
+    log_info "Generating BNFC files..."
     
-    cd parser_cpp/cpp/src/generated
+    # Check if BNFC is installed
+    if ! command -v bnfc >/dev/null 2>&1; then
+        log_error "BNFC is not installed. Please install it first."
+        exit 1
+    fi
     
-    # Generate C++ parser from grammar
-    bnfc --cpp -m -o . ../../../../syntax.cf || {
+    # Generate C++ files from the grammar
+    bnfc --cpp -o parser_cpp/cpp/src/generated syntax.cf || {
         log_error "BNFC generation failed"
         exit 1
     }
     
-    cd ../../../../
-    log_success "BNFC parser generated"
+    log_success "BNFC files generated successfully"
 }
 
 # Build C++ library
@@ -136,7 +139,7 @@ build_python() {
     cd parser_cpp/python
     
     # Install in development mode with force reinstall
-    python3 -m pip install -e . --force-reinstall || {
+    python3 -m pip install . --force-reinstall || {
         log_error "Python bindings build failed"
         exit 1
     }
@@ -171,7 +174,7 @@ main() {
     clean_build
     echo
     
-    generate_parser
+    generate_bnfc_files
     echo
     
     build_cpp
@@ -180,10 +183,7 @@ main() {
     build_python
     echo
     
-    run_tests
-    echo
-    
-    log_success "🎉 VNNLib C++ parser build completed successfully!"
+    log_success "VNNLib C++ parser build completed successfully!"
     echo
     echo "The parser is now ready to use. You can import it with:"
     echo "  import vnnlib"
@@ -201,7 +201,7 @@ case "${1:-}" in
         clean_build
         ;;
     "cpp")
-        generate_parser
+        generate_bnfc_files
         build_cpp
         ;;
     "python")

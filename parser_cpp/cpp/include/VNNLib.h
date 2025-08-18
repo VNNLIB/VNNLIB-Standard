@@ -27,7 +27,7 @@ VNNLIB_API VNNLibQuery *parse_vnnlib_str(const char* str);
 
 VNNLIB_API std::string write_vnnlib_str(VNNLibQuery *q);
 
-VNNLIB_API int check_query(VNNLibQuery *q, int json);
+VNNLIB_API std::string check_query(VNNLibQuery *q);
 
 
 #endif
