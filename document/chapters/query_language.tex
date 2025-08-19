@@ -39,7 +39,7 @@ and the shape of the tensor. Similarly, an output variable uses the \texttt{decl
 
 
 It is important to clarify that a network declaration only declares an \emph{interface} and by default does not refer in any way to a particular ONNX network model. When passing a query and a network to the verifier, the name of the network does not need to match the name of the ONNX model file. Instead, as described in Section~\ref{sec:verify_command}, the user will explicitly associate a network declaration to the relevant model file via the command line.
-Neither do the declared names of the inputs and outputs need to match the names of the input and output nodes within the model file. This flexibility allows many different alternative ONNX models to be compatible with the same query.
+Neither do the declared names of the inputs and outputs need to match the names of the input and output nodes within the model file. This flexibility allows many different alternative ONNX models to be compatible with the same query. This also implies that the declared ONNX names of the inputs and outputs, and the network name is not referenced within the Assertions (discussed in Section 3.1.2) of a query.
 
 All variable names follow the same syntax conventions: they are case-sensitive, must start with a letter, and may only contain letters, digits and underscores. All variable names must be unique within the query (see Section~\ref{sec:scoping_and_typing} for a more in-depth discussion). 
 
@@ -187,36 +187,13 @@ Comments in \vnnlib{} are denoted by a semicolon (\texttt{;}) and extend to the 
 \section{Scoping and Typing}
 \label{sec:scoping_and_typing}
 
-\subsection{Variables}
-The \vnnlib{} query language, utilizes variables to refer to specific inputs, outputs, and hidden outputs for neural networks.
-
-\paragraph{Declaration}
-Variable declarations bind a variable name to a specific ONNX tensor, which is then used in the \textit{Assertions} section of the query. Variables are declared into a query context in the \textit{Network Declarations} section of a \vnnlib{} query with a \textit{name}, and other ONNX \textit{Tensor} specfic properties such as: ONNX element type, shape, and optionally, the ONNX node name. Variables are also declared in order of input, hidden, and output declarations within a network declaration.
-
-\paragraph{Referencing}
-Variables are referenced within the \textit{Assertions} section of a query using its name, accompanied by the tensor indices to refer to an element in the corresponding tensor.
-
-
-
-\myremark {
-    Variable names are also used in \textit{Network Declarations} to refer to specific networks, but these are not used within the body of the query, and instead used for the purpose of externally binding the network to a specific ONNX model file during verification.
-    
-    Similarly, the ONNX node names are used to refer to specific nodes within the ONNX model file, but these are not used within the body of the query.
-}
-
-\paragraph{General Properties} The following properties hold for all variables in a \vnnlib{} query. These properties are used to define the scoping and typing rules of the query language, which are described in more detail in the following sections.
-\begin{itemize}
-    \item {Variables are \textit{globally scoped}. All variables are scoped to the entire body of the query.}
-    \item {Variables are \textit{free} and \textit{typed}. Variables are not \textit{bound} by quantifiers and can take on \textit{any} value (a tensor) in the domain of its ONNX element type.}
-\end{itemize}
-
-
 \subsection{Scoping}
 A \vnnlib{} query is said to be \textit{well-scoped}, if it satisfies the following criteria.
 \begin{enumerate}
-    \item All variables are declared before they are referenced.
-    \item Variable declarations are \textit{ordered} within network declarations such that inputs before hidden outputs, and hidden outputs before outputs.
-    \item Variables have unique names within the query. No variable name is reused within the same query.
+    \item All variables must declared before they are referenced.
+    \item All variables are \textit{globally scoped}. All variables are scoped to the entire body of the query.
+    \item All variable declarations are \textit{ordered} within network declarations such that inputs before hidden outputs, and hidden outputs before outputs.
+    \item All variables have unique names within the query. No variable name is reused within the same query.
 \end{enumerate}
 \mytodo{Well-scoped indices within tensor dimensions.}
 
@@ -225,10 +202,69 @@ A \vnnlib{} query is said to be \textit{well-typed}, if it satisfies the followi
 
 \begin{itemize}
     \item All variables have a valid ONNX element type.
-    \item All variable references are correctly-typed, that is, the element type of the variable must match the expected element type in the context where it is substituted.
+    \item Variables are \textit{strictly-typed}; so all variable references must match the expected element type in the context where it is substituted.
 \end{itemize}
+\myremark{
+    % Although some ONNX types can be soundly cast for operations in certain cases, for example, a \textit{float16} can be added safely to a \textit{float32} if the expected type of evaluated expression is a \textit{float32}.
+    If a query is agnostic to the element type of variables, it should be declared with the \textit{Real} type.
+}
 
-\mytodo{Operations with different typed "constants" in Arithmetic or Comparitive expressions - multiple constants or variable(s) and constant(s).}
+\subsubsection*{Typing Rules}
+The formal syntax of the vnnlib{} query language is given in Figure~\ref{fig:vnnlib_typing_syntax} following similar notation used in [?].
+There are three expression categories: \textit{arithmetic} given by \(\langle arith \rangle\), \textit{comparative} given by \(\langle comp \rangle\), and \textit{boolean} given by \(\langle bool \rangle\).
+
+% \textit{arithmetic} \(\langle\) \text{arith} \(\rangle\), \textit{comparative} given by \(\langle \text{comp} \rangle\)$, and \textit{boolean} given by \(\langle \text{bool} \rangle\),
+
+% Types \langle \textit{type} \rangle are used to define the element type of variables, while expressions are used to define the values of variables.
+
+
+\begin{figure}
+    \centering
+    \begin{minipage}[t]{0.45\textwidth}
+        \centering
+        \begin{align*}
+            \langle arith \rangle &\ni a ::= x \;|\; i &\in \mathbb{N}  \;|\; \\
+            \langle comp \rangle &\ni s ::= \text{Int} \;|\; \text{Bool} \\
+            \langle conn \rangle &\ni \tau ::= \text{List}\;\tau \;|\; \tau \times \tau
+        \end{align*}
+        % \caption*{Type Syntax}
+    \end{minipage}
+    \hfill
+    \begin{minipage}[t]{0.45\textwidth}
+        \centering
+        \begin{align*}
+            \langle \text{type} \rangle &\ni \tau ::= x \;|\; \lambda x.e \;|\; e\,e \\
+            \langle \text{value} \rangle &\ni v ::= \lambda x.e \\
+            \langle \text{type} \rangle \in \tau ::= s \;|\; \tau \rightarrow \tau \;|\; T\;\tau \\
+        \end{align*}
+    \end{minipage}
+    \caption{The \vnnlib{} query language typing rules syntax}
+    \label{fig:vnnlib_typing_syntax}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \begin{minipage}[t]{0.45\textwidth}
+        \centering
+        \begin{align*}
+            \langle arith \rangle &\ni a ::= x \;|\; i &\in \mathbb{N}  \;|\; \\
+            \langle comp \rangle &\ni s ::= \text{Int} \;|\; \text{Bool} \\
+            \langle conn \rangle &\ni \tau ::= \text{List}\;\tau \;|\; \tau \times \tau
+        \end{align*}
+        % \caption*{Type Syntax}
+    \end{minipage}
+    \hfill
+    \begin{minipage}[t]{0.45\textwidth}
+        \centering
+        \begin{align*}
+            \langle \text{type} \rangle &\ni \tau ::= x \;|\; \lambda x.e \;|\; e\,e \\
+            \langle \text{value} \rangle &\ni v ::= \lambda x.e \\
+            \langle \text{const} \rangle &\ni c ::= 0 \;|\; 1 \;|\; \text{true} \;|\; \text{false}
+        \end{align*}
+    \end{minipage}
+    \caption{The \vnnlib{} query language typing relation}
+    \label{fig:vnnlib_typing_rules}
+\end{figure}
 
 \section{Semantics}
 \label{sec:semantics}
