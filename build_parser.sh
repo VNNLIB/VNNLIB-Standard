@@ -150,6 +150,11 @@ build_python() {
 
 # Run tests
 run_tests() {
+    if ! python3 -c "import pytest" >/dev/null 2>&1; then
+        log_error "pytest is not installed. Please install it first."
+        exit 1
+    fi
+
     log_info "Running test suite..."
     
     cd parser_cpp
