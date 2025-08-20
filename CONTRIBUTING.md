@@ -6,7 +6,7 @@ Thanks for your interest in improving the VNNLIB project! This guide explains th
 If anything here is unclear, please open an issue so we can improve this doc.
 
 ## Repository layout
-
+```
 .
 ├── syntax.cf           # LBNF grammar for VNNLIB 2.0
 ├── document/           # .tex files for VNNLIB specification document
