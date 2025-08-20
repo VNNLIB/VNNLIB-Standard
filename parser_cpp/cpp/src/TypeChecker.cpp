@@ -78,7 +78,7 @@ bool Context::addSymbol(VariableName name, ElementType *type, ListInt shape, Sym
                 MultipleDeclaration,
                 "Duplicate variable declaration",
                 name,
-                "Variable names must be unique within the context."
+                "Variable names must be unique within the specification"
             );
         }
         return false;
