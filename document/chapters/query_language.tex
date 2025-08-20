@@ -213,56 +213,81 @@ A \vnnlib{} query is said to be \textit{well-typed}, if it satisfies the followi
 The formal syntax of the vnnlib{} query language is given in Figure~\ref{fig:vnnlib_typing_syntax} following similar notation used in [?].
 There are three expression categories: \textit{arithmetic} given by \(\langle arith \rangle\), \textit{comparative} given by \(\langle comp \rangle\), and \textit{boolean} given by \(\langle bool \rangle\).
 
-% \textit{arithmetic} \(\langle\) \text{arith} \(\rangle\), \textit{comparative} given by \(\langle \text{comp} \rangle\)$, and \textit{boolean} given by \(\langle \text{bool} \rangle\),
+The expressions \(\langle expr \rangle\) and \(\langle type \rangle\) are defined in Figure~\ref{fig:vnnlib_typing_rules}. The former defines the syntax of expressions, while the latter defines the syntax of types. The \(\langle basic-types \rangle\) and \(\langle tensor \rangle\) define the basic types and tensor types respectively. The \(\langle complex-type \rangle\) defines a complex type that is a list of tensors.
 
-% Types \langle \textit{type} \rangle are used to define the element type of variables, while expressions are used to define the values of variables.
-
-
-\begin{figure}
-    \centering
-    \begin{minipage}[t]{0.45\textwidth}
-        \centering
-        \begin{align*}
-            \langle arith \rangle &\ni a ::= x \;|\; i &\in \mathbb{N}  \;|\; \\
-            \langle comp \rangle &\ni s ::= \text{Int} \;|\; \text{Bool} \\
-            \langle conn \rangle &\ni \tau ::= \text{List}\;\tau \;|\; \tau \times \tau
-        \end{align*}
-        % \caption*{Type Syntax}
-    \end{minipage}
-    \hfill
-    \begin{minipage}[t]{0.45\textwidth}
-        \centering
-        \begin{align*}
-            \langle \text{type} \rangle &\ni \tau ::= x \;|\; \lambda x.e \;|\; e\,e \\
-            \langle \text{value} \rangle &\ni v ::= \lambda x.e \\
-            \langle \text{type} \rangle \in \tau ::= s \;|\; \tau \rightarrow \tau \;|\; T\;\tau \\
-        \end{align*}
-    \end{minipage}
-    \caption{The \vnnlib{} query language typing rules syntax}
-    \label{fig:vnnlib_typing_syntax}
-\end{figure}
+The static context \(\Gamma\) is the environment that contains and ordered list of network functions and inputs . The environment function \(Sigma\) gives the type of the variable by fetching this from the context. The typing rules are defined in Figure~\ref{fig:vnnlib_typing_rules}.
 
 \begin{figure}
     \centering
     \begin{minipage}[t]{0.45\textwidth}
         \centering
-        \begin{align*}
-            \langle arith \rangle &\ni a ::= x \;|\; i &\in \mathbb{N}  \;|\; \\
-            \langle comp \rangle &\ni s ::= \text{Int} \;|\; \text{Bool} \\
-            \langle conn \rangle &\ni \tau ::= \text{List}\;\tau \;|\; \tau \times \tau
-        \end{align*}
-        % \caption*{Type Syntax}
+        \begin{flalign*}
+            & \langle expr \rangle &\ni e ::= x \;|\; f  \;|\; i &\in \mathbb{N} \;|\; b &\in \mathbb{B} && \\
+            & \;|\; \lor \;|\; \land && \\
+            & \;|\; > \;|\; < \;|\; >= \;|\; <= \;|\; == \;|\; \neq && \\
+            & \;|\; \times \;|\; + \;|\; - \;|\; && \\
+            & \;|\; ! && \\ \\
+            & \langle type \rangle \ni \tau ::= s \rightarrow s \;|\; \tau && \\
+            & \langle onnx-types \rangle &\ni o ::= \text{the set of all ONNX types} && \\
+            & \langle tensor \rangle &\ni t ::= \text{Tensor} \ [n_0, ..., n_n] \ \quad n &\in \mathbb{N} && \\
+            & \langle basic-types \rangle &\ni s ::= \text{Bool} \;|\; \text{Comp} \ o \;|\; \text{Arith} \ o \;|\; \text{Index} \ n \quad n &\in \mathbb{N} \\
+            & \langle complex-type \rangle &\ni c ::= \text{List } n \ s \;|\; \text{List } n \ t \quad n &\in \mathbb{N} && \\
+        \end{flalign*}
     \end{minipage}
     \hfill
     \begin{minipage}[t]{0.45\textwidth}
         \centering
-        \begin{align*}
-            \langle \text{type} \rangle &\ni \tau ::= x \;|\; \lambda x.e \;|\; e\,e \\
-            \langle \text{value} \rangle &\ni v ::= \lambda x.e \\
-            \langle \text{const} \rangle &\ni c ::= 0 \;|\; 1 \;|\; \text{true} \;|\; \text{false}
-        \end{align*}
+        \begin{mathpar}
+            \inferrule*[Right=network function]{
+                \Gamma[f] = ((x_0, ..., x_{m-1}), (y_0, ..., y_{n-1}))
+            }{
+                \Gamma, \Sigma \Vdash f : \text{List}\ m \ \text{Tensor} \rightarrow \text{List} \ n \ \text{Tensor}
+            }
+
+            \inferrule*[Right=bound variable]{
+                \Sigma [ x ] = o
+            }{
+                \Gamma, \Sigma \Vdash x : o
+            }
+
+            \inferrule*[Right=Indexing]{
+                i \in \{ 0, 1, \dots, n - 1 \}
+            }{
+                \Gamma, \Sigma \Vdash i : \text{Index} \ n
+            }
+
+            \inferrule*[Right=Bool]{
+                b \in \mathbb{B}
+            }{
+                \Gamma, \Sigma \Vdash b : \text{Bool}
+            }
+
+            \inferrule*[Right=Constant]{
+                i \in \mathbb{N} \;|\; r \in \mathbb{R}
+            }{
+                \Gamma, \Sigma \Vdash i : \text{Arith} \ o
+            }
+
+            \inferrule*[Right=Arithmetic Operations]{
+            }{
+            \Gamma, \Sigma \Vdash \times,\; +,\; - : \text{List}\; n \ \text{Arith} \ o \rightarrow \text{Arith} \ o
+            }
+
+            \inferrule*[Right=Comparative Operations]{
+                % TODO: add type checking for comparative & arithmetic operations
+            }{
+            \Gamma, \Sigma \Vdash \triangle : \text{Arith} \ o \rightarrow \text{Arith} \ o \rightarrow \text{Bool}
+            }
+
+            \inferrule*[Right=Connective Operations]{
+            }{
+            \Gamma, \Sigma \Vdash \lor,\; \land : \text{List} \ n \ \text{Bool} \rightarrow \text{Bool}
+            }
+
+        \end{mathpar}
+
     \end{minipage}
-    \caption{The \vnnlib{} query language typing relation}
+    \caption{The \vnnlib{} query language typing syntax and rules}
     \label{fig:vnnlib_typing_rules}
 \end{figure}
 
