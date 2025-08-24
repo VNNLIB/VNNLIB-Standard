@@ -1,28 +1,26 @@
 -- This is the LBNF grammar for the VNNLib language
 
--- The regular expression for a signed double or integer
-token SDouble '-'? digit+ '.' digit+ ('e' '-'? digit+)? ;
-token SInt '-' digit+ ;
-token Int digit+ ;
-
--- The regular expression for allowed Variable Names - tensors, or networks
-token VariableName letter (letter|digit|'_')* ;
+-- Defines a numeric literal
+position token Numeral '-'? digit+ ('.' digit+)? ;
+-- Defines the version number of VNNLIB
+token VersionToken '<' digit '.' digit '>' ;
+-- The regular expression for allowed Variable names - tensors, or networks
+position token VariableName letter (letter|digit|'_')* ;
 
 -- Sequence of integers to represent Tensor shape/indicies
-separator nonempty Int "," ;
+separator nonempty Numeral "," ;
 
 -- Production of Tensor Shape (empty shape is allowed for scalar tensors)
 ScalarDims. TensorShape ::= "[" "]" ;
-TensorDims. TensorShape ::= "[" [Int] "]" ;
+TensorDims. TensorShape ::= "[" [Numeral] "]" ;
 
--- ArithExpr is a numeric value that may be a parameter, a tensor element, or an arithmetic operation
--- -- A variable refers to a tensor element, constructed with the associated variable name and tensor indices
-VarExpr. ArithExpr ::= VariableName "[" [Int] "]" ;
-DoubleExpr. ArithExpr ::= SDouble ;
-SIntExpr. ArithExpr ::= SInt ;
-IntExpr. ArithExpr ::= Int ;
+-- The base case of ArithExpr is a numeric value or a tensor element
+-- A variable refers to a tensor element, constructed with the associated variable name and tensor indices
+VarExpr. ArithExpr ::= VariableName "[" [Numeral] "]" ;
+ValExpr. ArithExpr ::= Numeral ;
 
--- An arithmetic operator is an n-ary operator that performs an arithmetic operation on n inputs
+-- An arithmetic operator is a unary or binary operator that performs an arithmetic operation
+-- Operations can be defined with an arbitrary number of inputs which are left-nested.
 Negate. ArithExpr ::= "(" "-" ArithExpr  ")" ;
 Plus. ArithExpr ::= "(" "+" [ArithExpr] ")";
 Minus. ArithExpr ::= "(" "-" ArithExpr [ArithExpr] ")" ;
@@ -37,7 +35,7 @@ LessEqual. BoolExpr ::= "(" "<=" ArithExpr ArithExpr ")" ;
 NotEqual. BoolExpr ::= "(" "!=" ArithExpr ArithExpr ")" ;
 Equal. BoolExpr ::= "(" "==" ArithExpr ArithExpr ")";
 
--- A connective operator is an n-ary operator that combines at least two boolean formulas
+-- A connective (or logical) operator is an n-ary operator that combines multiple Boolean formulas
 And. BoolExpr ::= "(" "and" [BoolExpr] ")" ;
 Or. BoolExpr ::= "(" "or" [BoolExpr] ")";
 separator nonempty BoolExpr "" ;
@@ -88,8 +86,11 @@ separator nonempty OutputDefinition "" ;
 NetworkDef. NetworkDefinition ::= "(declare-network" VariableName [InputDefinition] [HiddenDefinition] [OutputDefinition] ")" ;
 separator nonempty NetworkDefinition "" ;
 
+-- The version of the VNN-LIB query being used that follows <breaking>.<non-breaking> version numbering
+VNNLibVersion. Version ::= "(vnnlib" VersionToken ")" ;
+
 -- A query is a series of network definitions followed by a series of properties
-VNNLibQuery. Query ::= [NetworkDefinition] [Assertion] ;
+VNNLibQuery. Query ::= Version [NetworkDefinition] [Assertion] ;
 
 -- A line may be commented out by starting with a semicolon
 comment ";" ;
