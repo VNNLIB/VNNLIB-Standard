@@ -13,7 +13,7 @@ std::string string_format( const std::string& format, Args ... args )
 }
 
 
-// TypeCheckError methods
+// --- TypeCheckError methods ---
 
 // Create a JSON representation of the error
 std::string TypeCheckError::makeJson(ErrorCode code, 
@@ -54,16 +54,10 @@ TypeCheckError::TypeCheckError(ErrorCode code,
     hint_(std::move(hint)) {}
 
 
-// SymbolInfo methods
-
-bool SymbolInfo::operator==(const SymbolInfo &other) const {
-    return name == other.name;
-}
-
-// Context methods
+// --- Context methods ---
 
 Context::Context(TypeChecker* typeChecker) :
-    currentDataType(nullptr),
+    currentDataType(DType::Unknown),
     lastScannedVariable(""),
     usesOnnxNames(OnnxNamesUsage::Unknown),
     symbolMap(),
@@ -71,44 +65,30 @@ Context::Context(TypeChecker* typeChecker) :
 
 // Add a symbol to the context. Returns true if successful, false if a symbol with the same name already exists, or if the symbol is invalid.
 bool Context::addSymbol(VariableName name, ElementType *type, ListInt shape, SymbolKind kind, std::string onnxName) {
-    auto it = symbolMap.find(name);
-    if (it != symbolMap.end()) {
-        if (checker) {
-            checker->addError(
-                MultipleDeclaration,
-                "Duplicate variable declaration",
-                name,
-                "Variable names must be unique within the specification"
-            );
-        }
+    if (symbolMap.find(name) != symbolMap.end()) {
+        checker->addError(MultipleDeclaration, "Duplicate variable declaration", name,
+                        "Variable names must be unique within the specification");
         return false;
     }
 
-    std::vector<int> shapeVec;
-
-    for (const auto &dim : shape) {
-        int dimension = std::stoi(dim);
-        if (dimension < 1) {
-            if (checker) {
-                checker->addError(
-                    InvalidDimensions,
-                    "Invalid dimension size",
-                    name,
-                    "Dimension sizes must be positive integers."
-                );
-            }
+    std::vector<int64_t> tmp;
+    for (const auto& dimTok : shape) {
+        int64_t d = std::stoll(dimTok);
+        if (d < 1) {
+            checker->addError(InvalidDimensions, "Invalid dimension size", name,
+                            "Dimension sizes must be positive integers.");
             return false;
         }
-        shapeVec.push_back(dimension);
+        tmp.push_back(d);
     }
 
     auto [insertIt, inserted] = symbolMap.try_emplace(
         name,
         name,
-        std::move(type),
-        std::move(shapeVec),
-        kind,
-        std::move(onnxName)
+        onnxName,
+        TypeChecker::mapDType(type),
+        std::move(tmp),
+        kind
     );
 
     if (!inserted) {
@@ -135,9 +115,7 @@ SymbolInfo *Context::getSymbol(const VariableName &name) {
     return nullptr; // Symbol not found
 }
 
-
 TypeChecker::TypeChecker() {
-    registerTypeFlags();  // Register type flags for the type system
     ctx = new Context(this);
 }
 
@@ -145,7 +123,72 @@ TypeChecker::~TypeChecker() {
     delete ctx;
 }
 
-// Error collection and reporting methods
+// --- Utility Functions ---
+
+// Map ElementType to DType
+DType TypeChecker::mapDType(ElementType* e) {
+    if (!e) return DType::Unknown;
+    #define MAP(E,T) if (dynamic_cast<const E*>(e)) return DType::T
+    MAP(ElementTypeF16, F16); 
+    MAP(ElementTypeF32, F32); 
+    MAP(ElementTypeF64, F64);
+    MAP(ElementTypeBF16, BF16);
+    MAP(ElementTypeF8E4M3FN, F8E4M3FN); 
+    MAP(ElementTypeF8E5M2, F8E5M2);
+    MAP(ElementTypeF8E4M3FNUZ, F8E4M3FNUZ); 
+    MAP(ElementTypeF8E5M2FNUZ, F8E5M2FNUZ);
+    MAP(ElementTypeF4E2M1, F4E2M1);
+    MAP(ElementTypeI8, I8); 
+    MAP(ElementTypeI16, I16); 
+    MAP(ElementTypeI32, I32); 
+    MAP(ElementTypeI64, I64);
+    MAP(ElementTypeU8, U8); 
+    MAP(ElementTypeU16, U16); 
+    MAP(ElementTypeU32, U32); 
+    MAP(ElementTypeU64, U64);
+    MAP(ElementTypeC64, C64); 
+    MAP(ElementTypeC128, C128);
+    MAP(ElementTypeBool, Bool); 
+    MAP(ElementTypeString, String);
+    #undef MAP
+    return DType::Unknown;
+}
+
+// Map TensorShape to std::vector<int64_t>
+Shape TypeChecker::mapShape(TensorShape* s) {
+    Shape out;
+    if (!s || dynamic_cast<ScalarDims*>(s)) return out; // scalar
+    if (auto t = dynamic_cast<TensorDims*>(s)) {
+        if (t->listint_) {
+            out.reserve(t->listint_->size());
+            for (auto& dimCh : *t->listint_) {
+                try { 
+                    out.push_back(std::stoll(dimCh)); 
+                } catch (const std::exception& e) { 
+                    out.push_back(-1); 
+                }
+            }
+        }
+    }
+    return out;
+}
+
+// Map ListInt to std::vector<int64_t>
+std::vector<int64_t> TypeChecker::mapIndices(const ListInt* i) {
+    std::vector<int64_t> out;
+    if (!i) return out;
+    out.reserve(i->size());
+    for (const auto& tok : *i) {
+        try { 
+            out.push_back(std::stoll(tok)); 
+        } catch (const std::exception& e) { 
+            out.push_back(-1); 
+        }
+    }
+    return out;
+}
+
+// --- Error collection and reporting methods ---
 
 // Add an error to the collection
 void TypeChecker::addError(ErrorCode code, const std::string &message,
@@ -184,7 +227,7 @@ void TypeChecker::clearErrors() {
     errors.clear();
 }
 
-// -- Visitor Methods --
+// --- Visitor Methods --- 
 
 void TypeChecker::visitListInt(ListInt *p) {
     for (const auto &intValue : *p) {
@@ -214,26 +257,25 @@ void TypeChecker::visitVarExpr(VarExpr *p) {
         return;
     }
     // Apply scope checking to tensor access
-    visitTensorElement(&p->variablename_, convertListIntToVector(p->listint_));
+    visitTensorElement(&p->variablename_, TypeChecker::mapIndices(p->listint_));
 
-    ElementType* nodeType = symbol->type;
-    ElementType* exprType = ctx->currentDataType;
+    DType nodeType = symbol->dtype;
+    DType exprType = ctx->currentDataType;
 
-    if (exprType == nullptr) {
+    if (exprType == DType::Unknown) {
         ctx->currentDataType = nodeType;
         ctx->lastScannedVariable = p->variablename_;
     // if exprType is a constant type, check if nodeType is of the same family
-    } else if (isConstant(*exprType)) {
-        if (sameFamily(*nodeType, *exprType)) {  
+    } else if (isConstant(exprType)) {
+        if (sameFamily(nodeType, exprType)) {
             ctx->currentDataType = nodeType;
             ctx->lastScannedVariable = p->variablename_;
-            delete exprType; // Clean up the temporary constant type
         } else {
             string_format("Expected a %s type to match constant '%s', but variable '%s' has type '%s'.",
-                elementTypeToString(*exprType), 
+                dtypeToString(exprType), 
                 ctx->lastScannedVariable,
                 p->variablename_,
-                elementTypeToString(*nodeType));
+                dtypeToString(nodeType));
 
             addError(
                 TypeMismatch,
@@ -244,12 +286,12 @@ void TypeChecker::visitVarExpr(VarExpr *p) {
             return;
         }
     // if exprType is a variable type, check if nodeType is of the same type
-    } else if (!sameType(*exprType, *nodeType)) {
+    } else if (!sameType(exprType, nodeType)) {
         string_format("Expected type '%s' (from variable '%s'), but variable '%s' has type '%s'.",
-            elementTypeToString(*exprType), 
+            dtypeToString(exprType), 
             ctx->lastScannedVariable,
             p->variablename_,
-            elementTypeToString(*nodeType));
+            dtypeToString(nodeType));
 
         addError(
             TypeMismatch,
@@ -268,16 +310,15 @@ void TypeChecker::visitDoubleExpr(DoubleExpr *p) {
     auto exprType = ctx->currentDataType;
 
     // If currentDataType is unset, assign a new FloatConstant
-    if (ctx->currentDataType == nullptr) {
-        ctx->currentDataType = new FloatConstant();
+    if (ctx->currentDataType == DType::Unknown) {
+        ctx->currentDataType = DType::FloatConstant;
         ctx->lastScannedVariable = p->sdouble_;
     // if currentDataType is incompatible with FloatConstant add error
-    } else if (!isFloat(*exprType)) {
+    } else if (!sameFamily(ctx->currentDataType, DType::FloatConstant)) {
         string_format("Expected type '%s' (from '%s'), but found a floating-point constant '%s'.",
-            elementTypeToString(*exprType),
+            dtypeToString(ctx->currentDataType),
             ctx->lastScannedVariable, 
             p->sdouble_);
-
         addError(
             TypeMismatch,
             "Type mismatch in arithmetic expression",
@@ -292,14 +333,14 @@ void TypeChecker::visitSIntExpr(SIntExpr *p) {
     auto exprType = ctx->currentDataType;
 
     // If currentDataType is unset, assign a new NegativeIntConstant
-    if (ctx->currentDataType == nullptr) {
-        ctx->currentDataType = new NegativeIntConstant();
+    if (ctx->currentDataType == DType::Unknown) {
+        ctx->currentDataType = DType::NegativeIntConstant;
         ctx->lastScannedVariable = p->sint_;
     // if currentDataType is incompatible with NegativeIntConstant add error
-    } else if (!isSignedInteger(*exprType)) {
+    } else if (!sameFamily(ctx->currentDataType, DType::NegativeIntConstant)) {
         string_format("Expected type '%s' (from '%s'), but found a negative integer constant '%s'.",
-            elementTypeToString(*exprType),
-            ctx->lastScannedVariable, 
+            dtypeToString(exprType),
+            ctx->lastScannedVariable,
             p->sint_);
 
         addError(
@@ -314,14 +355,13 @@ void TypeChecker::visitSIntExpr(SIntExpr *p) {
 
 void TypeChecker::visitIntExpr(IntExpr *p) {
     auto exprType = ctx->currentDataType;
-    auto nodeType = new PositiveIntConstant();
 
-    if (ctx->currentDataType == nullptr) {
-        ctx->currentDataType = nodeType;
+    if (ctx->currentDataType == DType::Unknown) {
+        ctx->currentDataType = DType::PositiveIntConstant;
         ctx->lastScannedVariable = p->int_;
-    } else if (!isInteger(*exprType)) {
+    } else if (!sameFamily(ctx->currentDataType, DType::PositiveIntConstant)) {
         string_format("Expected type '%s' (from '%s'), but found an integer constant '%s'.",
-            elementTypeToString(*exprType),
+            dtypeToString(ctx->currentDataType),
             ctx->lastScannedVariable, 
             p->int_);
 
@@ -361,37 +401,37 @@ void TypeChecker::visitListArithExpr(ListArithExpr *p) {
 void TypeChecker::visitBoolExpr(BoolExpr *p) {} // abstract class
 
 void TypeChecker::visitGreaterThan(GreaterThan *p) {
-    ctx->currentDataType = nullptr;
+    ctx->currentDataType = DType::Unknown;
     p->arithexpr_1->accept(this);
     p->arithexpr_2->accept(this);
 }
 
 void TypeChecker::visitLessThan(LessThan *p) {
-    ctx->currentDataType = nullptr;
+    ctx->currentDataType = DType::Unknown;
     p->arithexpr_1->accept(this);
     p->arithexpr_2->accept(this);
 }
 
 void TypeChecker::visitGreaterEqual(GreaterEqual *p) {
-    ctx->currentDataType = nullptr;
+    ctx->currentDataType = DType::Unknown;
     p->arithexpr_1->accept(this);
     p->arithexpr_2->accept(this);
 }
 
 void TypeChecker::visitLessEqual(LessEqual *p) {
-    ctx->currentDataType = nullptr;
+    ctx->currentDataType = DType::Unknown;
     p->arithexpr_1->accept(this);
     p->arithexpr_2->accept(this);
 }
 
 void TypeChecker::visitNotEqual(NotEqual *p) {
-    ctx->currentDataType = nullptr;
+    ctx->currentDataType = DType::Unknown;
     p->arithexpr_1->accept(this);
     p->arithexpr_2->accept(this);
 }
 
 void TypeChecker::visitEqual(Equal *p) {
-    ctx->currentDataType = nullptr;
+    ctx->currentDataType = DType::Unknown;
     p->arithexpr_1->accept(this);
     p->arithexpr_2->accept(this);
 }
@@ -463,7 +503,7 @@ void TypeChecker::visitInputDef(InputDef *p) {
         p->variablename_,
         p->elementtype_,
         dims,
-        SymbolKind::SYM_INPUT
+        SymbolKind::Input
     );
 }
 
@@ -480,7 +520,7 @@ void TypeChecker::visitInputOnnxDef(InputOnnxDef *p) {
         p->variablename_,
         p->elementtype_,
         dims,
-        SymbolKind::SYM_INPUT,
+        SymbolKind::Input,
         onnxName);
 }
 
@@ -499,7 +539,7 @@ void TypeChecker::visitHiddenDef(HiddenDef *p) {
         p->variablename_,
         p->elementtype_,
         dims,
-        SymbolKind::SYM_HIDDEN,
+        SymbolKind::Hidden,
         onnxName
     );
 }
@@ -518,7 +558,7 @@ void TypeChecker::visitOutputDef(OutputDef *p) {
         p->variablename_,
         p->elementtype_,
         dims,
-        SymbolKind::SYM_OUTPUT
+        SymbolKind::Output
     );
 }
 
@@ -535,7 +575,7 @@ void TypeChecker::visitOutputOnnxDef(OutputOnnxDef *p) {
         p->variablename_,
         p->elementtype_,
         dims,
-        SymbolKind::SYM_OUTPUT,
+        SymbolKind::Output,
         onnxName);
 }
 
@@ -670,7 +710,7 @@ std::string make_element(std::string_view name, const std::vector<int>& indices)
 }
 
 // Checks for valid tensor element access
-void TypeChecker::visitTensorElement(VariableName *name, std::vector<int> indices) {
+void TypeChecker::visitTensorElement(VariableName *name, std::vector<int64_t> indices) {
     const SymbolInfo *symbol = ctx->getSymbol(*name);
 
     std::string element_str = *name + "[";
