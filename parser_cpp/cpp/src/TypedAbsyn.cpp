@@ -8,6 +8,7 @@
 
 std::string dtypeToString(DType dt) {
   switch (dt) {
+    case DType::Real: return "Real";
     case DType::F16: return "F16";
     case DType::F32: return "F32";
     case DType::F64: return "F64";
@@ -40,6 +41,7 @@ bool isConstant(DType dt) {
 bool sameFamily(DType varDt, DType constDt) {
     if (isConstant(constDt)) {
         switch (varDt) {
+            case DType::Real:
             case DType::F16:
             case DType::F32:
             case DType::F64:
@@ -87,7 +89,7 @@ template <class T>
 std::string bnfcPrint(const T* p) {
   if (!p) return "<null>";
   PrintAbsyn pr;
-  return pr.print(p);
+  return pr.print(const_cast<T*>(p));
 }
 
 // ---------- SymbolInfo ----------

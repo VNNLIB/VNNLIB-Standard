@@ -15,7 +15,7 @@
 #include "CLI11.hpp"
 
 #include "VNNLib.h"
-#include "TypeChecker.h"
+#include "TypedBuilder.h"
 #include "Parser.H"
 #include "ParserError.H"
 #include "Absyn.H"
@@ -35,9 +35,9 @@ int do_check(VNNLibQuery *parse_tree, bool verbose) {
         std::printf("Running semantic checks...\n\n");
     }
 
-    auto typeChecker = std::make_unique<TypeChecker>();
+    auto typeChecker = std::make_unique<TypedBuilder>();
     
-    typeChecker->visitVNNLibQuery(parse_tree);
+    auto tquery = typeChecker->build(parse_tree);
     
     if (typeChecker->hasErrors()) {
         std::string report = typeChecker->getErrorReport();

@@ -272,7 +272,7 @@ void TypedBuilder::visitInputDef(InputDef* p) {
     TypeChecker::visitInputDef(p);
 
     auto symbol = std::make_shared<SymbolInfo>(
-        p->variablename_, "", mapDType(p->elementtype_), mapShape(p->tensorshape_), SymbolKind::Input
+        p->variablename_, mapDType(p->elementtype_), mapShape(p->tensorshape_), SymbolKind::Input, ""
     );
     if (!netStack_.empty()) symbol->networkName = netStack_.back()->networkName;
     symbolMap_[symbol->name] = symbol;
@@ -289,7 +289,7 @@ void TypedBuilder::visitInputOnnxDef(InputOnnxDef* p) {
     TypeChecker::visitInputOnnxDef(p);
 
     auto symbol = std::make_shared<SymbolInfo>(
-        p->variablename_, p->string_, mapDType(p->elementtype_), mapShape(p->tensorshape_), SymbolKind::Input
+        p->variablename_, mapDType(p->elementtype_), mapShape(p->tensorshape_), SymbolKind::Input, p->string_
     );
     if (!netStack_.empty()) symbol->networkName = netStack_.back()->networkName;
     symbolMap_[symbol->name] = symbol;
@@ -306,7 +306,7 @@ void TypedBuilder::visitHiddenDef(HiddenDef* p) {
     TypeChecker::visitHiddenDef(p);
 
     auto symbol = std::make_shared<SymbolInfo>(
-        p->variablename_, p->string_, mapDType(p->elementtype_), mapShape(p->tensorshape_), SymbolKind::Hidden
+        p->variablename_, mapDType(p->elementtype_), mapShape(p->tensorshape_), SymbolKind::Hidden, p->string_
     );
     if (!netStack_.empty()) symbol->networkName = netStack_.back()->networkName;
     symbolMap_[symbol->name] = symbol;
@@ -323,7 +323,7 @@ void TypedBuilder::visitOutputDef(OutputDef* p) {
     TypeChecker::visitOutputDef(p);
 
     auto symbol = std::make_shared<SymbolInfo>(
-        p->variablename_, "", mapDType(p->elementtype_), mapShape(p->tensorshape_), SymbolKind::Output
+        p->variablename_, mapDType(p->elementtype_), mapShape(p->tensorshape_), SymbolKind::Output, ""
     );
     if (!netStack_.empty()) symbol->networkName = netStack_.back()->networkName;
     symbolMap_[symbol->name] = symbol;
@@ -340,7 +340,7 @@ void TypedBuilder::visitOutputOnnxDef(OutputOnnxDef* p) {
     TypeChecker::visitOutputOnnxDef(p);
 
     auto symbol = std::make_shared<SymbolInfo>(
-        p->variablename_, p->string_, mapDType(p->elementtype_), mapShape(p->tensorshape_), SymbolKind::Output
+        p->variablename_, mapDType(p->elementtype_), mapShape(p->tensorshape_), SymbolKind::Output, p->string_
     );
     if (!netStack_.empty()) symbol->networkName = netStack_.back()->networkName;
     symbolMap_[symbol->name] = symbol;
@@ -378,4 +378,211 @@ void TypedBuilder::visitVNNLibQuery(VNNLibQuery* p) {
     tquery_->src_Query = static_cast<Query*>(p);
 
     TypeChecker::visitVNNLibQuery(p);
+}
+
+// --- Missing abstract visitor method implementations ---
+// These methods delegate to the parent TypeChecker class
+
+void TypedBuilder::visitTensorShape(TensorShape *p) {
+    TypeChecker::visitTensorShape(p);
+}
+
+void TypedBuilder::visitArithExpr(ArithExpr *p) {
+    TypeChecker::visitArithExpr(p);
+}
+
+void TypedBuilder::visitBoolExpr(BoolExpr *p) {
+    TypeChecker::visitBoolExpr(p);
+}
+
+void TypedBuilder::visitAssertion(Assertion *p) {
+    TypeChecker::visitAssertion(p);
+}
+
+void TypedBuilder::visitElementType(ElementType *p) {
+    TypeChecker::visitElementType(p);
+}
+
+void TypedBuilder::visitInputDefinition(InputDefinition *p) {
+    TypeChecker::visitInputDefinition(p);
+}
+
+void TypedBuilder::visitHiddenDefinition(HiddenDefinition *p) {
+    TypeChecker::visitHiddenDefinition(p);
+}
+
+void TypedBuilder::visitOutputDefinition(OutputDefinition *p) {
+    TypeChecker::visitOutputDefinition(p);
+}
+
+void TypedBuilder::visitNetworkDefinition(NetworkDefinition *p) {
+    TypeChecker::visitNetworkDefinition(p);
+}
+
+void TypedBuilder::visitQuery(Query *p) {
+    TypeChecker::visitQuery(p);
+}
+
+void TypedBuilder::visitScalarDims(ScalarDims *p) {
+    TypeChecker::visitScalarDims(p);
+}
+
+void TypedBuilder::visitTensorDims(TensorDims *p) {
+    TypeChecker::visitTensorDims(p);
+}
+
+void TypedBuilder::visitGenericElementType(GenericElementType *p) {
+    TypeChecker::visitGenericElementType(p);
+}
+
+void TypedBuilder::visitElementTypeF16(ElementTypeF16 *p) {
+    TypeChecker::visitElementTypeF16(p);
+}
+
+void TypedBuilder::visitElementTypeF32(ElementTypeF32 *p) {
+    TypeChecker::visitElementTypeF32(p);
+}
+
+void TypedBuilder::visitElementTypeF64(ElementTypeF64 *p) {
+    TypeChecker::visitElementTypeF64(p);
+}
+
+void TypedBuilder::visitElementTypeBF16(ElementTypeBF16 *p) {
+    TypeChecker::visitElementTypeBF16(p);
+}
+
+void TypedBuilder::visitElementTypeF8E4M3FN(ElementTypeF8E4M3FN *p) {
+    TypeChecker::visitElementTypeF8E4M3FN(p);
+}
+
+void TypedBuilder::visitElementTypeF8E5M2(ElementTypeF8E5M2 *p) {
+    TypeChecker::visitElementTypeF8E5M2(p);
+}
+
+void TypedBuilder::visitElementTypeF8E4M3FNUZ(ElementTypeF8E4M3FNUZ *p) {
+    TypeChecker::visitElementTypeF8E4M3FNUZ(p);
+}
+
+void TypedBuilder::visitElementTypeF8E5M2FNUZ(ElementTypeF8E5M2FNUZ *p) {
+    TypeChecker::visitElementTypeF8E5M2FNUZ(p);
+}
+
+void TypedBuilder::visitElementTypeF4E2M1(ElementTypeF4E2M1 *p) {
+    TypeChecker::visitElementTypeF4E2M1(p);
+}
+
+void TypedBuilder::visitElementTypeI8(ElementTypeI8 *p) {
+    TypeChecker::visitElementTypeI8(p);
+}
+
+void TypedBuilder::visitElementTypeI16(ElementTypeI16 *p) {
+    TypeChecker::visitElementTypeI16(p);
+}
+
+void TypedBuilder::visitElementTypeI32(ElementTypeI32 *p) {
+    TypeChecker::visitElementTypeI32(p);
+}
+
+void TypedBuilder::visitElementTypeI64(ElementTypeI64 *p) {
+    TypeChecker::visitElementTypeI64(p);
+}
+
+void TypedBuilder::visitElementTypeU8(ElementTypeU8 *p) {
+    TypeChecker::visitElementTypeU8(p);
+}
+
+void TypedBuilder::visitElementTypeU16(ElementTypeU16 *p) {
+    TypeChecker::visitElementTypeU16(p);
+}
+
+void TypedBuilder::visitElementTypeU32(ElementTypeU32 *p) {
+    TypeChecker::visitElementTypeU32(p);
+}
+
+void TypedBuilder::visitElementTypeU64(ElementTypeU64 *p) {
+    TypeChecker::visitElementTypeU64(p);
+}
+
+void TypedBuilder::visitElementTypeC64(ElementTypeC64 *p) {
+    TypeChecker::visitElementTypeC64(p);
+}
+
+void TypedBuilder::visitElementTypeC128(ElementTypeC128 *p) {
+    TypeChecker::visitElementTypeC128(p);
+}
+
+void TypedBuilder::visitElementTypeBool(ElementTypeBool *p) {
+    TypeChecker::visitElementTypeBool(p);
+}
+
+void TypedBuilder::visitElementTypeString(ElementTypeString *p) {
+    TypeChecker::visitElementTypeString(p);
+}
+
+void TypedBuilder::visitListInt(ListInt *p) {
+    TypeChecker::visitListInt(p);
+}
+
+void TypedBuilder::visitListArithExpr(ListArithExpr *p) {
+    TypeChecker::visitListArithExpr(p);
+}
+
+void TypedBuilder::visitListBoolExpr(ListBoolExpr *p) {
+    TypeChecker::visitListBoolExpr(p);
+}
+
+void TypedBuilder::visitListAssertion(ListAssertion *p) {
+    TypeChecker::visitListAssertion(p);
+}
+
+void TypedBuilder::visitListInputDefinition(ListInputDefinition *p) {
+    TypeChecker::visitListInputDefinition(p);
+}
+
+void TypedBuilder::visitListHiddenDefinition(ListHiddenDefinition *p) {
+    TypeChecker::visitListHiddenDefinition(p);
+}
+
+void TypedBuilder::visitListOutputDefinition(ListOutputDefinition *p) {
+    TypeChecker::visitListOutputDefinition(p);
+}
+
+void TypedBuilder::visitListNetworkDefinition(ListNetworkDefinition *p) {
+    TypeChecker::visitListNetworkDefinition(p);
+}
+
+void TypedBuilder::visitInteger(Integer x) {
+    TypeChecker::visitInteger(x);
+}
+
+void TypedBuilder::visitChar(Char x) {
+    TypeChecker::visitChar(x);
+}
+
+void TypedBuilder::visitDouble(Double x) {
+    TypeChecker::visitDouble(x);
+}
+
+void TypedBuilder::visitString(String x) {
+    TypeChecker::visitString(x);
+}
+
+void TypedBuilder::visitIdent(Ident x) {
+    TypeChecker::visitIdent(x);
+}
+
+void TypedBuilder::visitSDouble(SDouble x) {
+    TypeChecker::visitSDouble(x);
+}
+
+void TypedBuilder::visitSInt(SInt x) {
+    TypeChecker::visitSInt(x);
+}
+
+void TypedBuilder::visitInt(Int x) {
+    TypeChecker::visitInt(x);
+}
+
+void TypedBuilder::visitVariableName(VariableName x) {
+    TypeChecker::visitVariableName(x);
 }

@@ -6,9 +6,9 @@
 #include <vector>
 
 #include "Absyn.H"
-#include "TypedBuilder.h"
 
 enum class DType {
+	Real,
 	F16, F32, F64, BF16,
 	F8E4M3FN, F8E5M2, F8E4M3FNUZ, F8E5M2FNUZ, F4E2M1,
 	I8, I16, I32, I64,
