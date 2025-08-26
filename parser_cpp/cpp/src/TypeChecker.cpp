@@ -85,10 +85,10 @@ bool Context::addSymbol(VariableName name, ElementType *type, ListInt shape, Sym
     auto [insertIt, inserted] = symbolMap.try_emplace(
         name,
         name,
-        onnxName,
         TypeChecker::mapDType(type),
         std::move(tmp),
-        kind
+        kind,
+        onnxName
     );
 
     if (!inserted) {
@@ -129,6 +129,7 @@ TypeChecker::~TypeChecker() {
 DType TypeChecker::mapDType(ElementType* e) {
     if (!e) return DType::Unknown;
     #define MAP(E,T) if (dynamic_cast<const E*>(e)) return DType::T
+    MAP(GenericElementType, Real);  // "Real" maps to Real DType
     MAP(ElementTypeF16, F16); 
     MAP(ElementTypeF32, F32); 
     MAP(ElementTypeF64, F64);
