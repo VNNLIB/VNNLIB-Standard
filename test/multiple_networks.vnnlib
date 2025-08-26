@@ -33,7 +33,7 @@
 
 ; weak left is minimal or COC is minimal
 (assert (or
-    (and (<= Y[2] Y[0]) (<= Y[2] Y[1]))
-    (and (<= Y[3] Y[0]) (<= Y[3] Y[1]))
-    (and (<= Y[4] Y[0]) (<= Y[4] Y[1]))
+    (and (<= B[2] B[0]) (<= B[2] B[1]))
+    (and (<= B[3] B[0]) (<= B[3] B[1]))
+    (and (<= B[4] B[0]) (<= B[4] B[1]))
 ))
