@@ -15,20 +15,29 @@
 #include <vector>
 #include <unordered_map>
 #include <memory>
+#include <cerrno>
+#include <cstring>
 
 #include "Absyn.H"
 #include "Parser.H"
-#include "TypeChecker.h"
+#include "TypedBuilder.h"
 #include "Printer.H"
 #include "ParserError.H"
 
-VNNLIB_API VNNLibQuery *parse_vnnlib(const char* path);
-VNNLIB_API VNNLibQuery *parse_vnnlib_str(const char* str);
+VNNLIB_API std::unique_ptr<TQuery> parse_query(std::string path);
+VNNLIB_API std::unique_ptr<TQuery> parse_query_str(std::string content);
+VNNLIB_API std::string check_query(std::string content);
+VNNLIB_API std::string check_query_str(std::string content);
 
-VNNLIB_API std::string write_vnnlib_str(VNNLibQuery *q);
-
-VNNLIB_API std::string check_query(VNNLibQuery *q);
-
+class VNNLibException : public std::exception {
+private:
+    std::string message_;
+public:
+    VNNLibException(const std::string &message) : message_(message) {}
+    const char* what() const noexcept override {
+        return message_.c_str();
+    }
+};
 
 #endif
 

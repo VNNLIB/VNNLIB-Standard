@@ -13,7 +13,9 @@ ext_modules = [
             "vnnlib/_core.cpp",
             "../cpp/src/VNNLib.cpp",
             "../cpp/src/TypeChecker.cpp",
-        ] + glob.glob("../cpp/src/generated/*.C"), 
+            "../cpp/src/TypedAbsyn.cpp",
+            "../cpp/src/TypedBuilder.cpp",
+        ] + glob.glob("../cpp/src/generated/*.C"),
         include_dirs=[
             pybind11.get_include(),
             "../cpp/include",

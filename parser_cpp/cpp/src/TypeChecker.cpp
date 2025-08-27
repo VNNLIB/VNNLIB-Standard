@@ -308,8 +308,6 @@ void TypeChecker::visitVarExpr(VarExpr *p) {
 }
 
 void TypeChecker::visitDoubleExpr(DoubleExpr *p) {
-    auto exprType = ctx->currentDataType;
-
     // If currentDataType is unset, assign a new FloatConstant
     if (ctx->currentDataType == DType::Unknown) {
         ctx->currentDataType = DType::FloatConstant;
@@ -331,8 +329,6 @@ void TypeChecker::visitDoubleExpr(DoubleExpr *p) {
 }
 
 void TypeChecker::visitSIntExpr(SIntExpr *p) {
-    auto exprType = ctx->currentDataType;
-
     // If currentDataType is unset, assign a new NegativeIntConstant
     if (ctx->currentDataType == DType::Unknown) {
         ctx->currentDataType = DType::NegativeIntConstant;
@@ -340,7 +336,7 @@ void TypeChecker::visitSIntExpr(SIntExpr *p) {
     // if currentDataType is incompatible with NegativeIntConstant add error
     } else if (!sameFamily(ctx->currentDataType, DType::NegativeIntConstant)) {
         string_format("Expected type '%s' (from '%s'), but found a negative integer constant '%s'.",
-            dtypeToString(exprType),
+            dtypeToString(ctx->currentDataType),
             ctx->lastScannedVariable,
             p->sint_);
 
@@ -355,8 +351,6 @@ void TypeChecker::visitSIntExpr(SIntExpr *p) {
 }
 
 void TypeChecker::visitIntExpr(IntExpr *p) {
-    auto exprType = ctx->currentDataType;
-
     if (ctx->currentDataType == DType::Unknown) {
         ctx->currentDataType = DType::PositiveIntConstant;
         ctx->lastScannedVariable = p->int_;

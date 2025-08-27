@@ -36,7 +36,8 @@ TARGET_LIB = $(BIN_DIR)/libVNNLib.so
 INCLUDES = -I$(GENERATED_DIR) -I$(INCLUDE_DIR) -I$(INCLUDE_DIR)/util
 
 # Libraries
-LDFLAGS = -lm
+LDFLAGS = -Wl,--no-undefined
+LDLIBS = -lm
 
 .PHONY: all clean generated
 
@@ -47,11 +48,11 @@ generated: $(GENERATED_DIR)/Parser.C $(GENERATED_DIR)/Lexer.C
 
 # Build the shared library
 $(TARGET_LIB): $(ALL_LIB_OBJS) | $(BIN_DIR)
-	$(CXX) -shared -o $@ $^ $(LDFLAGS)
+	$(CXX) -shared -o $@ $^ $(LDFLAGS) $(LDLIBS)
 
 # Link final executable  
 $(TARGET_EXEC): $(ALL_LIB_OBJS) $(PARSER_MAIN_OBJ) | $(BIN_DIR)
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $@ $^ $(LDFLAGS)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $@ $^ $(LDFLAGS) $(LDLIBS)
 
 # Compile main source object files
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)

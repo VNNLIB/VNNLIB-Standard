@@ -109,8 +109,10 @@ int main(int argc, char** argv) {
         if (verbose) {
             std::printf("Parse tree generated successfully.\n\n");
             std::printf("[Linearized Tree]\n");
-            std::string query_str = write_vnnlib_str(parse_tree);
-            std::cout << query_str << std::endl;
+            
+            auto printer = std::make_unique<ShowAbsyn>();
+            std::string output(printer->show(parse_tree)); 
+            std::cout << output << std::endl;
         }
 
         // 3) Run semantic checks

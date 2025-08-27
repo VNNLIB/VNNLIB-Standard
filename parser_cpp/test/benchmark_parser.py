@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Simple benchmarking script for VNNLib parsing performance."""
+"""Simple benchmarking script for VNNLib parsing performance.
+Usage: benchmark_parser.py <vnnlib_file> [-n iterations]"""
 
 import sys
 import os
@@ -76,9 +77,6 @@ def main():
     parser.add_argument("file", help="VNNLib file to parse")
     parser.add_argument("-n", "--iterations", type=int, default=1, 
                        help="Number of iterations to run (default: 1)")
-    parser.add_argument("-a", "--all", action="store_true",
-                       help="Benchmark all test files in test/ directory")
-    
     args = parser.parse_args()
     
     if args.all:

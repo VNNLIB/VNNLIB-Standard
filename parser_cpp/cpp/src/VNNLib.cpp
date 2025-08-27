@@ -1,18 +1,12 @@
 #include "VNNLib.h"
-#include "Parser.H"
-#include "ParserError.H"
-#include "TypeChecker.h"
-#include <memory>
-#include <cerrno>
-#include <cstring>
 
-// Forward declaration for the string parser function
+// Forward declaration
 extern Query* psQuery(const char *str);
 
-VNNLibQuery *parse_vnnlib(const char* path) {
-    FILE *file = fopen(path, "r");
+std::unique_ptr<TQuery> parse_query(std::string path) {
+    FILE *file = fopen(path.c_str(), "r");
     if (!file) {
-        std::fprintf(stderr, "Error: Cannot open input file '%s': %s\n", path, std::strerror(errno));
+        std::fprintf(stderr, "Error: Cannot open input file '%s': %s\n", path.c_str(), std::strerror(errno));
         return nullptr;
     }
 
@@ -21,65 +15,91 @@ VNNLibQuery *parse_vnnlib(const char* path) {
         Query *query = pQuery(file);
         parse_tree = dynamic_cast<VNNLibQuery*>(query);
     } catch (const parse_error &e) {
-        std::fprintf(stderr, "Parse error: %s\n", e.what());
         fclose(file);
-        return nullptr;
+        throw VNNLibException("Parse error: " + std::string(e.what()));
     }
-    
     fclose(file);
     
     if (parse_tree == nullptr) {
-        std::fprintf(stderr, "Error: Failed to parse VNNLIB file '%s'\n", path);
-        return nullptr;
+        throw VNNLibException("Error: Failed to parse VNNLIB file: " + path);
     }
-    
-    return parse_tree;
+
+    TypedBuilder typeChecker;
+    auto typed = typeChecker.build(parse_tree);
+    if (typeChecker.hasErrors()) {
+        throw VNNLibException(typeChecker.getErrorReport());
+    }
+    return typed;
 }
 
-VNNLibQuery *parse_vnnlib_str(const char* str) {
+std::unique_ptr<TQuery> parse_query_str(std::string content) {
     VNNLibQuery *parse_tree = nullptr;
     try {
-        Query *query = psQuery(str);
+        Query *query = psQuery(content.c_str());
         parse_tree = dynamic_cast<VNNLibQuery*>(query);
     } catch (const parse_error &e) {
-        std::fprintf(stderr, "Parse error: %s\n", e.what());
-        return nullptr;
+        throw VNNLibException("Parse error: " + std::string(e.what()));
     }
     
     if (parse_tree == nullptr) {
-        std::fprintf(stderr, "Error: Failed to parse VNNLIB string\n");
-        return nullptr;
+        throw VNNLibException("Error: Failed to parse VNNLIB file: " + content);
     }
-    
-    return parse_tree;
-} 
 
-std::string write_vnnlib_str(VNNLibQuery *q) {
-    auto printer = std::make_unique<ShowAbsyn>();
-    char *output = printer->show(dynamic_cast<Visitable*>(q));
-    std::string result;
-
-    if (output) {
-        result = output;
-        delete[] output;
+    TypedBuilder typeChecker;
+    auto typed = typeChecker.build(parse_tree);
+    if (typeChecker.hasErrors()) {
+        throw VNNLibException(typeChecker.getErrorReport());
     }
-    return result;
+    return typed;
 }
 
-std::string check_query(VNNLibQuery *q) {
-    if (q == nullptr) {
-        std::cerr << "Error: Null query provided" << std::endl;
-        return "";
+std::string check_query(std::string path) {
+    FILE *file = fopen(path.c_str(), "r");
+    if (!file) {
+        std::fprintf(stderr, "Error: Cannot open input file '%s': %s\n", path.c_str(), std::strerror(errno));
+        return nullptr;
     }
 
-    auto typeChecker = std::make_unique<TypeChecker>();
-    typeChecker->visitVNNLibQuery(q);
+    VNNLibQuery *parse_tree = nullptr;
+    try {
+        Query *query = pQuery(file);
+        parse_tree = dynamic_cast<VNNLibQuery*>(query);
+    } catch (const parse_error &e) {
+        fclose(file);
+        throw VNNLibException("Parse error: " + std::string(e.what()));
+    }
+    fclose(file);
     
-    if (typeChecker->hasErrors()) {
-        std::string report = typeChecker->getErrorReport();
-        return report;
+    if (parse_tree == nullptr) {
+        throw VNNLibException("Error: Failed to parse VNNLIB file: " + path);
     }
 
+    TypedBuilder typeChecker;
+    auto typed = typeChecker.build(parse_tree);
+    if (typeChecker.hasErrors()) {
+        return typeChecker.getErrorReport();
+    }
+    return "";
+}
+
+std::string check_query_str(std::string content) {
+    VNNLibQuery *parse_tree = nullptr;
+    try {
+        Query *query = psQuery(content.c_str());
+        parse_tree = dynamic_cast<VNNLibQuery*>(query);
+    } catch (const parse_error &e) {
+        throw VNNLibException("Parse error: " + std::string(e.what()));
+    }
+    
+    if (parse_tree == nullptr) {
+        throw VNNLibException("Error: Failed to parse VNNLIB file: " + content);
+    }
+
+    TypedBuilder typeChecker;
+    auto typed = typeChecker.build(parse_tree);
+    if (typeChecker.hasErrors()) {
+        return typeChecker.getErrorReport();
+    }
     return "";
 }
 
