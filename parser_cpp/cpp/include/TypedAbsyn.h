@@ -49,6 +49,13 @@ public:
 	virtual ~TNode() = default;
 	virtual void children(std::vector<const TNode*>& out) const = 0;
 	virtual std::string toString() const = 0;
+
+protected:
+  TNode() = default;                               
+  TNode(const TNode&) = delete;
+  TNode& operator=(const TNode&) = delete;
+  TNode(TNode&&) noexcept = default;            
+  TNode& operator=(TNode&&) noexcept = default;
 };
 
 class TElementType : public TNode {

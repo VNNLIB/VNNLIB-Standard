@@ -99,7 +99,8 @@ void TypedBuilder::visitIntExpr(IntExpr* p) {
 
 void TypedBuilder::visitNegate(Negate* p) {
     auto mark = arithStack_.size();
-    TypeChecker::visitNegate(p);     // visits child using overridden function (dynamic dispatch)
+    // visits child using overridden function (dynamic dispatch). The child is then pushed onto the stack.
+    TypeChecker::visitNegate(p);
 
     auto node = std::make_unique<TNegate>();
     node->src_ArithExpr = static_cast<ArithExpr*>(p);
@@ -156,7 +157,7 @@ void TypedBuilder::visitMultiply(Multiply* p) {
 void TypedBuilder::visitGreaterThan(GreaterThan* p) {
     // Let base visit both sides
     TypeChecker::visitGreaterThan(p);
-    auto rhs = pop(arithStack_);
+    auto rhs = pop(arithStack_);    
     auto lhs = pop(arithStack_);
 
     auto node = std::make_unique<TGreaterThan>();
@@ -380,7 +381,7 @@ void TypedBuilder::visitVNNLibQuery(VNNLibQuery* p) {
     TypeChecker::visitVNNLibQuery(p);
 }
 
-// --- Missing abstract visitor method implementations ---
+// --- Unused abstract visitor method implementations ---
 // These methods delegate to the parent TypeChecker class
 
 void TypedBuilder::visitTensorShape(TensorShape *p) {

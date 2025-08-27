@@ -41,7 +41,6 @@ public:
     void visitNetworkDef(NetworkDef* p) override;
     void visitVNNLibQuery(VNNLibQuery* p) override;
 
-    // Missing abstract visitor methods from base Visitor class
     void visitTensorShape(TensorShape *p) override;
     void visitArithExpr(ArithExpr *p) override;
     void visitBoolExpr(BoolExpr *p) override;

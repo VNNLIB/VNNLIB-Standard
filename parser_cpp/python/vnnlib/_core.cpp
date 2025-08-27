@@ -1,355 +1,273 @@
 #include <pybind11/pybind11.h>
-#include <pybind11/stl.h>      
+#include <pybind11/stl.h>
 #include <memory>
 #include <exception>
+#include <string>
+#include <vector>
 
-#include "VNNLib.h" 
-#include "Absyn.H" 
-#include "Printer.H"
-#include "TypeChecker.h"
-
-class VNNLibException : public std::exception {
-private:
-    std::string message_;
-public:
-    VNNLibException(const std::string &message) : message_(message) {}
-    const char* what() const noexcept override {
-        return message_.c_str();
-    }
-};
-
-// Helper function to convert AST nodes to strings
-std::string nodeToString(Visitable* node) {
-    if (!node) return "";
-    ShowAbsyn printer;
-    char* result = printer.show(node);
-    return result ? std::string(result) : "";
-}
-
-// Helper function to convert AST nodes to pretty-printed strings
-std::string nodeToPrettyString(Visitable* node) {
-    if (!node) return "";
-    PrintAbsyn printer;
-    char* result = printer.print(node);
-    return result ? std::string(result) : "";
-}
+#include "VNNLib.h"                
+#include "TypeChecker.h"     
+#include "TypedAbsyn.h"     
+#include "TypedBuilder.h"
 
 namespace py = pybind11;
 
 PYBIND11_MODULE(_core, m) {
-    m.doc() = "Python bindings for VNNLib parsing and AST traversal";
+	m.doc() = "Python bindings for VNNLib parsing and AST traversal";
 
-    py::register_exception<VNNLibException>(m, "VNNLibException");
+	py::register_exception<VNNLibException>(m, "VNNLibException");
 
-    // Helper functions
-    m.def("node_to_string", &nodeToString, "Convert an AST node to its string representation");
-    m.def("node_to_pretty_string", &nodeToPrettyString, "Convert an AST node to a pretty-printed string representation");
+	// Helper Types
+	py::enum_<DType>(m, "DType")
+		.value("Real", DType::Real)
+		.value("F16", DType::F16).value("F32", DType::F32).value("F64", DType::F64).value("BF16", DType::BF16)
+		.value("F8E4M3FN", DType::F8E4M3FN).value("F8E5M2", DType::F8E5M2)
+		.value("F8E4M3FNUZ", DType::F8E4M3FNUZ).value("F8E5M2FNUZ", DType::F8E5M2FNUZ)
+		.value("F4E2M1", DType::F4E2M1)
+		.value("I8", DType::I8).value("I16", DType::I16).value("I32", DType::I32).value("I64", DType::I64)
+		.value("U8", DType::U8).value("U16", DType::U16).value("U32", DType::U32).value("U64", DType::U64)
+		.value("C64", DType::C64).value("C128", DType::C128)
+		.value("Bool", DType::Bool).value("String", DType::String)
+		.value("Unknown", DType::Unknown)
+		.value("NegativeIntConstant", DType::NegativeIntConstant)
+		.value("PositiveIntConstant", DType::PositiveIntConstant)
+		.value("FloatConstant", DType::FloatConstant);
 
-    // --- Base Classes ---
-    py::class_<Visitable>(m, "Visitable")
-        .def("__str__", [](Visitable* self) { return nodeToString(self); });
+	py::enum_<SymbolKind>(m, "SymbolKind")
+		.value("Input", SymbolKind::Input)
+		.value("Hidden", SymbolKind::Hidden)
+		.value("Output", SymbolKind::Output)
+		.value("Unknown", SymbolKind::Unknown);
 
-    // --- ElementType and Concrete Types ---
-    py::class_<ElementType, Visitable>(m, "ElementType")
-        .def("__str__", [](ElementType* self) { return nodeToString(self); });
+	py::class_<TNode>(m, "Node")
+		.def("__str__", [](const TNode& n){ return n.toString(); })
+		.def("children", [](py::object self){ 
+			const TNode& n = self.cast<const TNode&>();
+			std::vector<const TNode*> children;
+			n.children(children);
+			py::tuple out(children.size());
 
-    py::class_<GenericElementType, ElementType>(m, "GenericElementType");
-    py::class_<ElementTypeF16, ElementType>(m, "ElementTypeF16");
-    py::class_<ElementTypeF32, ElementType>(m, "ElementTypeF32");
-    py::class_<ElementTypeF64, ElementType>(m, "ElementTypeF64");
-    py::class_<ElementTypeBF16, ElementType>(m, "ElementTypeBF16");
-    py::class_<ElementTypeF8E4M3FN, ElementType>(m, "ElementTypeF8E4M3FN");
-    py::class_<ElementTypeF8E5M2, ElementType>(m, "ElementTypeF8E5M2");
-    py::class_<ElementTypeF8E4M3FNUZ, ElementType>(m, "ElementTypeF8E4M3FNUZ");
-    py::class_<ElementTypeF8E5M2FNUZ, ElementType>(m, "ElementTypeF8E5M2FNUZ");
-    py::class_<ElementTypeF4E2M1, ElementType>(m, "ElementTypeF4E2M1");
-    py::class_<ElementTypeI8, ElementType>(m, "ElementTypeI8");
-    py::class_<ElementTypeI16, ElementType>(m, "ElementTypeI16");
-    py::class_<ElementTypeI32, ElementType>(m, "ElementTypeI32");
-    py::class_<ElementTypeI64, ElementType>(m, "ElementTypeI64");
-    py::class_<ElementTypeU8, ElementType>(m, "ElementTypeU8");
-    py::class_<ElementTypeU16, ElementType>(m, "ElementTypeU16");
-    py::class_<ElementTypeU32, ElementType>(m, "ElementTypeU32");
-    py::class_<ElementTypeU64, ElementType>(m, "ElementTypeU64");
-    py::class_<ElementTypeC64, ElementType>(m, "ElementTypeC64");
-    py::class_<ElementTypeC128, ElementType>(m, "ElementTypeC128");
-    py::class_<ElementTypeBool, ElementType>(m, "ElementTypeBool");
-    py::class_<ElementTypeString, ElementType>(m, "ElementTypeString");
+			for (int i = 0; i < children.size(); ++i) {
+				out[i] = py::cast(children[i], py::return_value_policy::reference_internal, self);
+			}
+			return out;
+		});
 
-    // --- TensorShape ---
-    py::class_<TensorShape, Visitable>(m, "TensorShape")
-        .def("__str__", [](TensorShape* self) { return nodeToString(self); });
+	// --- Arithmetic Operations --- 
+	py::class_<TArithExpr, TNode>(m, "ArithExpr")
+		.def_property_readonly("dtype", [](const TArithExpr& e){ return e.dtype; });
 
-    py::class_<ScalarDims, TensorShape>(m, "ScalarDims");
-    
-    py::class_<TensorDims, TensorShape>(m, "TensorDims")
-        .def_readonly("dims", &TensorDims::listint_);
+	py::class_<TVarExpr, TArithExpr>(m, "Var")
+		.def_property_readonly("name",      [](const TVarExpr& v){ return v.symbol ? v.symbol->name : std::string{}; })
+		.def_property_readonly("onnx_name", [](const TVarExpr& v)->py::object{
+			if (v.symbol->onnxName.empty()) return py::none();
+			return py::str(v.symbol->onnxName);
+		})
+		.def_property_readonly("dtype",       [](const TVarExpr& v){ return v.symbol->dtype; })
+		.def_property_readonly("shape",       [](const TVarExpr& v){ return v.symbol->shape; })
+		.def_property_readonly("kind",        [](const TVarExpr& v){ return v.symbol->kind; })
+		.def_property_readonly("network_name",[](const TVarExpr& v){ return v.symbol->networkName; })
+		.def_property_readonly("indices",     [](const TVarExpr& v){ return v.indices; });
 
-    // --- ListInt ---
-    py::class_<ListInt>(m, "ListInt")
-        .def("__len__", [](const ListInt &v) { return v.size(); })
-        .def("__iter__", [](const ListInt &v) {
-            return py::make_iterator(v.begin(), v.end());
-        }, py::keep_alive<0, 1>())
-        .def("__getitem__", [](const ListInt &v, size_t i) {
-            if (i >= v.size()) throw py::index_error();
-            return v[i];
-        })
-        .def("__str__", [](const ListInt &v) {
-            std::string result = "[";
-            for (size_t i = 0; i < v.size(); ++i) {
-                if (i > 0) result += ", ";
-                result += v[i];
-            }
-            result += "]";
-            return result;
-        });
+	py::class_<TDoubleExpr, TArithExpr>(m, "Double")
+		.def_property_readonly("value",  [](const TDoubleExpr& e){ return e.value; })
+		.def_property_readonly("lexeme", [](const TDoubleExpr& e){ return e.lexeme; });
 
-    // --- ArithExpr and Concrete Types ---
-    py::class_<ArithExpr, Visitable>(m, "ArithExpr")
-        .def("__str__", [](ArithExpr* self) { return nodeToString(self); });
+	py::class_<TSIntExpr, TArithExpr>(m, "SInt")
+		.def_property_readonly("value",  [](const TSIntExpr& e){ return e.value; })
+		.def_property_readonly("lexeme", [](const TSIntExpr& e){ return e.lexeme; });
 
-    py::class_<VarExpr, ArithExpr>(m, "VarExpr")
-        .def_readonly("variable_name", &VarExpr::variablename_)
-        .def_readonly("indices", &VarExpr::listint_);
+	py::class_<TIntExpr, TArithExpr>(m, "Int")
+		.def_property_readonly("value",  [](const TIntExpr& e){ return e.value; })
+		.def_property_readonly("lexeme", [](const TIntExpr& e){ return e.lexeme; });
 
-    py::class_<DoubleExpr, ArithExpr>(m, "DoubleExpr")
-        .def_readonly("value", &DoubleExpr::sdouble_);
+	py::class_<TPlus, TArithExpr>(m, "Plus")
+	.def_property_readonly("args", [](const TPlus& n){
+		py::tuple args_tuple(n.args.size());
+		for (size_t i = 0; i < n.args.size(); ++i)
+			args_tuple[i] = py::cast(n.args[i].get(), py::return_value_policy::reference_internal, py::cast(&n));
+		return args_tuple;
+	});
 
-    py::class_<SIntExpr, ArithExpr>(m, "SIntExpr")
-        .def_readonly("value", &SIntExpr::sint_);
+	py::class_<TMinus, TArithExpr>(m, "Minus")
+	.def_property_readonly("head", [](const TMinus& n){ return n.head.get(); }, py::return_value_policy::reference_internal)
+	.def_property_readonly("rest", [](const TMinus& n){
+		py::tuple rest_tuple(n.rest.size());
+		for (size_t i = 0; i < n.rest.size(); ++i)
+			rest_tuple[i] = py::cast(n.rest[i].get(), py::return_value_policy::reference_internal, py::cast(&n));
+		return rest_tuple;
+	});
 
-    py::class_<IntExpr, ArithExpr>(m, "IntExpr")
-        .def_readonly("value", &IntExpr::int_);
+	py::class_<TMultiply, TArithExpr>(m, "Multiply")
+	.def_property_readonly("args", [](const TMultiply& n){
+		py::tuple args_tuple(n.args.size());
+		for (size_t i = 0; i < n.args.size(); ++i)
+			args_tuple[i] = py::cast(n.args[i].get(), py::return_value_policy::reference_internal, py::cast(&n));
+		return args_tuple;
+	});
 
-    py::class_<Negate, ArithExpr>(m, "Negate")
-        .def_readonly("expr", &Negate::arithexpr_);
+  	// ---------- Boolean Operations ----------
+	py::class_<TBoolExpr, TNode>(m, "BoolExpr");
 
-    py::class_<Plus, ArithExpr>(m, "Plus")
-        .def_readonly("operands", &Plus::listarithexpr_);
+	py::class_<TGreaterThan, TBoolExpr>(m, "GreaterThan")
+		.def_property_readonly("lhs", [](const TGreaterThan& n){ return n.lhs.get(); }, py::return_value_policy::reference_internal)
+		.def_property_readonly("rhs", [](const TGreaterThan& n){ return n.rhs.get(); }, py::return_value_policy::reference_internal);
+	py::class_<TLessThan, TBoolExpr>(m, "LessThan")
+		.def_property_readonly("lhs", [](const TLessThan& n){ return n.lhs.get(); }, py::return_value_policy::reference_internal)
+		.def_property_readonly("rhs", [](const TLessThan& n){ return n.rhs.get(); }, py::return_value_policy::reference_internal);
+	py::class_<TGreaterEqual, TBoolExpr>(m, "GreaterEqual")
+		.def_property_readonly("lhs", [](const TGreaterEqual& n){ return n.lhs.get(); }, py::return_value_policy::reference_internal)
+		.def_property_readonly("rhs", [](const TGreaterEqual& n){ return n.rhs.get(); }, py::return_value_policy::reference_internal);
+	py::class_<TLessEqual, TBoolExpr>(m, "LessEqual")
+		.def_property_readonly("lhs", [](const TLessEqual& n){ return n.lhs.get(); }, py::return_value_policy::reference_internal)
+		.def_property_readonly("rhs", [](const TLessEqual& n){ return n.rhs.get(); }, py::return_value_policy::reference_internal);
+	py::class_<TNotEqual, TBoolExpr>(m, "NotEqual")
+		.def_property_readonly("lhs", [](const TNotEqual& n){ return n.lhs.get(); }, py::return_value_policy::reference_internal)
+		.def_property_readonly("rhs", [](const TNotEqual& n){ return n.rhs.get(); }, py::return_value_policy::reference_internal);
+	py::class_<TEqual, TBoolExpr>(m, "Equal")
+		.def_property_readonly("lhs", [](const TEqual& n){ return n.lhs.get(); }, py::return_value_policy::reference_internal)
+		.def_property_readonly("rhs", [](const TEqual& n){ return n.rhs.get(); }, py::return_value_policy::reference_internal);
 
-    py::class_<Minus, ArithExpr>(m, "Minus")
-        .def_readonly("left", &Minus::arithexpr_)
-        .def_readonly("right_operands", &Minus::listarithexpr_);
+	py::class_<TAnd, TBoolExpr>(m, "And")
+		.def_property_readonly("args", [](const TAnd& n){
+			py::tuple args_tuple(n.args.size());
+			for (size_t i = 0; i < n.args.size(); ++i)
+				args_tuple[i] = py::cast(n.args[i].get(), py::return_value_policy::reference_internal, py::cast(&n));
+			return args_tuple;
+		});
 
-    py::class_<Multiply, ArithExpr>(m, "Multiply")
-        .def_readonly("operands", &Multiply::listarithexpr_);
+	py::class_<TOr, TBoolExpr>(m, "Or")
+		.def_property_readonly("args", [](const TOr& n){
+			py::tuple args_tuple(n.args.size());
+			for (size_t i = 0; i < n.args.size(); ++i)
+				args_tuple[i] = py::cast(n.args[i].get(), py::return_value_policy::reference_internal, py::cast(&n));
+			return args_tuple;
+		});
 
-    // --- ListArithExpr ---
-    py::class_<ListArithExpr>(m, "ListArithExpr")
-        .def("__len__", [](const ListArithExpr &v) { return v.size(); })
-        .def("__iter__", [](const ListArithExpr &v) {
-            return py::make_iterator(v.begin(), v.end());
-        }, py::keep_alive<0, 1>())
-        .def("__getitem__", [](const ListArithExpr &v, size_t i) -> ArithExpr* {
-            if (i >= v.size()) throw py::index_error();
-            return v[i];
-        }, py::return_value_policy::reference_internal);
+	// --- Assertion ---
+	py::class_<TAssertion, TNode>(m, "Assertion")
+		.def_property_readonly("expr", [](const TAssertion& a){ return a.cond.get(); }, py::return_value_policy::reference_internal);
+	
+	// --- Definitions ---
+	py::class_<TInputDefinition, TNode>(m, "InputDefinition")
+		.def_property_readonly("name", [](const TInputDefinition& d){ return d.symbol ? d.symbol->name : std::string{}; })
+		.def_property_readonly("onnx_name", [](const TInputDefinition& d)->py::object{
+			if (d.symbol->onnxName.empty()) return py::none();
+			return py::str(d.symbol->onnxName);
+		})
+		.def_property_readonly("dtype", [](const TInputDefinition& d){ return d.symbol ? d.symbol->dtype : DType::Unknown; })
+		.def_property_readonly("shape", [](const TInputDefinition& d){ return d.symbol ? d.symbol->shape : Shape{}; })
+		.def_property_readonly("kind",  [](const TInputDefinition& d){ return d.symbol ? d.symbol->kind : SymbolKind::Unknown; })
+		.def_property_readonly("network_name", [](const TInputDefinition& d){ return d.symbol ? d.symbol->networkName : std::string{}; });
 
-    // --- BoolExpr and Concrete Types ---
-    py::class_<BoolExpr, Visitable>(m, "BoolExpr")
-        .def("__str__", [](BoolExpr* self) { return nodeToString(self); });
+	py::class_<THiddenDefinition, TNode>(m, "HiddenDefinition")
+		.def_property_readonly("name", [](const THiddenDefinition& d){ return d.symbol ? d.symbol->name : std::string{}; })
+		.def_property_readonly("onnx_name", [](const THiddenDefinition& d)->py::object{
+			if (d.symbol->onnxName.empty()) return py::none();
+			return py::str(d.symbol->onnxName);
+		})
+		.def_property_readonly("dtype", [](const THiddenDefinition& d){ return d.symbol ? d.symbol->dtype : DType::Unknown; })
+		.def_property_readonly("shape", [](const THiddenDefinition& d){ return d.symbol ? d.symbol->shape : Shape{}; })
+		.def_property_readonly("kind",  [](const THiddenDefinition& d){ return d.symbol ? d.symbol->kind : SymbolKind::Unknown; })
+		.def_property_readonly("network_name", [](const THiddenDefinition& d){ return d.symbol ? d.symbol->networkName : std::string{}; });
 
-    py::class_<GreaterThan, BoolExpr>(m, "GreaterThan")
-        .def_readonly("expr1", &GreaterThan::arithexpr_1)
-        .def_readonly("expr2", &GreaterThan::arithexpr_2);
+	py::class_<TOutputDefinition, TNode>(m, "OutputDefinition")
+		.def_property_readonly("name", [](const TOutputDefinition& d){ return d.symbol ? d.symbol->name : std::string{}; })
+		.def_property_readonly("onnx_name", [](const TOutputDefinition& d)->py::object{
+			if (d.symbol->onnxName.empty()) return py::none();
+			return py::str(d.symbol->onnxName);
+		})
+		.def_property_readonly("dtype", [](const TOutputDefinition& d){ return d.symbol ? d.symbol->dtype : DType::Unknown; })
+		.def_property_readonly("shape", [](const TOutputDefinition& d){ return d.symbol ? d.symbol->shape : Shape{}; })
+		.def_property_readonly("kind",  [](const TOutputDefinition& d){ return d.symbol ? d.symbol->kind : SymbolKind::Unknown; })
+		.def_property_readonly("network_name", [](const TOutputDefinition& d){ return d.symbol ? d.symbol->networkName : std::string{}; });
 
-    py::class_<LessThan, BoolExpr>(m, "LessThan")
-        .def_readonly("expr1", &LessThan::arithexpr_1)
-        .def_readonly("expr2", &LessThan::arithexpr_2);
+	// --- Network ---
+	py::class_<TNetworkDefinition, TNode>(m, "Network")
+	.def_property_readonly("name", [](const TNetworkDefinition& n){ return n.networkName; })
+	.def_property_readonly("inputs", [](const TNetworkDefinition& n){
+		py::tuple input_tuple(n.inputs.size());
+		for (size_t i = 0; i < n.inputs.size(); ++i)
+			input_tuple[i] = py::cast(n.inputs[i].get(), py::return_value_policy::reference_internal, py::cast(&n));
+		return input_tuple;
+	})
+	.def_property_readonly("hidden", [](const TNetworkDefinition& n){
+		py::tuple hidden_tuple(n.hidden.size());
+		for (size_t i = 0; i < n.hidden.size(); ++i)
+			hidden_tuple[i] = py::cast(n.hidden[i].get(), py::return_value_policy::reference_internal, py::cast(&n));
+		return hidden_tuple;
+	})
+	.def_property_readonly("outputs", [](const TNetworkDefinition& n){
+		py::tuple output_tuple(n.outputs.size());
+		for (size_t i = 0; i < n.outputs.size(); ++i)
+			output_tuple[i] = py::cast(n.outputs[i].get(), py::return_value_policy::reference_internal, py::cast(&n));
+		return output_tuple;
+	});
 
-    py::class_<GreaterEqual, BoolExpr>(m, "GreaterEqual")
-        .def_readonly("expr1", &GreaterEqual::arithexpr_1)
-        .def_readonly("expr2", &GreaterEqual::arithexpr_2);
+	// --- Query ---
+	py::class_<TQuery, TNode>(m, "Query")
+    .def_property_readonly("networks", [](const TQuery& q){
+		py::tuple network_tuple(q.networks.size());
+		for (size_t i = 0; i < q.networks.size(); ++i)
+			network_tuple[i] = py::cast(q.networks[i].get(), py::return_value_policy::reference_internal, py::cast(&q));
+		return network_tuple;
+	})
+    .def_property_readonly("assertions", [](const TQuery& q){
+		py::tuple assertion_tuple(q.assertions.size());
+		for (size_t i = 0; i < q.assertions.size(); ++i)
+			assertion_tuple[i] = py::cast(q.assertions[i].get(), py::return_value_policy::reference_internal, py::cast(&q));
+		return assertion_tuple;
+	});
 
-    py::class_<LessEqual, BoolExpr>(m, "LessEqual")
-        .def_readonly("expr1", &LessEqual::arithexpr_1)
-        .def_readonly("expr2", &LessEqual::arithexpr_2);
+	// --- API ---
+	m.def("parse_vnnlib", [](const std::string& path) {
+		return parse_query(path);
+	},
+	py::return_value_policy::move,
+	py::arg("path"),
+	R"pbdoc(
+		Parse a VNNLib file and return a typed Query object.
 
-    py::class_<NotEqual, BoolExpr>(m, "NotEqual")
-        .def_readonly("expr1", &NotEqual::arithexpr_1)
-        .def_readonly("expr2", &NotEqual::arithexpr_2);
+		Parameters
+		----------
+		path : str
+			Path to the VNNLib file to be parsed.
 
-    py::class_<Equal, BoolExpr>(m, "Equal")
-        .def_readonly("expr1", &Equal::arithexpr_1)
-        .def_readonly("expr2", &Equal::arithexpr_2);
+		Returns
+		-------
+		Query
+			The parsed Query object representing the contents of the VNNLib file.
 
-    py::class_<And, BoolExpr>(m, "And")
-        .def_readonly("operands", &And::listboolexpr_);
+		Raises
+		------
+		VNNLibException
+			If the file cannot be read, if there is an error during parsing, or if the specification is not well-formed.
+	)pbdoc");
+	
+	m.def("parse_vnnlib_str", [](const std::string& content) {
+		return parse_query_str(content);
+	},
+	py::return_value_policy::move,
+	py::arg("content"),
+	R"pbdoc(
+		Parse a VNNLib string and return a typed Query object.
 
-    py::class_<Or, BoolExpr>(m, "Or")
-        .def_readonly("operands", &Or::listboolexpr_);
+		Parameters
+		----------
+		content : str
+			The VNNLib string to be parsed.
 
-    // --- ListBoolExpr ---
-    py::class_<ListBoolExpr>(m, "ListBoolExpr")
-        .def("__len__", [](const ListBoolExpr &v) { return v.size(); })
-        .def("__iter__", [](const ListBoolExpr &v) {
-            return py::make_iterator(v.begin(), v.end());
-        }, py::keep_alive<0, 1>())
-        .def("__getitem__", [](const ListBoolExpr &v, size_t i) -> BoolExpr* {
-            if (i >= v.size()) throw py::index_error();
-            return v[i];
-        }, py::return_value_policy::reference_internal);
+		Returns
+		-------
+		Query
+			The parsed Query object representing the contents of the VNNLib string.
 
-    // --- Assertion ---
-    py::class_<Assertion, Visitable>(m, "Assertion")
-        .def("__str__", [](Assertion* self) { return nodeToString(self); });
+		Raises
+		------
+		VNNLibException
+			If there is an error during parsing, or if the specification is not well-formed.
+	)pbdoc");
 
-    py::class_<Assert, Assertion>(m, "Assert")
-        .def_readonly("expr", &Assert::boolexpr_);
-
-    // --- ListAssertion ---
-    py::class_<ListAssertion>(m, "ListAssertion")
-        .def("__len__", [](const ListAssertion &v) { return v.size(); })
-        .def("__iter__", [](const ListAssertion &v) {
-            return py::make_iterator(v.begin(), v.end());
-        }, py::keep_alive<0, 1>())
-        .def("__getitem__", [](const ListAssertion &v, size_t i) -> Assertion* {
-            if (i >= v.size()) throw py::index_error();
-            return v[i];
-        }, py::return_value_policy::reference_internal);
-
-    // --- InputDefinition ---
-    py::class_<InputDefinition, Visitable>(m, "InputDefinition")
-        .def("__str__", [](InputDefinition* self) { return nodeToString(self); });
-
-    py::class_<InputDef, InputDefinition>(m, "InputDef")
-        .def_readonly("variable_name", &InputDef::variablename_)
-        .def_readonly("element_type", &InputDef::elementtype_)
-        .def_readonly("shape", &InputDef::tensorshape_);
-
-    py::class_<InputOnnxDef, InputDefinition>(m, "InputOnnxDef")
-        .def_readonly("variable_name", &InputOnnxDef::variablename_)
-        .def_readonly("element_type", &InputOnnxDef::elementtype_)
-        .def_readonly("shape", &InputOnnxDef::tensorshape_)
-        .def_readonly("onnx_name", &InputOnnxDef::string_);
-
-    // --- ListInputDefinition ---
-    py::class_<ListInputDefinition>(m, "ListInputDefinition")
-        .def("__len__", [](const ListInputDefinition &v) { return v.size(); })
-        .def("__iter__", [](const ListInputDefinition &v) {
-            return py::make_iterator(v.begin(), v.end());
-        }, py::keep_alive<0, 1>())
-        .def("__getitem__", [](const ListInputDefinition &v, size_t i) -> InputDefinition* {
-            if (i >= v.size()) throw py::index_error();
-            return v[i];
-        }, py::return_value_policy::reference_internal);
-
-    // --- HiddenDefinition ---
-    py::class_<HiddenDefinition, Visitable>(m, "HiddenDefinition")
-        .def("__str__", [](HiddenDefinition* self) { return nodeToString(self); });
-
-    py::class_<HiddenDef, HiddenDefinition>(m, "HiddenDef")
-        .def_readonly("variable_name", &HiddenDef::variablename_)
-        .def_readonly("element_type", &HiddenDef::elementtype_)
-        .def_readonly("shape", &HiddenDef::tensorshape_)
-        .def_readonly("onnx_name", &HiddenDef::string_);
-
-    // --- ListHiddenDefinition ---
-    py::class_<ListHiddenDefinition>(m, "ListHiddenDefinition")
-        .def("__len__", [](const ListHiddenDefinition &v) { return v.size(); })
-        .def("__iter__", [](const ListHiddenDefinition &v) {
-            return py::make_iterator(v.begin(), v.end());
-        }, py::keep_alive<0, 1>())
-        .def("__getitem__", [](const ListHiddenDefinition &v, size_t i) -> HiddenDefinition* {
-            if (i >= v.size()) throw py::index_error();
-            return v[i];
-        }, py::return_value_policy::reference_internal);
-
-    // --- OutputDefinition ---
-    py::class_<OutputDefinition, Visitable>(m, "OutputDefinition")
-        .def("__str__", [](OutputDefinition* self) { return nodeToString(self); });
-
-    py::class_<OutputDef, OutputDefinition>(m, "OutputDef")
-        .def_readonly("variable_name", &OutputDef::variablename_)
-        .def_readonly("element_type", &OutputDef::elementtype_)
-        .def_readonly("shape", &OutputDef::tensorshape_);
-
-    py::class_<OutputOnnxDef, OutputDefinition>(m, "OutputOnnxDef")
-        .def_readonly("variable_name", &OutputOnnxDef::variablename_)
-        .def_readonly("element_type", &OutputOnnxDef::elementtype_)
-        .def_readonly("shape", &OutputOnnxDef::tensorshape_)
-        .def_readonly("onnx_name", &OutputOnnxDef::string_);
-
-    // --- ListOutputDefinition ---
-    py::class_<ListOutputDefinition>(m, "ListOutputDefinition")
-        .def("__len__", [](const ListOutputDefinition &v) { return v.size(); })
-        .def("__iter__", [](const ListOutputDefinition &v) {
-            return py::make_iterator(v.begin(), v.end());
-        }, py::keep_alive<0, 1>())
-        .def("__getitem__", [](const ListOutputDefinition &v, size_t i) -> OutputDefinition* {
-            if (i >= v.size()) throw py::index_error();
-            return v[i];
-        }, py::return_value_policy::reference_internal);
-
-    // --- NetworkDefinition ---
-    py::class_<NetworkDefinition, Visitable>(m, "NetworkDefinition")
-        .def("__str__", [](NetworkDefinition* self) { return nodeToString(self); });
-
-    py::class_<NetworkDef, NetworkDefinition>(m, "NetworkDef")
-        .def_readonly("variable_name", &NetworkDef::variablename_)
-        .def_readonly("inputs", &NetworkDef::listinputdefinition_)
-        .def_readonly("hiddens", &NetworkDef::listhiddendefinition_)
-        .def_readonly("outputs", &NetworkDef::listoutputdefinition_);
-
-    // --- ListNetworkDefinition ---
-    py::class_<ListNetworkDefinition>(m, "ListNetworkDefinition")
-        .def("__len__", [](const ListNetworkDefinition &v) { return v.size(); })
-        .def("__iter__", [](const ListNetworkDefinition &v) {
-            return py::make_iterator(v.begin(), v.end());
-        }, py::keep_alive<0, 1>())
-        .def("__getitem__", [](const ListNetworkDefinition &v, size_t i) -> NetworkDefinition* {
-            if (i >= v.size()) throw py::index_error();
-            return v[i];
-        }, py::return_value_policy::reference_internal);
-
-    // --- Query ---
-    py::class_<Query, Visitable>(m, "Query")
-        .def("__str__", [](Query* self) { return nodeToString(self); });
-
-    py::class_<VNNLibQuery, Query>(m, "VNNLibQuery") 
-        .def_readonly("networks", &VNNLibQuery::listnetworkdefinition_)
-        .def_readonly("assertions", &VNNLibQuery::listassertion_);
-
-    // --- Parsing Functions ---
-    m.def("parse_vnnlib", [](const std::string& path) -> VNNLibQuery* {
-        VNNLibQuery* result = parse_vnnlib(path.c_str());
-        if (!result) {
-            throw VNNLibException("Failed to parse VNNLIB file: " + path);
-        }
-        // Perform semantic checking
-        auto typeChecker = std::make_unique<TypeChecker>();
-        typeChecker->visitVNNLibQuery(result);
-        if (typeChecker->hasErrors()) {
-            std::string errorReport = typeChecker->getErrorReport(); // Get errors in JSON format
-            throw VNNLibException(errorReport);
-        }
-        return result;
-    }, py::return_value_policy::take_ownership, 
-       py::doc("Parses a VNNLib file and returns a VNNLibQuery AST object."));
-
-    m.def("parse_vnnlib_str", [](const std::string& content) -> VNNLibQuery* {
-        VNNLibQuery* result = parse_vnnlib_str(content.c_str());
-        if (!result) {
-            throw VNNLibException("Failed to parse VNNLIB string");
-        }
-        // Perform semantic checking
-        auto typeChecker = std::make_unique<TypeChecker>();
-        typeChecker->visitVNNLibQuery(result);
-        if (typeChecker->hasErrors()) {
-            std::string errorReport = typeChecker->getErrorReport(); // Get errors in JSON form
-            throw VNNLibException(errorReport);
-        }
-        return result;
-    }, py::return_value_policy::take_ownership,
-       py::doc("Parses a VNNLib string and returns a VNNLibQuery AST object."));
-
-    m.def("write_vnnlib_str", &write_vnnlib_str,
-        py::doc("Converts a VNNLibQuery AST object back to a VNNLIB string."));
-
-#ifdef VERSION_INFO
-    m.attr("__version__") = VERSION_INFO;
-#else
-    m.attr("__version__") = "dev";
-#endif
+	m.attr("__version__") = "0.2.0";
 }
+
