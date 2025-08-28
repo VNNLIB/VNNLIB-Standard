@@ -228,8 +228,8 @@ The expressions \(\langle expr \rangle\) and \(\langle type \rangle\) are define
             $\langle$elementType$\rangle$ & $\ni$ & $e ::= \text{the set of all ONNX element types}$ \\
             $\langle$tensorShape$\rangle$ & $\ni$ & $t ::= [i_0, ..., i_n] \quad i \in \mathbb{N}$ \\
             $\langle$variableName$\rangle$ & $\ni$ & $v ::= \text{the set of non-empty strings}$ \\
-            $\langle$networkDeclaration$\rangle$ & $\ni$ & $D ::= \texttt{declareNetwork}\ v$ \\
-            $\langle$nodeDeclaration$\rangle$ & $\ni$ & $d ::= \texttt{declareInput}\ v\ e\ t\ |\ \texttt{declareHidden}\ v\ e\ t\ |\ \texttt{declareOutput}\ v\ e\ t$ \\ \\
+            $\langle$nodeDeclaration$\rangle$ & $\ni$ & $d ::= \texttt{declareInput}\ v\ e\ t\ |\ \texttt{declareHidden}\ v\ e\ t\ |\ \texttt{declareOutput}\ v\ e\ t$ \\
+            $\langle$networkDeclaration$\rangle$ & $\ni$ & $D ::= \texttt{declareNetwork}\ v$ \\ \\
             $\langle$arithExpr (e)$\rangle$ & $\ni$ & $a ::= \texttt{constant} \;|\; \texttt{negate} \;|\; \texttt{varInput} \;|\; \texttt{varOutput} \;|\; \texttt{add} \;|\; \texttt{minus} \;|\; \texttt{mult}$ \\
             $\langle$compExpr (e)$\rangle$  & $\ni$ & $c ::= \ > \;|\; < \;|\; \geq \;|\; \leq \;|\; == \;|\; !=$ \\
             $\langle$connExpr$\rangle$  & $\ni$ & $b ::= \texttt{and} \;|\; \texttt{or}$ \\
