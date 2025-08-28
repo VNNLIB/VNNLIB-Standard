@@ -15,6 +15,7 @@ open import Function.Base
 open import Relation.Binary.PropositionalEquality as Eq using (_≡_; refl; subst)
 
 open import utils
+open import vnnlib-types
 open import vnnlib-syntax
 open import tensor using (Tensor; TensorShape; tensorLookup)
 
@@ -55,35 +56,38 @@ Environment Γ =
 
 module _ (Γ : Context) (ε : Environment Γ) where
   open NetworkImplementation
-         
-  ⟦_⟧ₐ : ArithExpr Γ → ℚ
-  ⟦ (constant a) ⟧ₐ         = a
-  ⟦(negate a) ⟧ₐ            = 0ℚ ℚ.- ⟦ a ⟧ₐ 
-  ⟦ (varInput iₙₑₜ jᵢₙₚ indices ) ⟧ₐ    = tensorLookup indices (projₙ-stabulate _ _ _ jᵢₙₚ (inputTensors (ε iₙₑₜ)))
-  ⟦ (varOutput iₙₑₜ jₒᵤₜ indices ) ⟧ₐ   = tensorLookup indices (projₙ-stabulate _ _ _ jₒᵤₜ (networkFunction (ε iₙₑₜ) (inputTensors (ε iₙₑₜ))))
-  -- Cannot simplify similar cases with fold as context is implicit
-  ⟦ (add []) ⟧ₐ             = 0ℚ
-  ⟦ (add (a₀ ∷ a)) ⟧ₐ       = ⟦ a₀ ⟧ₐ ℚ.+ ⟦ (add a) ⟧ₐ
-  ⟦ (mult []) ⟧ₐ            = 1ℚ
-  ⟦ (mult (a₀ ∷ a)) ⟧ₐ      = ⟦ a₀ ⟧ₐ ℚ.* ⟦ (mult a) ⟧ₐ
-  ⟦ (minus []) ⟧ₐ           = 0ℚ
-  ⟦ (minus (a₀ ∷ a)) ⟧ₐ     = ⟦ a₀ ⟧ₐ ℚ.- ⟦ (minus a) ⟧ₐ
 
+  module _ (τ : ElementType) where
+    ⟦_⟧ₐ : ArithExpr Γ τ → ElementTypeToSet τ
+    ⟦ (constant a) ⟧ₐ         = a
+    ⟦(negate a) ⟧ₐ            = 0ℚ ℚ.- ⟦ a ⟧ₐ 
+    ⟦ (varInput iₙₑₜ jᵢₙₚ indices ) ⟧ₐ    = tensorLookup indices (projₙ-stabulate _ _ _ jᵢₙₚ (inputTensors (ε iₙₑₜ)))
+    ⟦ (varOutput iₙₑₜ jₒᵤₜ indices ) ⟧ₐ   = tensorLookup indices (projₙ-stabulate _ _ _ jₒᵤₜ (networkFunction (ε iₙₑₜ) (inputTensors (ε iₙₑₜ))))
+    -- Cannot simplify similar cases with fold as context is implicit
+    ⟦ (add []) ⟧ₐ             = 0ℚ
+    ⟦ (add (a₀ ∷ a)) ⟧ₐ       = ⟦ a₀ ⟧ₐ ℚ.+ ⟦ (add a) ⟧ₐ
+    ⟦ (mult []) ⟧ₐ            = 1ℚ
+    ⟦ (mult (a₀ ∷ a)) ⟧ₐ      = ⟦ a₀ ⟧ₐ ℚ.* ⟦ (mult a) ⟧ₐ
+    ⟦ (minus []) ⟧ₐ           = 0ℚ
+    ⟦ (minus (a₀ ∷ a)) ⟧ₐ     = ⟦ a₀ ⟧ₐ ℚ.- ⟦ (minus a) ⟧ₐ
+
+    ⟦_⟧ᶜ : CompExpr Γ τ → Bool
+    ⟦ greaterThan x x₁ ⟧ᶜ = ⟦ x ⟧ₐ >ᵇ ⟦ x₁ ⟧ₐ
+    ⟦ lessThan x x₁ ⟧ᶜ = ⟦ x ⟧ₐ <ᵇ ⟦ x₁ ⟧ₐ
+    ⟦ greaterEqual x x₁ ⟧ᶜ = ⟦ x ⟧ₐ ≥ᵇ ⟦ x₁ ⟧ₐ
+    ⟦ lessEqual x x₁ ⟧ᶜ = ⟦ x ⟧ₐ ℚ.≤ᵇ ⟦ x₁ ⟧ₐ
+    ⟦ notEqual x x₁ ⟧ᶜ = ⟦ x ⟧ₐ ≠ᵇ ⟦ x₁ ⟧ₐ
+    ⟦ equal x x₁ ⟧ᶜ = ⟦ x ⟧ₐ =ᵇ ⟦ x₁ ⟧ₐ
 
   ⟦_⟧ᵇ : BoolExpr Γ → Bool
   ⟦ (literal b) ⟧ᵇ          = b
-  ⟦ (greaterThan a1 a2) ⟧ᵇ  = ⟦ a1 ⟧ₐ >ᵇ ⟦ a2 ⟧ₐ
-  ⟦ (lessThan a1 a2) ⟧ᵇ     = ⟦ a1 ⟧ₐ <ᵇ ⟦ a2 ⟧ₐ
-  ⟦ (greaterEqual a1 a2) ⟧ᵇ = ⟦ a1 ⟧ₐ ≥ᵇ ⟦ a2 ⟧ₐ
-  ⟦ (lessEqual a1 a2) ⟧ᵇ    = ⟦ a1 ⟧ₐ ℚ.≤ᵇ ⟦ a2 ⟧ₐ
-  ⟦ (notEqual a1 a2) ⟧ᵇ     = ⟦ a1 ⟧ₐ ≠ᵇ ⟦ a2 ⟧ₐ
-  ⟦ (equal a1 a2) ⟧ᵇ        = ⟦  a1 ⟧ₐ =ᵇ ⟦ a2 ⟧ₐ
+  ⟦ compExpr (fst , snd) ⟧ᵇ = ⟦ fst ⟧ᶜ snd
   ⟦ (andExpr []) ⟧ᵇ         = true
   ⟦ (andExpr (b ∷ xb)) ⟧ᵇ   = _∧_ ⟦ b ⟧ᵇ ⟦ (andExpr xb) ⟧ᵇ
   ⟦ (orExpr []) ⟧ᵇ          = false
   ⟦ (orExpr (b ∷ xb)) ⟧ᵇ    = _∨_ ⟦ b ⟧ᵇ ⟦  (orExpr xb) ⟧ᵇ
 
-  ⟦_⟧ₚ : Property Γ → Bool
+  ⟦_⟧ₚ : Assertion Γ → Bool
   ⟦ (assert p) ⟧ₚ = ⟦ p ⟧ᵇ
 
 

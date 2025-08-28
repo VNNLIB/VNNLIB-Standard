@@ -29,5 +29,4 @@ data ElementType : Set where
 
 -- Add semantics for each type
 ElementTypeToSet : ElementType → Set
-ElementTypeToSet real = ℚ
-ElementTypeToSet _ = ℚ
+ElementTypeToSet e = ℚ
