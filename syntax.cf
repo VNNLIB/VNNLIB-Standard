@@ -1,26 +1,27 @@
 -- This is the LBNF grammar for the VNNLib language
 
+-- Defines the version number of VNNLIB. 
+-- The '<' and '>' characters are used so it doesn't clash with the Number token
+position token VersionToken '<' digit '.' digit '>' ;
 -- Defines a numeric literal
-position token Numeral '-'? digit+ ('.' digit+)? ;
--- Defines the version number of VNNLIB
-token VersionToken '<' digit '.' digit '>' ;
+position token Number '-'? digit+ ('.' digit+)? ;
 -- The regular expression for allowed Variable names - tensors, or networks
 position token VariableName letter (letter|digit|'_')* ;
 
--- Sequence of integers to represent Tensor shape/indicies
-separator nonempty Numeral "," ;
+-- Sequence of integers to represent Tensor shape/indices
+separator nonempty Number "," ;
 
 -- Production of Tensor Shape (empty shape is allowed for scalar tensors)
 ScalarDims. TensorShape ::= "[" "]" ;
-TensorDims. TensorShape ::= "[" [Numeral] "]" ;
+TensorDims. TensorShape ::= "[" [Number] "]" ;
 
 -- The base case of ArithExpr is a numeric value or a tensor element
 -- A variable refers to a tensor element, constructed with the associated variable name and tensor indices
-VarExpr. ArithExpr ::= VariableName "[" [Numeral] "]" ;
-ValExpr. ArithExpr ::= Numeral ;
+VarExpr. ArithExpr ::= VariableName "[" [Number] "]" ;
+ValExpr. ArithExpr ::= Number ;
 
 -- An arithmetic operator is a unary or binary operator that performs an arithmetic operation
--- Operations can be defined with an arbitrary number of inputs which are left-nested.
+-- Operations can be defined with an arbitrary number of inputs which are left associative.
 Negate. ArithExpr ::= "(" "-" ArithExpr  ")" ;
 Plus. ArithExpr ::= "(" "+" [ArithExpr] ")";
 Minus. ArithExpr ::= "(" "-" ArithExpr [ArithExpr] ")" ;
@@ -71,9 +72,11 @@ ElementTypeBool. ElementType ::= "bool" ;
 ElementTypeString. ElementType ::= "string" ;
 
 -- A tensor definition is a declaration of a tensor variable with a shape and an element type
+-- Input and output definitions have an optional ONNX name string (using double quotes)
 InputDef. InputDefinition ::= "(declare-input" VariableName ElementType TensorShape ")" ;
 InputOnnxDef. InputDefinition ::= "(declare-input" VariableName ElementType TensorShape String ")" ;
 
+-- Hidden definitions have a mandatory ONNX name string
 HiddenDef. HiddenDefinition ::= "(declare-hidden" VariableName ElementType TensorShape String ")" ;
 
 OutputDef. OutputDefinition ::= "(declare-output" VariableName ElementType TensorShape ")" ;
@@ -84,15 +87,16 @@ separator HiddenDefinition "" ;
 separator nonempty OutputDefinition "" ;
 
 NetworkDef. NetworkDefinition ::= "(declare-network" VariableName [InputDefinition] [HiddenDefinition] [OutputDefinition] ")" ;
-separator nonempty NetworkDefinition "" ;
+-- Zero or more network definitions allowed
+separator NetworkDefinition "" ;
 
 -- The version of the VNN-LIB query being used that follows <breaking>.<non-breaking> version numbering
-VNNLibVersion. Version ::= "(vnnlib" VersionToken ")" ;
+VNNLibVersion. Version ::= "(vnnlib-version" VersionToken ")" ;
 
--- A query is a series of network definitions followed by a series of properties
+-- A query is a series of network definitions followed by a series of assertions
 VNNLibQuery. Query ::= Version [NetworkDefinition] [Assertion] ;
 
--- A line may be commented out by starting with a semicolon
+-- A comment starts with a semicolon
 comment ";" ;
 
 entrypoints Query ;
