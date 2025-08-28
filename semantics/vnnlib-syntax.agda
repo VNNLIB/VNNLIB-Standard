@@ -8,6 +8,7 @@ open import Data.Rational as ℚ
 open import Data.Fin as Fin
 open import Data.Vec as Vec using (Vec; []; _∷_)
 open import Data.Bool
+open import Data.Product using (Σ)
 
 open import vnnlib-types using (ElementType; ElementTypeToSet)
 open import tensor using (TensorShape; TensorIndices)
@@ -72,24 +73,25 @@ module _ (Γ : Context) where
     minus : List (ArithExpr τ) → ArithExpr τ
     mult  : List (ArithExpr τ) → ArithExpr τ
 
+  -- Comparative Expressions : 2-ary operations
+  data CompExpr (τ : ElementType) : Set where
+    greaterThan    : ArithExpr τ → ArithExpr τ → CompExpr τ
+    lessThan       : ArithExpr τ → ArithExpr τ → CompExpr τ
+    greaterEqual   : ArithExpr τ → ArithExpr τ → CompExpr τ
+    lessEqual      : ArithExpr τ → ArithExpr τ → CompExpr τ
+    notEqual       : ArithExpr τ → ArithExpr τ → CompExpr τ
+    equal          : ArithExpr τ → ArithExpr τ → CompExpr τ
+
   -- Boolean Expressions: Connective and Comparative Expressions
-  data BoolExpr (τ : ElementType) : Set where
-    literal : Bool → BoolExpr τ
-    -- Comparative Expressions: 2-ary operations
-    greaterThan    : ArithExpr τ → ArithExpr τ → BoolExpr τ
-    -- Come up with consistent length names
-    lessThan       : ArithExpr τ → ArithExpr τ → BoolExpr τ
-    greaterEqual   : ArithExpr τ → ArithExpr τ → BoolExpr τ
-    lessEqual      : ArithExpr τ → ArithExpr τ → BoolExpr τ
-    notEqual       : ArithExpr τ → ArithExpr τ → BoolExpr τ
-    equal          : ArithExpr τ → ArithExpr τ → BoolExpr τ
-    -- Connective Expressions
-    andExpr : List (BoolExpr τ) → BoolExpr τ
-    orExpr  : List (BoolExpr τ) → BoolExpr τ
+  data BoolExpr : Set where
+    literal : Bool → BoolExpr
+    compExpr : Σ ElementType CompExpr → BoolExpr
+    andExpr : List BoolExpr → BoolExpr
+    orExpr  : List BoolExpr → BoolExpr
 
   -- Assertions : evalute to true or false
   data Assertion : Set where
-    assert : BoolExpr {!!} → Assertion
+    assert : BoolExpr → Assertion
 
 
 -- Query
