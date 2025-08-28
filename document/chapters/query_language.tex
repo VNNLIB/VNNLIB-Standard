@@ -210,13 +210,9 @@ A \vnnlib{} query is said to be \textit{well-typed}, if it satisfies the followi
 
 \subsubsection*{Typing Rules}
 
-The typing rules of a vnnlib{} query are separated into two sections for the Declarations (Figure~\ref{fig:vnnlib_typing_rules}) and Assertions (Figure ?) respectively. 
-
-Declarations are used to construct the context $\Gamma$, which contains network Bindings i.e. each network Binding is an abstract representation of a network function, which is a pair of the list of inputs and outputs.
-
-Assertions use the constructed (static) context, and each of the variable references ? fetch the variables type with the typing function $\Sigma$.
-There are three expression categories: \textit{arithmetic} given by \(\langle arith \rangle\), \textit{comparative} given by \(\langle comp \rangle\), and \textit{boolean} given by \(\langle bool \rangle\).
-The expressions \(\langle expr \rangle\) and \(\langle type \rangle\) are defined in Figure~\ref{fig:vnnlib_typing_rules}. The former defines the syntax of expressions, while the latter defines the syntax of types. The \(\langle basic-types \rangle\) and \(\langle tensor \rangle\) define the basic types and tensor types respectively. The \(\langle complex-type \rangle\) defines a complex type that is a list of tensors.
+The typing rules of a vnnlib{} query are separated into two sections for the Declarations (Figure~\ref{fig:vnnlib_typing_rules}) and Assertions (Figure ?) respectively. \\
+Declarations are used to construct the context $\Gamma$, which contains network Bindings i.e. each network Binding is an abstract representation of a network function, which is a pair of the list of inputs and outputs. \\
+Assertions use the constructed (static) context, and each of the variable references ? fetch the variables type for a given context i.e. $\Sigma $. For a \texttt{constant}, $\tau$ returns the ONNX element type $e$.
 
 
 \begin{figure}
