@@ -195,7 +195,6 @@ A \vnnlib{} query is said to be \textit{well-scoped}, if it satisfies the follow
     \item All variable declarations are \textit{ordered} within network declarations such that inputs before hidden outputs, and hidden outputs before outputs.
     \item All variables have unique names within the query. No variable name is reused within the same query.
 \end{enumerate}
-\mytodo{Well-scoped indices within tensor dimensions.}
 
 \subsection{Typing}
 A \vnnlib{} query is said to be \textit{well-typed}, if it satisfies the following criteria.
@@ -210,33 +209,60 @@ A \vnnlib{} query is said to be \textit{well-typed}, if it satisfies the followi
 }
 
 \subsubsection*{Typing Rules}
-The formal syntax of the vnnlib{} query language is given in Figure~\ref{fig:vnnlib_typing_syntax} following similar notation used in [?].
-There are three expression categories: \textit{arithmetic} given by \(\langle arith \rangle\), \textit{comparative} given by \(\langle comp \rangle\), and \textit{boolean} given by \(\langle bool \rangle\).
 
+The typing rules of a vnnlib{} query are separated into two sections for the Declarations (Figure~\ref{fig:vnnlib_typing_rules}) and Assertions (Figure ?) respectively. 
+
+Declarations are used to construct the context $\Gamma$, which contains network Bindings i.e. each network Binding is an abstract representation of a network function, which is a pair of the list of inputs and outputs.
+
+Assertions use the constructed (static) context, and each of the variable references ? fetch the variables type with the typing function $\Sigma$.
+There are three expression categories: \textit{arithmetic} given by \(\langle arith \rangle\), \textit{comparative} given by \(\langle comp \rangle\), and \textit{boolean} given by \(\langle bool \rangle\).
 The expressions \(\langle expr \rangle\) and \(\langle type \rangle\) are defined in Figure~\ref{fig:vnnlib_typing_rules}. The former defines the syntax of expressions, while the latter defines the syntax of types. The \(\langle basic-types \rangle\) and \(\langle tensor \rangle\) define the basic types and tensor types respectively. The \(\langle complex-type \rangle\) defines a complex type that is a list of tensors.
 
-The static context \(\Gamma\) is the environment that contains and ordered list of network functions and inputs . The environment function \(Sigma\) gives the type of the variable by fetching this from the context. The typing rules are defined in Figure~\ref{fig:vnnlib_typing_rules}.
 
 \begin{figure}
     \centering
-    \begin{minipage}[t]{0.45\textwidth}
+    \begin{minipage}[t]{1\textwidth}
         \centering
-        \begin{flalign*}
-            & \langle expr \rangle &\ni e ::= x \;|\; f  \;|\; i &\in \mathbb{N} \;|\; b &\in \mathbb{B} && \\
-            & \;|\; \lor \;|\; \land && \\
-            & \;|\; > \;|\; < \;|\; >= \;|\; <= \;|\; == \;|\; \neq && \\
-            & \;|\; \times \;|\; + \;|\; - \;|\; && \\
-            & \;|\; ! && \\ \\
-            & \langle type \rangle \ni \tau ::= s \rightarrow s \;|\; \tau && \\
-            & \langle onnx-types \rangle &\ni o ::= \text{the set of all ONNX types} && \\
-            & \langle tensor \rangle &\ni t ::= \text{Tensor} \ [n_0, ..., n_n] \ \quad n &\in \mathbb{N} && \\
-            & \langle basic-types \rangle &\ni s ::= \text{Bool} \;|\; \text{Comp} \ o \;|\; \text{Arith} \ o \;|\; \text{Index} \ n \quad n &\in \mathbb{N} \\
-            & \langle complex-type \rangle &\ni c ::= \text{List } n \ s \;|\; \text{List } n \ t \quad n &\in \mathbb{N} && \\
-        \end{flalign*}
+        \resizebox{\textwidth}{!}{
+            \begin{tabular}{@{}lcl@{}}
+            $\langle$elementType$\rangle$ & $\ni$ & $e ::= \text{the set of all ONNX element types}$ \\
+            $\langle$tensorShape$\rangle$ & $\ni$ & $t ::= [i, ..., i_n] \quad i \in \mathbb{N}$ \\
+            $\langle$variableName$\rangle$ & $\ni$ & $v ::= \text{the set of non-empty strings}$ \\
+            $\langle$networkDeclaration$\rangle$ & $\ni$ & $D ::= \texttt{declareNetwork}\ v$ \\
+            $\langle$nodeDeclaration$\rangle$ & $\ni$ & $d ::= \texttt{declareInput}\ v\ e\ t\ |\ \texttt{declareHidden}\ v\ e\ t\ |\ \texttt{declareOutput}\ v\ e\ t$ \\ \\
+            $\langle$arithExpr (e)$\rangle$ & $\ni$ & $a ::= \texttt{constant} \;|\; \texttt{negate} \;|\; \texttt{varInput} \;|\; \texttt{varOutput} \;|\; \texttt{add} \;|\; \texttt{minus} \;|\; \texttt{mult}$ \\
+            $\langle$compExpr (e)$\rangle$  & $\ni$ & $c ::= \ > \;|\; < \;|\; \geq \;|\; \leq \;|\; == \;|\; !=$ \\
+            $\langle$connExpr$\rangle$  & $\ni$ & $b ::= \texttt{and} \;|\; \texttt{or}$ \\
+            $\langle$assertion$\rangle$ & $\ni$ & $A ::= \texttt{assert}~b \;\vert\; \texttt{assert}~c$ \\
+            \end{tabular}
+        }
+    \caption{Typing syntax}
     \end{minipage}
-    \hfill
-    \begin{minipage}[t]{0.45\textwidth}
-        \centering
+
+    \vspace{1cm}
+
+    \begin{minipage}[t]{0.9\textwidth}
+        \scalebox{0.8}{
+        \begin{mathpar}
+            \inferrule*[Right=Network Declaration]{
+            }{
+                \texttt{declareNetwork} \ \_ : (\text{List}\ (\texttt{declareInput} \ \_ \ \_ \ \_ ) \ , \ \text{List} \ (\texttt{declareOutput} \ \_ \ \_ \ \_ ))
+            }
+
+            \inferrule*[Right=Constructed Context]{
+                d_{head} \mathrel{\mathop::} \texttt{declareNetwork} \ \_  \\ d_{tail} \mathrel{\mathop::} \Gamma
+            }{
+                d_{head} \mathrel{\mathop::} d_{tail} \quad : \quad d_{head} \mathrel{\mathop::} \Gamma
+            }
+        \end{mathpar}
+        }
+    \caption{Declarations typing rules}
+    \end{minipage}
+
+    \vspace{1cm}
+
+    \begin{minipage}[t]{0.9\textwidth}
+        \scalebox{0.8}{
         \begin{mathpar}
             \inferrule*[Right=network function]{
                 \Gamma[f] = ((x_0, ..., x_{m-1}), (y_0, ..., y_{n-1}))
@@ -283,11 +309,11 @@ The static context \(\Gamma\) is the environment that contains and ordered list 
             }{
             \Gamma, \Sigma \Vdash \lor,\; \land : \text{List} \ n \ \text{Bool} \rightarrow \text{Bool}
             }
-
         \end{mathpar}
-
+        }
+    \caption{Assertions typing rules}
     \end{minipage}
-    \caption{The \vnnlib{} query language typing syntax and rules}
+    \caption{\vnnlib{} typing syntax and rules}
     \label{fig:vnnlib_typing_rules}
 \end{figure}
 
