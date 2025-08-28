@@ -52,8 +52,14 @@ convertInputΓ (declareInput _ _ x₂) = x₂
 convertOutputΓ : OutputDefinition → TensorShape
 convertOutputΓ (declareOutput _ _ x₂) = x₂
 
+getInputs : NetworkDefinition → List InputDefinition
+getInputs (declareNetwork _ inputs₁ _) = inputs₁
+
+getOutputs : NetworkDefinition → List OutputDefinition
+getOutputs (declareNetwork _ _ outputs₁) = outputs₁
+
 convertNetworkΓ : NetworkDefinition → NetworkType
-convertNetworkΓ (declareNetwork _ inputs₁ outputs₁) = networkType (List.map convertInputΓ inputs₁) (List.map convertOutputΓ outputs₁)
+convertNetworkΓ networkDef = networkType (List.map convertInputΓ (getInputs networkDef)) (List.map convertOutputΓ (getOutputs networkDef))
 
 -- Network definitions are used to create the context
 mkContext : List NetworkDefinition → Context

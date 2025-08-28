@@ -47,7 +47,7 @@ module _ (Σ : CheckContext) where
       networkInd = subst Fin (length-CheckContext-Context Σ) n      
 
       inputInd : Fin (List.length (NetworkType.inputShape (List.lookup Γ (subst Fin (length-CheckContext-Context Σ) n))))
-      inputInd = subst Fin (length-inputs {Σ} {n}) i
+      inputInd = subst Fin (length-inputs Σ n) i
       
   ... | error _ with variableIndexInNetworkₒᵤₜₚᵤₜ (proj₁ (List.lookup (toList Σ) n)) x
   ... | error _ = error ""
@@ -57,7 +57,7 @@ module _ (Σ : CheckContext) where
       networkInd = subst Fin (length-CheckContext-Context Σ) n
       
       outputInd : Fin (List.length (NetworkType.outputShape (List.lookup Γ (subst Fin (length-CheckContext-Context Σ) n))))
-      outputInd = subst Fin (length-outputs {Σ} {n}) o
+      outputInd = subst Fin (length-outputs Σ n) o
       
   checkExpressionₐᵣᵢₜₕ (negate a) with checkExpressionₐᵣᵢₜₕ a
   ... | error _ = error ""
