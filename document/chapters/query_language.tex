@@ -228,7 +228,7 @@ Assertions use the constructed (static) context, and each of the variable refere
             $\langle$networkDeclaration$\rangle$ & $\ni$ & $D ::= \texttt{declareNetwork}\ v$ \\ \\
             $\langle$arithExpr (e)$\rangle$ & $\ni$ & $a ::= \texttt{constant} \;|\; \texttt{negate} \;|\; \texttt{varInput} \;|\; \texttt{varOutput} \;|\; \texttt{add} \;|\; \texttt{minus} \;|\; \texttt{mult}$ \\
             $\langle$compExpr (e)$\rangle$  & $\ni$ & $c ::= \ > \;|\; < \;|\; \geq \;|\; \leq \;|\; == \;|\; !=$ \\
-            $\langle$connExpr$\rangle$  & $\ni$ & $b ::= \texttt{and} \;|\; \texttt{or}$ \\
+            $\langle$connExpr$\rangle$  & $\ni$ & $b ::= \texttt{literal} \;|\; \texttt{and} \;|\; \texttt{or}$ \\
             $\langle$assertion$\rangle$ & $\ni$ & $A ::= \texttt{assert}~b \;\vert\; \texttt{assert}~c$ \\
             \end{tabular}
         }
@@ -260,37 +260,32 @@ Assertions use the constructed (static) context, and each of the variable refere
     \begin{minipage}[t]{0.9\textwidth}
         \scalebox{0.8}{
         \begin{mathpar}
-            \inferrule*[Right=network function]{
-                \Gamma[f] = ((x_0, ..., x_{m-1}), (y_0, ..., y_{n-1}))
+
+            \inferrule*[Right=constant]{
+                % i \in the set of assignable values to ONNX literals
             }{
-                \Gamma, \Sigma \Vdash f : \text{List}\ m \ \text{Tensor} \rightarrow \text{List} \ n \ \text{Tensor}
+                \Gamma, \Sigma \Vdash r : \texttt{constant} (\tau \ i) 
             }
 
-            \inferrule*[Right=bound variable]{
-                \Sigma [ x ] = o
-            }{
-                \Gamma, \Sigma \Vdash x : o
-            }
+            \hfill
 
-            \inferrule*[Right=Indexing]{
-                i \in \{ 0, 1, \dots, n - 1 \}
-            }{
-                \Gamma, \Sigma \Vdash i : \text{Index} \ n
-            }
-
-            \inferrule*[Right=Bool]{
-                b \in \mathbb{B}
-            }{
-                \Gamma, \Sigma \Vdash b : \text{Bool}
-            }
-
-            \inferrule*[Right=Constant]{
+            \inferrule*[Right=Input]{
                 i \in \mathbb{N} \;|\; r \in \mathbb{R}
             }{
                 \Gamma, \Sigma \Vdash i : \text{Arith} \ o
             }
 
-            \inferrule*[Right=Arithmetic Operations]{
+            \hfill
+
+            \inferrule*[Right=Variables]{
+                i \in \mathbb{N} \;|\; r \in \mathbb{R}
+            }{
+                \Gamma, \Sigma \Vdash i : \text{Arith} \ o
+            }
+
+            \hfill
+
+            \inferrule*[Right=n-ary Arithmetic Expressions]{
             }{
             \Gamma, \Sigma \Vdash \times,\; +,\; - : \text{List}\; n \ \text{Arith} \ o \rightarrow \text{Arith} \ o
             }
