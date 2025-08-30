@@ -280,10 +280,10 @@ void TypeChecker::visitVarExpr(VarExpr *p) {
                 p->variablename_->string_,
                 string_format(
                     "Expected a %s type to match constant '%s', but variable '%s' has type '%s'.",
-                    dtypeToString(exprType),
-                    ctx->lastScannedVariable,
-                    p->variablename_->string_,
-                    dtypeToString(nodeType)
+                    dtypeToString(exprType).c_str(),
+                    ctx->lastScannedVariable.c_str(),
+                    p->variablename_->string_.c_str(),
+                    dtypeToString(nodeType).c_str()
                 )
             );
         }
@@ -297,10 +297,10 @@ void TypeChecker::visitVarExpr(VarExpr *p) {
             p->variablename_->string_,
             string_format(
                 "Expected type '%s' (from variable '%s'), but variable '%s' has type '%s'.",
-                dtypeToString(exprType), 
-                ctx->lastScannedVariable,
-                p->variablename_->string_,
-                dtypeToString(nodeType)
+                dtypeToString(exprType).c_str(), 
+                ctx->lastScannedVariable.c_str(),
+                p->variablename_->string_.c_str(),
+                dtypeToString(nodeType).c_str()
             )
         );
     }
@@ -337,10 +337,10 @@ void TypeChecker::visitValExpr(ValExpr *p) {
             valTok,
             string_format(
                 "Expected type '%s' (from '%s'), but found a %s constant '%s'.",
-                dtypeToString(ctx->currentDataType),
-                ctx->lastScannedVariable, 
-                dtypeToString(newType),
-                valTok
+                dtypeToString(ctx->currentDataType).c_str(),
+                ctx->lastScannedVariable.c_str(), 
+                dtypeToString(newType).c_str(),
+                valTok.c_str()
             )
         );
         return;

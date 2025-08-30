@@ -30,6 +30,9 @@ std::string dtypeToString(DType dt) {
     case DType::C128: return "C128";
     case DType::Bool: return "Bool";
     case DType::String: return "String";
+    case DType::FloatConstant: return "FloatConstant";
+    case DType::NegativeIntConstant: return "NegativeIntConstant";
+    case DType::PositiveIntConstant: return "PositiveIntConstant";
     default: return "Unknown";
   }
 }
