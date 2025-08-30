@@ -42,6 +42,7 @@ void TypedBuilder::visitVarExpr(VarExpr* p) {
     auto it = symbolMap_.find(p->variablename_->string_);
     if (it != symbolMap_.end()) {
         node->symbol = it->second;
+        node->line = p->variablename_->integer_;
         node->dtype = node->symbol->dtype;
     }
     arithStack_.push_back(std::move(node));
@@ -59,6 +60,9 @@ void TypedBuilder::visitValExpr(ValExpr* p) {
         node = std::make_unique<TInt>();
         node->value = std::stoll(node_str);
     }
+    
+    node->lexeme = node_str;
+    node->line = p->number_->integer_;
     node->src_ArithExpr = static_cast<ArithExpr*>(p);
     arithStack_.push_back(std::move(node));
 }

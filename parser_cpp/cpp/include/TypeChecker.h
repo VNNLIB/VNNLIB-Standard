@@ -45,8 +45,8 @@ enum class Severity {
 };
 
 struct Diagnostic {
-    Diagnostic(Severity severity, int code, std::string message, std::string offending_symbol, std::string hint)
-        : severity_(severity), code_(code), message_(std::move(message)), offending_symbol_(std::move(offending_symbol)), hint_(std::move(hint)) {}
+    Diagnostic(Severity severity, int code, std::string message, std::string offending_symbol, std::string hint, int line)
+        : severity_(severity), code_(code), message_(std::move(message)), offending_symbol_(std::move(offending_symbol)), hint_(std::move(hint)), line_(line) {}
 
     std::string toJson() const;
     std::string codeToString() const;
@@ -57,8 +57,8 @@ private:
     std::string message_;
     std::string offending_symbol_;
     std::string hint_;
+    int line_;
 };
-
 
 typedef enum {
     OnnxNamesUsed,
@@ -190,7 +190,8 @@ public:
     // Error collection and reporting methods
     void addDiagnostic(Severity severity, int code, const std::string& message,
                        const std::string& offending_symbol = "",
-                       const std::string& hint = "");
+                       const std::string& hint = "",
+                       int line = -1);
     int getErrorCount() const;
     int getWarningCount() const;
     std::string getErrorReport() const;

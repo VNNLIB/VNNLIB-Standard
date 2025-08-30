@@ -67,10 +67,12 @@ PYBIND11_MODULE(_core, m) {
 		.def_property_readonly("shape",       [](const TVarExpr& v){ return v.symbol->shape; })
 		.def_property_readonly("kind",        [](const TVarExpr& v){ return v.symbol->kind; })
 		.def_property_readonly("network_name",[](const TVarExpr& v){ return v.symbol->networkName; })
-		.def_property_readonly("indices",     [](const TVarExpr& v){ return v.indices; });
+		.def_property_readonly("indices",     [](const TVarExpr& v){ return v.indices; })
+		.def_property_readonly("line",        [](const TVarExpr& v){ return v.line; });
 
 	py::class_<TLiteral, TArithExpr>(m, "Literal")
-		.def_property_readonly("lexeme", [](const TLiteral& e){ return e.lexeme; });
+		.def_property_readonly("lexeme", [](const TLiteral& e){ return e.lexeme; })
+		.def_property_readonly("line",   [](const TLiteral& e){ return e.line; });
 
 	py::class_<TFloat, TLiteral>(m, "Float")
 		.def_property_readonly("value", [](const TFloat& n){ return n.value; });

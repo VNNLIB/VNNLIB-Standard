@@ -26,7 +26,6 @@ bool sameType(DType a, DType b);
 enum class SymbolKind {Input, Hidden, Output, Unknown};
 using Shape = std::vector<int64_t>;
 using Indices = std::vector<int64_t>;
-struct Provenance { int line{-1}; int col{-1}; };
 
 class SymbolInfo final {
 public:
@@ -87,7 +86,7 @@ class TVarExpr final : public TArithExpr {
 public:
 	std::shared_ptr<const SymbolInfo> symbol{};
 	Indices indices{};
-	Provenance prov{};
+	int line{-1};
 	void children(std::vector<const TNode*>& out) const override;
 };
 
@@ -95,6 +94,7 @@ class TLiteral : public TArithExpr {
 public:
 	std::string value{};
 	std::string lexeme;
+	int line{-1};
 	void children(std::vector<const TNode*>& out) const override;
 };
 

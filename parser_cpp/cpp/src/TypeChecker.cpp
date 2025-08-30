@@ -94,7 +94,9 @@ bool Context::addSymbol(VariableName *name, ElementType *type, ListNumber shape,
                     static_cast<int>(ErrorCode::MultipleDeclaration), 
                     "Duplicate variable declaration", 
                     name->string_,
-                    "Variable names must be unique within the specification");
+                    "Variable names must be unique within the specification",
+                    name->integer_
+                );
         return false;
     }
 
@@ -103,20 +105,17 @@ bool Context::addSymbol(VariableName *name, ElementType *type, ListNumber shape,
         int64_t dim_val;
         try {
             dim_val = std::stoll(dim->string_); // If conversion fails, user has passed a non-int to shape
-        } catch (const std::exception& e) {
-            checker->addDiagnostic(Severity::Error, 
-                static_cast<int>(ErrorCode::InvalidDimensions), 
-                "Failed to parse dimension", 
-                name->string_,
-                "Failed to parse dimension size");
+        } catch (std::invalid_argument& e) {
             dim_val = -1;
         }
         if (dim_val < 1) {
             checker->addDiagnostic(Severity::Error, 
                 static_cast<int>(ErrorCode::InvalidDimensions), 
-                "Failed to parse dimension", 
+                "Failed to parse dimension - Invalid size", 
                 name->string_,
-                "Dimension sizes must be positive integers.");
+                "Dimensions must be positive integers.",
+                name->integer_
+            );
             return false;
         }
         tmp.push_back(dim_val);
@@ -183,17 +182,18 @@ std::string Diagnostic::toJson() const {
     j["message"] = message_;
     j["offendingSymbol"] = offending_symbol_;
     j["hint"] = hint_;
+    if (line_ != -1) j["line"] = line_;
     return j.dump();
 }
 
 // Add a diagnostic to the collection
 void TypeChecker::addDiagnostic(Severity severity, int code, const std::string &message,
                                 const std::string &offending_symbol,
-                                const std::string &hint) {
+                                const std::string &hint, int line) {
     if (severity == Severity::Error) {
-        errors.emplace_back(severity, code, message, offending_symbol, hint);
+        errors.emplace_back(severity, code, message, offending_symbol, hint, line);
     } else if (severity == Severity::Warning) {
-        warnings.emplace_back(severity, code, message, offending_symbol, hint);
+        warnings.emplace_back(severity, code, message, offending_symbol, hint, line);
     }
 }
 
@@ -251,7 +251,8 @@ void TypeChecker::visitVarExpr(VarExpr *p) {
             static_cast<int>(ErrorCode::UndeclaredVariable),
             "Undeclared variable",
             p->variablename_->string_,
-            "Variable must be declared before use."
+            "Variable must be declared before use.",
+            p->variablename_->integer_
         );
         return;
     }
@@ -284,7 +285,8 @@ void TypeChecker::visitVarExpr(VarExpr *p) {
                     ctx->lastScannedVariable.c_str(),
                     p->variablename_->string_.c_str(),
                     dtypeToString(nodeType).c_str()
-                )
+                ),
+                p->variablename_->integer_
             );
         }
     }
@@ -301,7 +303,8 @@ void TypeChecker::visitVarExpr(VarExpr *p) {
                 ctx->lastScannedVariable.c_str(),
                 p->variablename_->string_.c_str(),
                 dtypeToString(nodeType).c_str()
-            )
+            ),
+            p->variablename_->integer_
         );
     }
     else {
@@ -341,7 +344,8 @@ void TypeChecker::visitValExpr(ValExpr *p) {
                 ctx->lastScannedVariable.c_str(), 
                 dtypeToString(newType).c_str(),
                 valTok.c_str()
-            )
+            ),
+            p->number_->integer_
         );
         return;
     }
@@ -570,7 +574,8 @@ void TypeChecker::visitListInputDefinition(ListInputDefinition *listinputdefinit
                         static_cast<int>(ErrorCode::UnexpectedOnnxName),
                         "Expected ordered input variables but got an ONNX-named input variable.",
                         p->variablename_->string_,
-                        "ONNX names are used in this context, but this input definition does not specify one."
+                        "ONNX names are used in this context, but this input definition does not specify one.",
+                        p->variablename_->integer_
                     );
                 }
                 break;
@@ -582,7 +587,8 @@ void TypeChecker::visitListInputDefinition(ListInputDefinition *listinputdefinit
                         static_cast<int>(ErrorCode::UnexpectedOnnxName),
                         "Expected ONNX-named input variable but got an ordered input variable",
                         p->variablename_->string_,
-                        "All (input/output) variables for a network must have an ONNX name OR no (input/output) variables may have an ONNX name."
+                        "All (input/output) variables for a network must have an ONNX name OR no (input/output) variables may have an ONNX name.",
+                        p->variablename_->integer_
                     );
                 }
         }
@@ -616,7 +622,8 @@ void TypeChecker::visitListOutputDefinition(ListOutputDefinition *listoutputdefi
                         static_cast<int>(ErrorCode::UnexpectedOnnxName),
                         "Expected ordered output variables but got an ONNX-named output variable.",
                         p->variablename_->string_,
-                        "ONNX names are used in this context, but this output definition does not specify one."
+                        "ONNX names are used in this context, but this output definition does not specify one.",
+                        p->variablename_->integer_
                     );
                 }
                 break;
@@ -628,7 +635,8 @@ void TypeChecker::visitListOutputDefinition(ListOutputDefinition *listoutputdefi
                         static_cast<int>(ErrorCode::UnexpectedOnnxName),
                         "Expected ONNX-named output variable but got an ordered output variable",
                         p->variablename_->string_,
-                        "All (input/output) variables for a network must have an ONNX name OR no (input/output) variables may have an ONNX name."
+                        "All (input/output) variables for a network must have an ONNX name OR no (input/output) variables may have an ONNX name.",
+                        p->variablename_->integer_
                     );
                 }
         }
@@ -665,7 +673,8 @@ void TypeChecker::visitVNNLibVersion(VNNLibVersion *p) {
             static_cast<int>(ErrorCode::MajorVersionMismatch),
             "Incompatible VNNLib version",
             ver,
-            string_format("Expected VNNLib version <%d.x>, but found version <%d.%d>.", VNNLIB_MAJOR_VERSION, major, minor)
+            string_format("Expected VNNLib version <%d.x>, but found version <%d.%d>.", VNNLIB_MAJOR_VERSION, major, minor),
+            p->versiontoken_->integer_
         );
     }
 
@@ -675,7 +684,8 @@ void TypeChecker::visitVNNLibVersion(VNNLibVersion *p) {
             static_cast<int>(WarningCode::MinorVersionMismatch),
             "Minor version mismatch",
             ver,
-            string_format("Expected VNNLib version <%d.%d>, but found version <%d.%d>.", VNNLIB_MAJOR_VERSION, VNNLIB_MINOR_VERSION, major, minor)
+            string_format("Expected VNNLib version <%d.%d>, but found version <%d.%d>.", VNNLIB_MAJOR_VERSION, VNNLIB_MINOR_VERSION, major, minor),
+            p->versiontoken_->integer_
         );
     }
 }
@@ -735,7 +745,8 @@ void TypeChecker::visitTensorElement(VariableName *name, Indices indices) {
                 static_cast<int>(ErrorCode::InvalidScalarAccess),
                 "Invalid index for scalar variable",
                 element_str,
-                "Scalar variables can only be accessed with index [0]."
+                "Scalar variables can only be accessed with index [0].",
+                name->integer_
             );
             return;
         }
@@ -750,7 +761,8 @@ void TypeChecker::visitTensorElement(VariableName *name, Indices indices) {
                 "Too many indices for variable",
                 element_str,
                 string_format("Expected %zu indices but encountered %zu.",
-                    symbol->shape.size(), indices.size())
+                    symbol->shape.size(), indices.size()),
+                name->integer_
             );
             return;
         }
@@ -762,7 +774,8 @@ void TypeChecker::visitTensorElement(VariableName *name, Indices indices) {
                 "Index out of bounds for variable",
                 element_str,
                 string_format("Index %d is out of bounds for dimension %zu with size %d.",
-                              indices[i], i, symbol->shape[i])
+                              indices[i], i, symbol->shape[i]),
+                name->integer_
             );
             return;
         }
@@ -775,7 +788,8 @@ void TypeChecker::visitTensorElement(VariableName *name, Indices indices) {
             static_cast<int>(ErrorCode::NotEnoughIndices),
             "Not enough indices for variable",
             element_str,
-            string_format("Expected %zu indices but encountered %zu.", symbol->shape.size(), indices.size())
+            string_format("Expected %zu indices but encountered %zu.", symbol->shape.size(), indices.size()),
+            name->integer_
         );
         return;
     }
