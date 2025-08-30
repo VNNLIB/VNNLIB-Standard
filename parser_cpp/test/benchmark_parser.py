@@ -78,41 +78,7 @@ def main():
     parser.add_argument("-n", "--iterations", type=int, default=1, 
                        help="Number of iterations to run (default: 1)")
     args = parser.parse_args()
-    
-    if args.all:
-        # Benchmark all test files
-        test_dir = Path("test")
-        if not test_dir.exists():
-            print("Error: test/ directory not found.")
-            return
-        
-        vnnlib_files = list(test_dir.glob("*.vnnlib"))
-        if not vnnlib_files:
-            print("No .vnnlib files found in test/ directory.")
-            return
-        
-        print(f"Benchmarking {len(vnnlib_files)} test files...")
-        print("=" * 60)
-        
-        results = {}
-        for file_path in sorted(vnnlib_files):
-            print()
-            times = benchmark_parse(str(file_path), args.iterations)
-            if times:
-                avg_time = sum(times) / len(times)
-                results[file_path.name] = avg_time
-        
-        # Summary
-        if results:
-            print("\n" + "=" * 60)
-            print("SUMMARY (average times):")
-            print("-" * 60)
-            for filename, avg_time in sorted(results.items(), key=lambda x: x[1]):
-                print(f"{filename:25s} {avg_time:.6f}s")
-    
-    else:
-        # Benchmark single file
-        benchmark_parse(args.file, args.iterations)
+    benchmark_parse(args.file, args.iterations)
 
 if __name__ == "__main__":
     main()
