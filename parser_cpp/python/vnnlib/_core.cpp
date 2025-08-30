@@ -69,17 +69,14 @@ PYBIND11_MODULE(_core, m) {
 		.def_property_readonly("network_name",[](const TVarExpr& v){ return v.symbol->networkName; })
 		.def_property_readonly("indices",     [](const TVarExpr& v){ return v.indices; });
 
-	py::class_<TDoubleExpr, TArithExpr>(m, "Double")
-		.def_property_readonly("value",  [](const TDoubleExpr& e){ return e.value; })
-		.def_property_readonly("lexeme", [](const TDoubleExpr& e){ return e.lexeme; });
+	py::class_<TLiteral, TArithExpr>(m, "Literal")
+		.def_property_readonly("lexeme", [](const TLiteral& e){ return e.lexeme; });
 
-	py::class_<TSIntExpr, TArithExpr>(m, "SInt")
-		.def_property_readonly("value",  [](const TSIntExpr& e){ return e.value; })
-		.def_property_readonly("lexeme", [](const TSIntExpr& e){ return e.lexeme; });
+	py::class_<TFloat, TLiteral>(m, "Float")
+		.def_property_readonly("value", [](const TFloat& n){ return n.value; });
 
-	py::class_<TIntExpr, TArithExpr>(m, "Int")
-		.def_property_readonly("value",  [](const TIntExpr& e){ return e.value; })
-		.def_property_readonly("lexeme", [](const TIntExpr& e){ return e.lexeme; });
+	py::class_<TInt, TLiteral>(m, "Int")
+		.def_property_readonly("value", [](const TInt& n){ return n.value; });
 
 	py::class_<TPlus, TArithExpr>(m, "Plus")
 	.def_property_readonly("args", [](const TPlus& n){
@@ -203,6 +200,11 @@ PYBIND11_MODULE(_core, m) {
 			output_tuple[i] = py::cast(n.outputs[i].get(), py::return_value_policy::reference_internal, py::cast(&n));
 		return output_tuple;
 	});
+
+	// --- Version ---
+	py::class_<TVersion, TNode>(m, "Version")
+		.def_property_readonly("major", [](const TVersion& v){ return v.major; })
+		.def_property_readonly("minor", [](const TVersion& v){ return v.minor; });
 
 	// --- Query ---
 	py::class_<TQuery, TNode>(m, "Query")

@@ -2,6 +2,9 @@
 #include <memory>
 #include <unordered_map>
 #include <vector>
+#include <cassert>
+#include <utility>
+
 #include "TypeChecker.h"  
 #include "TypedAbsyn.h" 
 #include "Absyn.H"  
@@ -12,10 +15,13 @@ public:
 
     std::unique_ptr<TQuery> build(VNNLibQuery* root);
 
+    // --- Visitor methods for concrete nodes ---
+
+    void visitScalarDims(ScalarDims *p) override;
+    void visitTensorDims(TensorDims *p) override;
+
     void visitVarExpr(VarExpr* p) override;
-    void visitDoubleExpr(DoubleExpr* p) override;
-    void visitSIntExpr(SIntExpr* p) override;
-    void visitIntExpr(IntExpr* p) override;
+    void visitValExpr(ValExpr* p) override;
     void visitNegate(Negate* p) override;
     void visitPlus(Plus* p) override;
     void visitMinus(Minus* p) override;
@@ -39,22 +45,11 @@ public:
     void visitOutputOnnxDef(OutputOnnxDef* p) override;
 
     void visitNetworkDef(NetworkDef* p) override;
+    void visitVNNLibVersion(VNNLibVersion *p);
     void visitVNNLibQuery(VNNLibQuery* p) override;
 
-    void visitTensorShape(TensorShape *p) override;
-    void visitArithExpr(ArithExpr *p) override;
-    void visitBoolExpr(BoolExpr *p) override;
-    void visitAssertion(Assertion *p) override;
-    void visitElementType(ElementType *p) override;
-    void visitInputDefinition(InputDefinition *p) override;
-    void visitHiddenDefinition(HiddenDefinition *p) override;
-    void visitOutputDefinition(OutputDefinition *p) override;
-    void visitNetworkDefinition(NetworkDefinition *p) override;
-    void visitQuery(Query *p) override;
-    
-    void visitScalarDims(ScalarDims *p) override;
-    void visitTensorDims(TensorDims *p) override;
-    
+    // --- Visitor methods for element types ---
+
     void visitGenericElementType(GenericElementType *p) override;
     void visitElementTypeF16(ElementTypeF16 *p) override;
     void visitElementTypeF32(ElementTypeF32 *p) override;
@@ -77,8 +72,10 @@ public:
     void visitElementTypeC128(ElementTypeC128 *p) override;
     void visitElementTypeBool(ElementTypeBool *p) override;
     void visitElementTypeString(ElementTypeString *p) override;
-    
-    void visitListInt(ListInt *p) override;
+
+    // --- Visitor methods for list types ---
+
+    void visitListNumber(ListNumber *p) override;
     void visitListArithExpr(ListArithExpr *p) override;
     void visitListBoolExpr(ListBoolExpr *p) override;
     void visitListAssertion(ListAssertion *p) override;
@@ -87,15 +84,16 @@ public:
     void visitListOutputDefinition(ListOutputDefinition *p) override;
     void visitListNetworkDefinition(ListNetworkDefinition *p) override;
 
+    // --- Visitor methods for tokens ---
+
     void visitInteger(Integer x) override;
     void visitChar(Char x) override;
     void visitDouble(Double x) override;
     void visitString(String x) override;
     void visitIdent(Ident x) override;
-    void visitSDouble(SDouble x) override;
-    void visitSInt(SInt x) override;
-    void visitInt(Int x) override;
-    void visitVariableName(VariableName x) override;
+    void visitVariableName(VariableName *x) override;
+    void visitNumber(Number *x) override;
+    void visitVersionToken(VersionToken *x) override;
 
 private:
     std::unique_ptr<TQuery> tquery_;

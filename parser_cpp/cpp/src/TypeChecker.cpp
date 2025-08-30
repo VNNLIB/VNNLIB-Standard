@@ -1,135 +1,12 @@
 #include "TypeChecker.h"
 
-// Utility function for string formatting (@iFreilicht)
-template<typename ... Args>
-std::string string_format( const std::string& format, Args ... args )
-{
-    int size_s = std::snprintf( nullptr, 0, format.c_str(), args ... ) + 1; // Extra space for '\0'
-    if( size_s <= 0 ){ throw std::runtime_error( "Error during formatting." ); }
-    auto size = static_cast<size_t>( size_s );
-    std::unique_ptr<char[]> buf( new char[ size ] );
-    std::snprintf( buf.get(), size, format.c_str(), args ... );
-    return std::string( buf.get(), buf.get() + size - 1 ); // We don't want the '\0' inside
-}
-
-
-// --- TypeCheckError methods ---
-
-// Create a JSON representation of the error
-std::string TypeCheckError::makeJson(ErrorCode code, 
-                                    std::string message, 
-                                    std::string offending_symbol, 
-                                    std::string hint) {
-    nlohmann::json j;
-    j["errorCode"] = codeToString(code);  // Use string representation instead of int
-    j["message"] = message;
-    j["offendingSymbol"] = offending_symbol;
-    j["hint"] = hint;
-    return j.dump();
-}
-
-// Convert error code to string representation
-std::string TypeCheckError::codeToString(ErrorCode code) {
-    switch (code) {
-        case MultipleDeclaration: return "MultipleDeclaration";
-        case TypeMismatch: return "TypeMismatch";
-        case UndeclaredVariable: return "UndeclaredVariable";
-        case IndexOutOfBounds: return "IndexOutOfBounds";
-        case TooManyIndices: return "TooManyIndices";
-        case NotEnoughIndices: return "NotEnoughIndices";
-        case UnexpectedOnnxName: return "UnexpectedOnnxName";
-        case InvalidDimensions: return "InvalidDimensions";
-        default: return "UnknownErrorCode";
-    }
-}
-
-TypeCheckError::TypeCheckError(ErrorCode code,
-                               std::string message,
-                               std::string offending_symbol,
-                               std::string hint) :
-    std::runtime_error(makeJson(code, message, offending_symbol, hint)),
-    code_(code),
-    message_(message),
-    offending_symbol_(std::move(offending_symbol)),
-    hint_(std::move(hint)) {}
-
-
-// --- Context methods ---
-
-Context::Context(TypeChecker* typeChecker) :
-    currentDataType(DType::Unknown),
-    lastScannedVariable(""),
-    usesOnnxNames(OnnxNamesUsage::Unknown),
-    symbolMap(),
-    checker(typeChecker) {}
-
-// Add a symbol to the context. Returns true if successful, false if a symbol with the same name already exists, or if the symbol is invalid.
-bool Context::addSymbol(VariableName name, ElementType *type, ListInt shape, SymbolKind kind, std::string onnxName) {
-    if (symbolMap.find(name) != symbolMap.end()) {
-        checker->addError(MultipleDeclaration, "Duplicate variable declaration", name,
-                        "Variable names must be unique within the specification");
-        return false;
-    }
-
-    std::vector<int64_t> tmp;
-    for (const auto& dimTok : shape) {
-        int64_t d = std::stoll(dimTok);
-        if (d < 1) {
-            checker->addError(InvalidDimensions, "Invalid dimension size", name,
-                            "Dimension sizes must be positive integers.");
-            return false;
-        }
-        tmp.push_back(d);
-    }
-
-    auto [insertIt, inserted] = symbolMap.try_emplace(
-        name,
-        name,
-        TypeChecker::mapDType(type),
-        std::move(tmp),
-        kind,
-        onnxName
-    );
-
-    if (!inserted) {
-        if (checker) {
-            checker->addError(
-                MultipleDeclaration,
-                "Failed to add symbol to context during type checking.",
-                name,
-                ""
-            );
-        }
-        return false;
-    }
-    
-    return true;
-}
-
-// Get a symbol from the context by name. Returns a pointer to the symbol if found, or nullptr if not.
-SymbolInfo *Context::getSymbol(const VariableName &name) {
-    auto it = symbolMap.find(name);
-    if (it != symbolMap.end()) {
-        return &it->second;
-    }
-    return nullptr; // Symbol not found
-}
-
-TypeChecker::TypeChecker() {
-    ctx = new Context(this);
-}
-
-TypeChecker::~TypeChecker() {
-    delete ctx;
-}
-
-// --- Utility Functions ---
+// --- Utility methods ---
 
 // Map ElementType to DType
 DType TypeChecker::mapDType(ElementType* e) {
     if (!e) return DType::Unknown;
     #define MAP(E,T) if (dynamic_cast<const E*>(e)) return DType::T
-    MAP(GenericElementType, Real);  // "Real" maps to Real DType
+    MAP(GenericElementType, Real); 
     MAP(ElementTypeF16, F16); 
     MAP(ElementTypeF32, F32); 
     MAP(ElementTypeF64, F64);
@@ -155,16 +32,16 @@ DType TypeChecker::mapDType(ElementType* e) {
     return DType::Unknown;
 }
 
-// Map TensorShape to std::vector<int64_t>
-Shape TypeChecker::mapShape(TensorShape* s) {
+// Map TensorShape to Indices
+Shape TypeChecker::mapShape(TensorShape* shape) {
     Shape out;
-    if (!s || dynamic_cast<ScalarDims*>(s)) return out; // scalar
-    if (auto t = dynamic_cast<TensorDims*>(s)) {
-        if (t->listint_) {
-            out.reserve(t->listint_->size());
-            for (auto& dimCh : *t->listint_) {
+    if (!shape || dynamic_cast<ScalarDims*>(shape)) return out; // scalar
+    if (auto tensorShape = dynamic_cast<TensorDims*>(shape)) {
+        if (tensorShape->listnumber_) {
+            out.reserve(tensorShape->listnumber_->size());
+            for (auto& dim : *tensorShape->listnumber_) {
                 try { 
-                    out.push_back(std::stoll(dimCh)); 
+                    out.push_back(std::stoll(dim->string_)); 
                 } catch (const std::exception& e) { 
                     out.push_back(-1); 
                 }
@@ -174,197 +51,297 @@ Shape TypeChecker::mapShape(TensorShape* s) {
     return out;
 }
 
-// Map ListInt to std::vector<int64_t>
-std::vector<int64_t> TypeChecker::mapIndices(const ListInt* i) {
-    std::vector<int64_t> out;
-    if (!i) return out;
-    out.reserve(i->size());
-    for (const auto& tok : *i) {
+// Map ListInt to Indices
+Indices TypeChecker::mapIndices(const ListNumber* inds) {
+    Indices out;
+    if (!inds) return out;
+    out.reserve(inds->size());
+    for (const auto& indTok : *inds) {
         try { 
-            out.push_back(std::stoll(tok)); 
-        } catch (const std::exception& e) { 
+            out.push_back(std::stoll(indTok->string_)); 
+        } catch (const std::invalid_argument& e) { 
             out.push_back(-1); 
         }
     }
     return out;
 }
 
+// Utility function for string formatting (@iFreilicht)
+template<typename ... Args>
+static std::string string_format( const std::string& format, Args ... args )
+{
+    int size_s = std::snprintf( nullptr, 0, format.c_str(), args ... ) + 1; // Extra space for '\0'
+    if( size_s <= 0 ){ throw std::runtime_error( "Error during formatting." ); }
+    auto size = static_cast<size_t>( size_s );
+    std::unique_ptr<char[]> buf( new char[ size ] );
+    std::snprintf( buf.get(), size, format.c_str(), args ... );
+    return std::string( buf.get(), buf.get() + size - 1 ); // We don't want the '\0' inside
+}
+
+// --- Context methods ---
+
+Context::Context(TypeChecker* typeChecker) :
+    currentDataType(DType::Unknown),
+    lastScannedVariable(""),
+    usesOnnxNames(OnnxNamesUsage::Unknown),
+    symbolMap(),
+    checker(typeChecker) {}
+
+// Add a symbol to the context. Returns true if successful, false if a symbol with the same name already exists, or if the symbol is invalid.
+bool Context::addSymbol(VariableName *name, ElementType *type, ListNumber shape, SymbolKind kind, std::string onnxName) {
+    if (symbolMap.find(name->string_) != symbolMap.end()) {
+        checker->addDiagnostic(Severity::Error, 
+                    static_cast<int>(ErrorCode::MultipleDeclaration), 
+                    "Duplicate variable declaration", 
+                    name->string_,
+                    "Variable names must be unique within the specification");
+        return false;
+    }
+
+    Indices tmp;
+    for (const auto& dim : shape) {
+        int64_t dim_val;
+        try {
+            dim_val = std::stoll(dim->string_); // If conversion fails, user has passed a non-int to shape
+        } catch (const std::exception& e) {
+            checker->addDiagnostic(Severity::Error, 
+                static_cast<int>(ErrorCode::InvalidDimensions), 
+                "Failed to parse dimension", 
+                name->string_,
+                "Failed to parse dimension size");
+            dim_val = -1;
+        }
+        if (dim_val < 1) {
+            checker->addDiagnostic(Severity::Error, 
+                static_cast<int>(ErrorCode::InvalidDimensions), 
+                "Failed to parse dimension", 
+                name->string_,
+                "Dimension sizes must be positive integers.");
+            return false;
+        }
+        tmp.push_back(dim_val);
+    }
+
+    symbolMap.try_emplace(
+        name->string_,
+        name->string_,
+        TypeChecker::mapDType(type),
+        std::move(tmp),
+        kind,
+        onnxName
+    );
+    return true;
+}
+
+// Get a symbol from the context by name. Returns a pointer to the symbol if found, or nullptr if not.
+SymbolInfo *Context::getSymbol(const VariableName &name) {
+    auto it = symbolMap.find(name.string_);
+    if (it != symbolMap.end()) {
+        return &it->second;
+    }
+    return nullptr; // Symbol not found
+}
+
+TypeChecker::TypeChecker() {
+    ctx = std::make_unique<Context>(this);
+}
+
+TypeChecker::~TypeChecker() = default;
+
 // --- Error collection and reporting methods ---
 
-// Add an error to the collection
-void TypeChecker::addError(ErrorCode code, const std::string &message,
-                          const std::string &offending_symbol,
-                          const std::string &hint) {
-    errors.emplace_back(code, message, offending_symbol, hint);
+// Convert error code to string representation
+std::string Diagnostic::codeToString() const {
+    if (severity_ == Severity::Error) {
+        auto ec = static_cast<ErrorCode>(code_);
+        switch (ec) {
+            case ErrorCode::MultipleDeclaration: return "MultipleDeclaration";
+            case ErrorCode::TypeMismatch: return "TypeMismatch";
+            case ErrorCode::UndeclaredVariable: return "UndeclaredVariable";
+            case ErrorCode::IndexOutOfBounds: return "IndexOutOfBounds";
+            case ErrorCode::TooManyIndices: return "TooManyIndices";
+            case ErrorCode::NotEnoughIndices: return "NotEnoughIndices";
+            case ErrorCode::UnexpectedOnnxName: return "UnexpectedOnnxName";
+            case ErrorCode::InvalidDimensions: return "InvalidDimensions";
+            case ErrorCode::MissingNetwork: return "MissingNetwork";
+            default: break;
+        }
+    } else if (severity_ == Severity::Warning) {
+        auto wc = static_cast<WarningCode>(code_);
+        switch (wc) {
+            case WarningCode::MinorVersionMismatch: return "MinorVersionMismatch";
+            default: break;
+        }
+    }
+    return "UnknownCode";
 }
 
-// Check if there are any errors in the collection
-bool TypeChecker::hasErrors() const {
-    return !errors.empty();
+// Create a JSON representation of a type-check error
+std::string Diagnostic::toJson() const {
+    nlohmann::json j;
+    j["errorCode"] = codeToString();  // Use string representation instead of int
+    j["message"] = message_;
+    j["offendingSymbol"] = offending_symbol_;
+    j["hint"] = hint_;
+    return j.dump();
 }
 
-// Get the number of errors in the collection
-size_t TypeChecker::getErrorCount() const {
-    return errors.size();
+// Add a diagnostic to the collection
+void TypeChecker::addDiagnostic(Severity severity, int code, const std::string &message,
+                                const std::string &offending_symbol,
+                                const std::string &hint) {
+    if (severity == Severity::Error) {
+        errors.emplace_back(severity, code, message, offending_symbol, hint);
+    } else if (severity == Severity::Warning) {
+        warnings.emplace_back(severity, code, message, offending_symbol, hint);
+    }
+}
+
+int TypeChecker::getErrorCount() const {
+    return static_cast<int>(errors.size());
+}
+
+int TypeChecker::getWarningCount() const {
+    return static_cast<int>(warnings.size());
 }
 
 // Get a JSON representation of all the errors collected
 std::string TypeChecker::getErrorReport() const {
     nlohmann::json report;
-    report["status"] = "failure";
+    if (errors.size() > 0) {
+        report["status"] = "failure";
+    } else {
+        report["status"] = "success";
+    }
     report["error_count"] = errors.size();
     report["errors"] = nlohmann::json::array();
     
     for (const auto& error : errors) {
-        nlohmann::json errorJson = nlohmann::json::parse(error.what());
+        nlohmann::json errorJson = nlohmann::json::parse(error.toJson());
         report["errors"].push_back(errorJson);
     }
-        
-    return report.dump(2);
-}
 
-// Clear the error collection
-void TypeChecker::clearErrors() {
-    errors.clear();
+    report["warning_count"] = warnings.size();
+    report["warnings"] = nlohmann::json::array();
+
+    for (const auto& warning : warnings) {
+        nlohmann::json warningJson = nlohmann::json::parse(warning.toJson());
+        report["warnings"].push_back(warningJson);
+    }
+
+    return report.dump(2);
 }
 
 // --- Visitor Methods --- 
 
-void TypeChecker::visitListInt(ListInt *p) {
-    for (const auto &intValue : *p) {
-        visitInt(intValue);
-    }
-}
-
-void TypeChecker::visitTensorShape(TensorShape *p) {} // abstract class
-
+void TypeChecker::visitTensorShape(TensorShape *p) {}       // Abstract class
 void TypeChecker::visitScalarDims(ScalarDims *p) {}
 
 void TypeChecker::visitTensorDims(TensorDims *p) {
-    visitListInt(p->listint_);
+    visitListNumber(p->listnumber_);
 }
 
 void TypeChecker::visitArithExpr(ArithExpr *p) {} // abstract class
 
 void TypeChecker::visitVarExpr(VarExpr *p) {
-    const SymbolInfo *symbol = ctx->getSymbol(p->variablename_);
+    const SymbolInfo *symbol = ctx->getSymbol(*p->variablename_);
     if (!symbol) {
-        addError(
-            UndeclaredVariable,
+        addDiagnostic(
+            Severity::Error,
+            static_cast<int>(ErrorCode::UndeclaredVariable),
             "Undeclared variable",
-            p->variablename_,
+            p->variablename_->string_,
             "Variable must be declared before use."
         );
         return;
     }
-    // Apply scope checking to tensor access
-    visitTensorElement(&p->variablename_, TypeChecker::mapIndices(p->listint_));
+    // Check for valid tensor access
+    visitTensorElement(p->variablename_, TypeChecker::mapIndices(p->listnumber_));
+    // Check for valid variable name
+    p->variablename_->accept(this);
 
     DType nodeType = symbol->dtype;
     DType exprType = ctx->currentDataType;
 
     if (exprType == DType::Unknown) {
         ctx->currentDataType = nodeType;
-        ctx->lastScannedVariable = p->variablename_;
-    // if exprType is a constant type, check if nodeType is of the same family
-    } else if (isConstant(exprType)) {
+        ctx->lastScannedVariable = p->variablename_->string_;
+    }
+    // if exprType is a constant type, check if nodeType is of the same family. E.g., Float and Float
+    else if (isConstant(exprType)) {
         if (sameFamily(nodeType, exprType)) {
             ctx->currentDataType = nodeType;
-            ctx->lastScannedVariable = p->variablename_;
+            ctx->lastScannedVariable = p->variablename_->string_;
         } else {
-            string_format("Expected a %s type to match constant '%s', but variable '%s' has type '%s'.",
+            addDiagnostic(
+                Severity::Error,
+                static_cast<int>(ErrorCode::TypeMismatch),
+                "Type mismatch in arithmetic expression",
+                p->variablename_->string_,
+                string_format(
+                    "Expected a %s type to match constant '%s', but variable '%s' has type '%s'.",
+                    dtypeToString(exprType),
+                    ctx->lastScannedVariable,
+                    p->variablename_->string_,
+                    dtypeToString(nodeType)
+                )
+            );
+        }
+    }
+    // if exprType is a variable type, check if nodeType is of the same type
+    else if (!sameType(exprType, nodeType)) {
+        addDiagnostic(
+            Severity::Error,
+            static_cast<int>(ErrorCode::TypeMismatch),
+            "Type mismatch in arithmetic expression",
+            p->variablename_->string_,
+            string_format(
+                "Expected type '%s' (from variable '%s'), but variable '%s' has type '%s'.",
                 dtypeToString(exprType), 
                 ctx->lastScannedVariable,
-                p->variablename_,
-                dtypeToString(nodeType));
-
-            addError(
-                TypeMismatch,
-                "Type mismatch in arithmetic expression",
-                p->variablename_,
-                "Variable type does not match the expected constant type."
-            );
-            return;
-        }
-    // if exprType is a variable type, check if nodeType is of the same type
-    } else if (!sameType(exprType, nodeType)) {
-        string_format("Expected type '%s' (from variable '%s'), but variable '%s' has type '%s'.",
-            dtypeToString(exprType), 
-            ctx->lastScannedVariable,
-            p->variablename_,
-            dtypeToString(nodeType));
-
-        addError(
-            TypeMismatch,
-            "Type mismatch in arithmetic expression",
-            p->variablename_,
-            "Variable type does not match the expected expression type."
+                p->variablename_->string_,
+                dtypeToString(nodeType)
+            )
         );
-        return;
-    } else {
+    }
+    else {
         ctx->currentDataType = nodeType;
-        ctx->lastScannedVariable = p->variablename_;
+        ctx->lastScannedVariable = p->variablename_->string_;
     }
 }
 
-void TypeChecker::visitDoubleExpr(DoubleExpr *p) {
+void TypeChecker::visitValExpr(ValExpr *p) {
     // If currentDataType is unset, assign a new FloatConstant
-    if (ctx->currentDataType == DType::Unknown) {
-        ctx->currentDataType = DType::FloatConstant;
-        ctx->lastScannedVariable = p->sdouble_;
-    // if currentDataType is incompatible with FloatConstant add error
-    } else if (!sameFamily(ctx->currentDataType, DType::FloatConstant)) {
-        string_format("Expected type '%s' (from '%s'), but found a floating-point constant '%s'.",
-            dtypeToString(ctx->currentDataType),
-            ctx->lastScannedVariable, 
-            p->sdouble_);
-        addError(
-            TypeMismatch,
-            "Type mismatch in arithmetic expression",
-            p->sdouble_,
-            "Expected a floating-point type for the constant expression."
-        );
-        return;
+    std::string valTok = p->number_->string_;
+    DType newType = DType::Unknown;
+
+    if (valTok.find('.') != std::string::npos) {
+        newType = DType::FloatConstant;
+    } else {
+        if (valTok.find('-') != std::string::npos) {
+            newType = DType::NegativeIntConstant;
+        } else {
+            newType = DType::PositiveIntConstant;
+        }
     }
-}
 
-void TypeChecker::visitSIntExpr(SIntExpr *p) {
-    // If currentDataType is unset, assign a new NegativeIntConstant
     if (ctx->currentDataType == DType::Unknown) {
-        ctx->currentDataType = DType::NegativeIntConstant;
-        ctx->lastScannedVariable = p->sint_;
-    // if currentDataType is incompatible with NegativeIntConstant add error
-    } else if (!sameFamily(ctx->currentDataType, DType::NegativeIntConstant)) {
-        string_format("Expected type '%s' (from '%s'), but found a negative integer constant '%s'.",
-            dtypeToString(ctx->currentDataType),
-            ctx->lastScannedVariable,
-            p->sint_);
-
-        addError(
-            TypeMismatch,
+        ctx->currentDataType = newType;
+        ctx->lastScannedVariable = valTok;
+    // if the currentDataType is incompatible with the constant type, add error
+    } else if (!sameFamily(ctx->currentDataType, newType)) {
+        addDiagnostic(
+            Severity::Error,
+            static_cast<int>(ErrorCode::TypeMismatch),
             "Type mismatch in arithmetic expression",
-            p->sint_,
-            "Expected a signed integer type for the constant expression."
-        );
-    }
-    return;
-}
-
-void TypeChecker::visitIntExpr(IntExpr *p) {
-    if (ctx->currentDataType == DType::Unknown) {
-        ctx->currentDataType = DType::PositiveIntConstant;
-        ctx->lastScannedVariable = p->int_;
-    } else if (!sameFamily(ctx->currentDataType, DType::PositiveIntConstant)) {
-        string_format("Expected type '%s' (from '%s'), but found an integer constant '%s'.",
-            dtypeToString(ctx->currentDataType),
-            ctx->lastScannedVariable, 
-            p->int_);
-
-        addError(
-            TypeMismatch,
-            "Type mismatch in arithmetic expression",
-            p->int_,
-            "Expected an integer type for the constant expression."
+            valTok,
+            string_format(
+                "Expected type '%s' (from '%s'), but found a %s constant '%s'.",
+                dtypeToString(ctx->currentDataType),
+                ctx->lastScannedVariable, 
+                dtypeToString(newType),
+                valTok
+            )
         );
         return;
     }
@@ -457,8 +434,7 @@ void TypeChecker::visitListAssertion(ListAssertion *p) {
     }
 }
 
-// Variable data type visitors
-
+// Data Type leaf node visitors
 void TypeChecker::visitElementType(ElementType *p) {}
 void TypeChecker::visitGenericElementType(GenericElementType *p) {}
 void TypeChecker::visitElementTypeF16(ElementTypeF16 *p) {}
@@ -491,8 +467,8 @@ void TypeChecker::visitInputDef(InputDef *p) {
     p->tensorshape_->accept(this);
 
     auto* shape = dynamic_cast<TensorDims*>(p->tensorshape_);
-    // Set dims to an empty list if shape is null or shape->listint_ is null
-    ListInt dims = (shape && shape->listint_) ? *shape->listint_ : ListInt{};
+    // Set dims to an empty list if shape is null or shape->listnumber_ is null
+    ListNumber dims = (shape && shape->listnumber_) ? *shape->listnumber_ : ListNumber{};
 
     ctx->addSymbol(
         p->variablename_,
@@ -509,7 +485,7 @@ void TypeChecker::visitInputOnnxDef(InputOnnxDef *p) {
 
     std::string onnxName = p->string_;
     auto* shape = dynamic_cast<TensorDims*>(p->tensorshape_);
-    ListInt dims = (shape && shape->listint_) ? *shape->listint_ : ListInt{};
+    ListNumber dims = (shape && shape->listnumber_) ? *shape->listnumber_ : ListNumber{};
 
     ctx->addSymbol(
         p->variablename_,
@@ -526,9 +502,9 @@ void TypeChecker::visitHiddenDef(HiddenDef *p) {
     p->elementtype_->accept(this);
     p->tensorshape_->accept(this);
 
-    std::string onnxName = p->string_;
+    std::string onnxName = p->string_;  // Hidden nodes have a mandatory ONNX name
     auto* shape = dynamic_cast<TensorDims*>(p->tensorshape_);
-    ListInt dims = (shape && shape->listint_) ? *shape->listint_ : ListInt{};
+    ListNumber dims = (shape && shape->listnumber_) ? *shape->listnumber_ : ListNumber{};
 
     ctx->addSymbol(
         p->variablename_,
@@ -547,7 +523,7 @@ void TypeChecker::visitOutputDef(OutputDef *p) {
     p->tensorshape_->accept(this);
 
     auto* shape = dynamic_cast<TensorDims*>(p->tensorshape_);
-    ListInt dims = (shape && shape->listint_) ? *shape->listint_ : ListInt{};
+    ListNumber dims = (shape && shape->listnumber_) ? *shape->listnumber_ : ListNumber{};
 
     ctx->addSymbol(
         p->variablename_,
@@ -564,7 +540,7 @@ void TypeChecker::visitOutputOnnxDef(OutputOnnxDef *p) {
 
     std::string onnxName = p->string_;
     auto* shape = dynamic_cast<TensorDims*>(p->tensorshape_);
-    ListInt dims = (shape && shape->listint_) ? *shape->listint_ : ListInt{};
+    ListNumber dims = (shape && shape->listnumber_) ? *shape->listnumber_ : ListNumber{};
 
     ctx->addSymbol(
         p->variablename_,
@@ -589,10 +565,11 @@ void TypeChecker::visitListInputDefinition(ListInputDefinition *listinputdefinit
             case OnnxNamesUsage::OnnxNamesNotUsed:
                 // Check if inputDef is an ONNX-named input variable
                 if (auto p = dynamic_cast<InputOnnxDef*>(inputDef)) {
-                    addError(
-                        UnexpectedOnnxName,
+                    addDiagnostic(
+                        Severity::Error,
+                        static_cast<int>(ErrorCode::UnexpectedOnnxName),
                         "Expected ordered input variables but got an ONNX-named input variable.",
-                        p->variablename_,
+                        p->variablename_->string_,
                         "ONNX names are used in this context, but this input definition does not specify one."
                     );
                 }
@@ -600,10 +577,11 @@ void TypeChecker::visitListInputDefinition(ListInputDefinition *listinputdefinit
             case OnnxNamesUsage::OnnxNamesUsed:
                 // Check if inputDef is an ordered input variable
                 if (auto p = dynamic_cast<InputDef*>(inputDef)) {
-                    addError(
-                        UnexpectedOnnxName,
+                    addDiagnostic(
+                        Severity::Error,
+                        static_cast<int>(ErrorCode::UnexpectedOnnxName),
                         "Expected ONNX-named input variable but got an ordered input variable",
-                        p->variablename_,
+                        p->variablename_->string_,
                         "All (input/output) variables for a network must have an ONNX name OR no (input/output) variables may have an ONNX name."
                     );
                 }
@@ -633,10 +611,11 @@ void TypeChecker::visitListOutputDefinition(ListOutputDefinition *listoutputdefi
             case OnnxNamesUsage::OnnxNamesNotUsed:
                 // Check if outputDef is an ONNX-named output variable
                 if (auto p = dynamic_cast<OutputOnnxDef*>(outputDef)) {
-                    addError(
-                        UnexpectedOnnxName,
+                    addDiagnostic(
+                        Severity::Error,
+                        static_cast<int>(ErrorCode::UnexpectedOnnxName),
                         "Expected ordered output variables but got an ONNX-named output variable.",
-                        p->variablename_,
+                        p->variablename_->string_,
                         "ONNX names are used in this context, but this output definition does not specify one."
                     );
                 }
@@ -644,10 +623,11 @@ void TypeChecker::visitListOutputDefinition(ListOutputDefinition *listoutputdefi
             case OnnxNamesUsage::OnnxNamesUsed:
                 // Check if outputDef is an ordered output variable
                 if (auto p = dynamic_cast<OutputDef*>(outputDef)) {
-                    addError(
-                        UnexpectedOnnxName,
+                    addDiagnostic(
+                        Severity::Error,
+                        static_cast<int>(ErrorCode::UnexpectedOnnxName),
                         "Expected ONNX-named output variable but got an ordered output variable",
-                        p->variablename_,
+                        p->variablename_->string_,
                         "All (input/output) variables for a network must have an ONNX name OR no (input/output) variables may have an ONNX name."
                     );
                 }
@@ -672,19 +652,54 @@ void TypeChecker::visitListNetworkDefinition(ListNetworkDefinition *listnetworkd
     }
 }
 
-void TypeChecker::visitQuery(Query *p) {} // abstract base class
+void TypeChecker::visitVersion(Version *p) {} // abstract base class
 
-void TypeChecker::visitVNNLibQuery(VNNLibQuery *p) {
-    if (p->listnetworkdefinition_) {
-        p->listnetworkdefinition_->accept(this);
+void TypeChecker::visitVNNLibVersion(VNNLibVersion *p) {
+    std::string ver = p->versiontoken_->string_;
+    int major = 0, minor = 0;
+    std::sscanf(ver.c_str(), "<%d.%d>", &major, &minor);
+
+    if (major != VNNLIB_MAJOR_VERSION) {
+        addDiagnostic(
+            Severity::Error,
+            static_cast<int>(ErrorCode::MajorVersionMismatch),
+            "Incompatible VNNLib version",
+            ver,
+            string_format("Expected VNNLib version <%d.x>, but found version <%d.%d>.", VNNLIB_MAJOR_VERSION, major, minor)
+        );
     }
-    if (p->listassertion_) {
-        p->listassertion_->accept(this);
+
+    if (minor != VNNLIB_MINOR_VERSION) {
+        addDiagnostic(
+            Severity::Warning,
+            static_cast<int>(WarningCode::MinorVersionMismatch),
+            "Minor version mismatch",
+            ver,
+            string_format("Expected VNNLib version <%d.%d>, but found version <%d.%d>.", VNNLIB_MAJOR_VERSION, VNNLIB_MINOR_VERSION, major, minor)
+        );
     }
 }
 
+void TypeChecker::visitQuery(Query *p) {} // abstract base class
+
+void TypeChecker::visitVNNLibQuery(VNNLibQuery *p) {
+    assert(p->version_); p->version_->accept(this);
+    if (p->listnetworkdefinition_) {
+        p->listnetworkdefinition_->accept(this);
+    } else {
+        addDiagnostic(
+            Severity::Error,
+            static_cast<int>(ErrorCode::MissingNetwork),
+            "No network definition found in VNNLib specification",
+            "",
+            "A VNNLib specification must contain at least one network definition."
+        );
+    }
+    assert(p->listassertion_); p->listassertion_->accept(this);
+}
+
 // Helper function to efficiently create strings to represent tensor element access
-std::string make_element(std::string_view name, const std::vector<int>& indices) {
+std::string make_element(std::string_view name, const Indices& indices) {
     std::string out;
     out.reserve(name.size() + 2 + indices.size() * 12);
     out.append(name);
@@ -705,33 +720,21 @@ std::string make_element(std::string_view name, const std::vector<int>& indices)
 }
 
 // Checks for valid tensor element access
-void TypeChecker::visitTensorElement(VariableName *name, std::vector<int64_t> indices) {
+void TypeChecker::visitTensorElement(VariableName *name, Indices indices) {
     const SymbolInfo *symbol = ctx->getSymbol(*name);
-
-    std::string element_str = *name + "[";
-    for (const auto &index : indices) {
-        element_str += std::to_string(index) + ",";
-    }
-    element_str.pop_back();  // Remove the trailing comma
-    element_str += "]";
+    std::string name_str = name->string_;
+    std::string element_str = make_element(name_str, indices);
 
     if (symbol->shape.size() == 0) {
         // For scalars (empty shape), allow access with index [0] only
         if (indices.size() == 1 && indices[0] == 0) {
-            return; 
-        } else if (indices.size() > 1) {
-            addError(
-                TooManyIndices,
-                "Too many indices for scalar variable",
-                *name,
-                "Scalar variables can only be accessed with a single index [0]."
-            );
-            return;
-        } else if (indices.size() == 1 && indices[0] != 0) {
-            addError(
-                IndexOutOfBounds,
-                "Index out of bounds for scalar variable",
-                *name,
+            return;  // Correct access
+        } else {
+            addDiagnostic(
+                Severity::Error,
+                static_cast<int>(ErrorCode::InvalidScalarAccess),
+                "Invalid index for scalar variable",
+                element_str,
                 "Scalar variables can only be accessed with index [0]."
             );
             return;
@@ -741,21 +744,23 @@ void TypeChecker::visitTensorElement(VariableName *name, std::vector<int64_t> in
     for (size_t i = 0; i < indices.size(); ++i) {
         // Check for too many indices
         if (i >= symbol->shape.size()) {
-            addError(
-                TooManyIndices,
+            addDiagnostic(
+                Severity::Error,
+                static_cast<int>(ErrorCode::TooManyIndices),
                 "Too many indices for variable",
-                *name,
-                string_format("Expected %zu indices but encountered %zu.", 
+                element_str,
+                string_format("Expected %zu indices but encountered %zu.",
                     symbol->shape.size(), indices.size())
             );
             return;
         }
         // Check that the index is within the variable's declared shape
-        if (indices[i] < 0 || indices[i] >= symbol->shape[i]) {
-            addError(
-                IndexOutOfBounds,
+        if (indices[i] >= symbol->shape[i]) {
+            addDiagnostic(
+                Severity::Error,
+                static_cast<int>(ErrorCode::IndexOutOfBounds),
                 "Index out of bounds for variable",
-                *name,
+                element_str,
                 string_format("Index %d is out of bounds for dimension %zu with size %d.",
                               indices[i], i, symbol->shape[i])
             );
@@ -765,24 +770,31 @@ void TypeChecker::visitTensorElement(VariableName *name, std::vector<int64_t> in
 
     // Check for not enough indices
     if (indices.size() < symbol->shape.size()) {
-        addError(
-            NotEnoughIndices,
+        addDiagnostic(
+            Severity::Error,
+            static_cast<int>(ErrorCode::NotEnoughIndices),
             "Not enough indices for variable",
-            *name,
+            element_str,
             string_format("Expected %zu indices but encountered %zu.", symbol->shape.size(), indices.size())
         );
         return;
     }
 }
 
-// Base type visitors
-
+// Visitors for default BNFC tokens
 void TypeChecker::visitInteger(Integer x) {}
 void TypeChecker::visitChar(Char x) {}
 void TypeChecker::visitDouble(Double x) {}
 void TypeChecker::visitString(String x) {}
 void TypeChecker::visitIdent(Ident x) {}
-void TypeChecker::visitSDouble(SDouble x) {}
-void TypeChecker::visitSInt(SInt x) {}
-void TypeChecker::visitInt(Int x) {}
-void TypeChecker::visitVariableName(VariableName x) {}
+void TypeChecker::visitVariableName(VariableName *p) {}     // Token for variable names
+
+void TypeChecker::visitListNumber(ListNumber *p) {
+    for (const auto &num : *p) {
+        num->accept(this);
+    }
+}
+
+void TypeChecker::visitNumber(Number *p) {}                 // Token for number literals
+
+void TypeChecker::visitVersionToken(VersionToken *x) {}     // Token for version
