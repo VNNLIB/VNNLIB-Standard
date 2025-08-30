@@ -26,8 +26,10 @@ std::unique_ptr<TQuery> parse_query(std::string path) {
 
     TypedBuilder typeChecker;
     auto typed = typeChecker.build(parse_tree);
-    if (typeChecker.hasErrors()) {
+    if (typeChecker.getErrorCount() > 0) {
         throw VNNLibException(typeChecker.getErrorReport());
+    } else if (typeChecker.getWarningCount() > 0) {
+        std::cerr << "Warning(s) during type checking:\n" << typeChecker.getErrorReport() << std::endl;
     }
     return typed;
 }
@@ -47,8 +49,10 @@ std::unique_ptr<TQuery> parse_query_str(std::string content) {
 
     TypedBuilder typeChecker;
     auto typed = typeChecker.build(parse_tree);
-    if (typeChecker.hasErrors()) {
+    if (typeChecker.getErrorCount() > 0) {
         throw VNNLibException(typeChecker.getErrorReport());
+    } else if (typeChecker.getWarningCount() > 0) {
+        std::cerr << "Warning(s) during type checking:\n" << typeChecker.getErrorReport() << std::endl;
     }
     return typed;
 }
@@ -76,7 +80,7 @@ std::string check_query(std::string path) {
 
     TypedBuilder typeChecker;
     auto typed = typeChecker.build(parse_tree);
-    if (typeChecker.hasErrors()) {
+    if (typeChecker.getErrorCount() > 0) {
         return typeChecker.getErrorReport();
     }
     return "";
@@ -97,7 +101,7 @@ std::string check_query_str(std::string content) {
 
     TypedBuilder typeChecker;
     auto typed = typeChecker.build(parse_tree);
-    if (typeChecker.hasErrors()) {
+    if (typeChecker.getErrorCount() > 0) {
         return typeChecker.getErrorReport();
     }
     return "";

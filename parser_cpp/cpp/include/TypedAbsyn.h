@@ -4,6 +4,7 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include <variant>
 
 #include "Absyn.H"
 
@@ -24,6 +25,7 @@ bool sameType(DType a, DType b);
 
 enum class SymbolKind {Input, Hidden, Output, Unknown};
 using Shape = std::vector<int64_t>;
+using Indices = std::vector<int64_t>;
 struct Provenance { int line{-1}; int col{-1}; };
 
 class SymbolInfo final {
@@ -74,7 +76,6 @@ protected:
 class TArithExpr : public TNode {
 friend class TypedBuilder;
 public:
-	// TODO: Add Provenance span for ArithExpr
 	DType dtype{DType::Unknown};
 	virtual ~TArithExpr() = default;
 	std::string toString() const override;
@@ -85,33 +86,26 @@ protected:
 class TVarExpr final : public TArithExpr {
 public:
 	std::shared_ptr<const SymbolInfo> symbol{};
-	std::vector<int64_t> indices{};
+	Indices indices{};
 	Provenance prov{};
 	void children(std::vector<const TNode*>& out) const override;
 };
 
-class TDoubleExpr final : public TArithExpr {
+class TLiteral : public TArithExpr {
 public:
-  double value{0.0};
-  std::string lexeme;
-  Provenance prov{};
-  void children(std::vector<const TNode*>& out) const override;
+	std::string value{};
+	std::string lexeme;
+	void children(std::vector<const TNode*>& out) const override;
 };
 
-class TSIntExpr final : public TArithExpr {
+class TFloat final : public TLiteral {
 public:
-  long long value{0};
-  std::string lexeme;
-  Provenance prov{};
-  void children(std::vector<const TNode*>& out) const override;
+	double value{};
 };
 
-class TIntExpr final : public TArithExpr {
+class TInt final : public TLiteral {
 public:
-  long long value{0};
-  std::string lexeme;
-  Provenance prov{};
-  void children(std::vector<const TNode*>& out) const override;
+	int64_t value{};
 };
 
 class TNegate final : public TArithExpr {
@@ -144,7 +138,6 @@ public:
 class TBoolExpr : public TNode {
 friend class TypedBuilder;
 public:
-  // TODO: Add Provenance span for BoolExpr
   virtual ~TBoolExpr() = default;
   std::string toString() const override;
 protected:
@@ -258,11 +251,25 @@ protected:
 	NetworkDefinition* src_NetworkDefinition{nullptr};
 };
 
+// --- Version ---
+
+class TVersion final : public TNode {
+friend class TypedBuilder;
+public:
+	int major{0};
+  	int minor{0};
+	void children(std::vector<const TNode*>& out) const override;
+	std::string toString() const override;
+protected:
+	Version* src_Version{nullptr};
+};
+
 // --- Query ---
 
 class TQuery final : public TNode {
 friend class TypedBuilder;
 public:
+	std::unique_ptr<TVersion> version{};
 	std::vector<std::unique_ptr<TNetworkDefinition>> networks{};
 	std::vector<std::unique_ptr<TAssertion>> assertions{};
 	void children(std::vector<const TNode*>& out) const override;

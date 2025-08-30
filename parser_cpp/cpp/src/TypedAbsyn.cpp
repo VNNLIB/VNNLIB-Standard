@@ -117,13 +117,7 @@ void TVarExpr::children(std::vector<const TNode*>& out) const {
   (void)out;
 }
 
-void TDoubleExpr::children(std::vector<const TNode*>& out) const {
-  (void)out;
-}
-void TSIntExpr::children(std::vector<const TNode*>& out) const {
-  (void)out;
-}
-void TIntExpr::children(std::vector<const TNode*>& out) const {
+void TLiteral::children(std::vector<const TNode*>& out) const {
   (void)out;
 }
 
@@ -235,6 +229,16 @@ void TNetworkDefinition::children(std::vector<const TNode*>& out) const {
 
 std::string TNetworkDefinition::toString() const {
     return bnfcPrint(src_NetworkDefinition);
+}
+
+// --- Version ---
+
+void TVersion::children(std::vector<const TNode*>& out) const {
+  (void)out;
+}
+
+std::string TVersion::toString() const {
+    return bnfcPrint(src_Version);
 }
 
 // --- Query ---

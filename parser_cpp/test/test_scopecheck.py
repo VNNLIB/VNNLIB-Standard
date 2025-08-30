@@ -8,6 +8,7 @@ def test_duplicate_variable_error():
     Tests that declaring the same variable twice raises a VNNLibError.
     """
     invalid_content = """
+    (vnnlib-version <2.0>)
     (declare-network acc
         (declare-input X Real [3])
         (declare-input X Real [3]) ; Duplicate
@@ -32,6 +33,7 @@ def test_undeclared_variable_error():
     Tests that using an undeclared variable in assertions raises a VNNLibError.
     """
     invalid_content = """
+    (vnnlib-version <2.0>)
     (declare-network acc
         (declare-input X Real [3])
         (declare-output Y Real [1])
@@ -55,6 +57,7 @@ def test_invalid_dimensions():
     Tests that using invalid dimensions (i.e., dimension size of 0) for a variable raises a VNNLibError.
     """
     invalid_content = """
+    (vnnlib-version <2.0>)
     (declare-network acc
         (declare-input X Real [0, 0])   ; invalid dimensions
         (declare-output Y Real [])
@@ -83,6 +86,7 @@ def test_out_of_bounds_indices():
     Tests that accessing a scalar variable with an index raises a VNNLibError.
     """
     invalid_content = """
+    (vnnlib-version <2.0>)
     (declare-network acc
         (declare-input X Real [3, 4])   ; X is a 3x4 matrix
         (declare-output Y Real [])
@@ -98,7 +102,7 @@ def test_out_of_bounds_indices():
     json_error = json.loads(str(exc_info.value))
     assert len(json_error["errors"]) == 1
     
-    assert json_error["errors"][0]["offendingSymbol"] == "X"
+    assert json_error["errors"][0]["offendingSymbol"] == "X[4,4]"
     assert "IndexOutOfBounds" in json_error["errors"][0]["errorCode"]
     # Check that the hint mentions the out of bounds access
     assert "Index 4 is out of bounds" in json_error["errors"][0]["hint"]
@@ -109,6 +113,7 @@ def test_too_many_indices():
     Tests that using too many indices on a variable raises a VNNLibError.
     """
     invalid_content = """
+    (vnnlib-version <2.0>)
     (declare-network acc
         (declare-input X Real [3, 4])   ; X is a 3x4 matrix
         (declare-output Y Real [])
@@ -124,7 +129,7 @@ def test_too_many_indices():
     json_error = json.loads(str(exc_info.value))
     assert len(json_error["errors"]) == 1
     
-    assert json_error["errors"][0]["offendingSymbol"] == "X"
+    assert json_error["errors"][0]["offendingSymbol"] == "X[1,2,3]"
     assert "TooManyIndices" in json_error["errors"][0]["errorCode"]
 
 
@@ -133,6 +138,7 @@ def test_not_enough_indices():
     Tests that using too few indices on a variable raises a VNNLibError.
     """
     invalid_content = """
+    (vnnlib-version <2.0>)
     (declare-network acc
         (declare-input X Real [3, 4])   ; X is a 3x4 matrix
         (declare-output Y Real [])
@@ -148,7 +154,7 @@ def test_not_enough_indices():
     json_error = json.loads(str(exc_info.value))
     assert len(json_error["errors"]) == 1
     
-    assert json_error["errors"][0]["offendingSymbol"] == "X"
+    assert json_error["errors"][0]["offendingSymbol"] == "X[1]"
     assert "NotEnoughIndices" in json_error["errors"][0]["errorCode"]
 
 
@@ -169,6 +175,7 @@ def test_inconsistent_onnx_names():
     
     # Test with mixed ONNX names across inputs (first input is named)
     check("""
+    (vnnlib-version <2.0>)
     (declare-network acc
         (declare-input X Real [] "x_in")          
         (declare-input Z Real [])                 
@@ -179,6 +186,7 @@ def test_inconsistent_onnx_names():
 
     # Test with mixed ONNX names across inputs (first input is not named) 
     check("""
+    (vnnlib-version <2.0>)
     (declare-network acc
         (declare-input X Real [])                  
         (declare-input Z Real [] "z_in")           
@@ -189,6 +197,7 @@ def test_inconsistent_onnx_names():
 
     # Test with mixed ONNX names across inputs and outputs
     check("""
+    (vnnlib-version <2.0>)
     (declare-network acc
         (declare-input X Real [] "x_in")           
         (declare-input Z Real [] "z_in")           
@@ -200,6 +209,7 @@ def test_inconsistent_onnx_names():
     # Test with multiple named variables, when first input is unnamed (multiple mismatches)
     # The new checker reports all mismatches
     check("""
+    (vnnlib-version <2.0>)
     (declare-network acc
         (declare-input X Real [])           
         (declare-input Z Real [] "z_in")       
@@ -210,6 +220,7 @@ def test_inconsistent_onnx_names():
 
     # Test with all ONNX names
     content = """
+    (vnnlib-version <2.0>)
     (declare-network acc
         (declare-input X Real [] "x_in")          
         (declare-input Z Real [] "z_in")          
@@ -221,6 +232,7 @@ def test_inconsistent_onnx_names():
 
     # Test with no ONNX names
     content = """
+    (vnnlib-version <2.0>)
     (declare-network acc
         (declare-input X Real [])           
         (declare-input Z Real [])          

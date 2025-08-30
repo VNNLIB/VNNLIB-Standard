@@ -16,57 +16,67 @@
 #include "json.hpp"
 #include "TypedAbsyn.h"
 
+#define VNNLIB_MAJOR_VERSION 2
+#define VNNLIB_MINOR_VERSION 0
 
-typedef enum {
+
+enum class ErrorCode {
     MultipleDeclaration,
     TypeMismatch,
     UndeclaredVariable,
     IndexOutOfBounds,
+    InvalidScalarAccess,
     TooManyIndices,
     NotEnoughIndices,
     UnexpectedOnnxName,
     InvalidDimensions,
-} ErrorCode;
+    MajorVersionMismatch,
+    MissingNetwork
+};
+
+enum class WarningCode {
+    MinorVersionMismatch
+};
+
+enum class Severity {
+    Error,
+    Warning,
+    Info
+};
+
+struct Diagnostic {
+    Diagnostic(Severity severity, int code, std::string message, std::string offending_symbol, std::string hint)
+        : severity_(severity), code_(code), message_(std::move(message)), offending_symbol_(std::move(offending_symbol)), hint_(std::move(hint)) {}
+
+    std::string toJson() const;
+    std::string codeToString() const;
+
+private:
+    Severity severity_;
+    int code_;
+    std::string message_;
+    std::string offending_symbol_;
+    std::string hint_;
+};
 
 
 typedef enum {
     OnnxNamesUsed,
     OnnxNamesNotUsed,
     Unknown
-} OnnxNamesUsage;
+} OnnxNamesUsage;   // Status of whether input or output variables in the network are using ONNX names
 
 
-// Stores information about a type checking error
-class TypeCheckError final : public std::runtime_error {
-public:
-    TypeCheckError(ErrorCode code,
-                   std::string message,
-                   std::string offending_symbol = {},
-                   std::string hint = {});
-    
-    static std::string codeToString(ErrorCode code);
-    
-private:
-    ErrorCode   code_;
-    std::string message_, offending_symbol_, hint_;
-
-    static std::string makeJson(ErrorCode code, 
-                                std::string message, 
-                                std::string offending_symbol, 
-                                std::string hint);
-};
-
-
-class TypeChecker;
+class TypeChecker; // Forward declaration
 
 class Context {
 public:
     Context(TypeChecker* typeChecker = nullptr);
-    bool addSymbol(VariableName name, ElementType *type, ListInt shape, SymbolKind kind, std::string onnxName = "");
+    bool addSymbol(VariableName *name, ElementType *type, ListNumber shape, SymbolKind kind, std::string onnxName = "");
     SymbolInfo *getSymbol(const VariableName &name);
     
     DType currentDataType;                                      // Data type of the last scanned variable
-    VariableName lastScannedVariable;                           // Name of the last scanned variable
+    std::string lastScannedVariable;                            // Name of the last scanned variable
     OnnxNamesUsage usesOnnxNames;                               // Whether ONNX names are used in the current input/output definitions
 
 private:
@@ -80,105 +90,122 @@ public:
     TypeChecker();
     ~TypeChecker();
 
-    void visitListInt(ListInt *p);
-    void visitTensorShape(TensorShape *p); /* abstract class */
-    void visitScalarDims(ScalarDims *p);
-    void visitTensorDims(TensorDims *p);
-    void visitArithExpr(ArithExpr *p); /* abstract class */
-    void visitVarExpr(VarExpr *p);
-    void visitDoubleExpr(DoubleExpr *p);
-    void visitSIntExpr(SIntExpr *p);
-    void visitIntExpr(IntExpr *p);
-    void visitNegate(Negate *p);
-    void visitPlus(Plus *p);
-    void visitMinus(Minus *p);
-    void visitMultiply(Multiply *p);
-    void visitListArithExpr(ListArithExpr *p);
-    void visitBoolExpr(BoolExpr *p); /* abstract class */
-    void visitGreaterThan(GreaterThan *p);
-    void visitLessThan(LessThan *p);
-    void visitGreaterEqual(GreaterEqual *p);
-    void visitLessEqual(LessEqual *p);
-    void visitNotEqual(NotEqual *p);
-    void visitEqual(Equal *p);
-    void visitAnd(And *p);
-    void visitOr(Or *p);
-    void visitListBoolExpr(ListBoolExpr *p);
-    void visitAssertion(Assertion *p); /* abstract class */
-    void visitAssert(Assert *p);
-    void visitListAssertion(ListAssertion *p);
-    void visitElementType(ElementType *p); /* abstract class */
-    void visitGenericElementType(GenericElementType *p);
-    void visitElementTypeF16(ElementTypeF16 *p);
-    void visitElementTypeF32(ElementTypeF32 *p);
-    void visitElementTypeF64(ElementTypeF64 *p);
-    void visitElementTypeBF16(ElementTypeBF16 *p);
-    void visitElementTypeF8E4M3FN(ElementTypeF8E4M3FN *p);
-    void visitElementTypeF8E5M2(ElementTypeF8E5M2 *p);
-    void visitElementTypeF8E4M3FNUZ(ElementTypeF8E4M3FNUZ *p);
-    void visitElementTypeF8E5M2FNUZ(ElementTypeF8E5M2FNUZ *p);
-    void visitElementTypeF4E2M1(ElementTypeF4E2M1 *p);
-    void visitElementTypeI8(ElementTypeI8 *p);
-    void visitElementTypeI16(ElementTypeI16 *p);
-    void visitElementTypeI32(ElementTypeI32 *p);
-    void visitElementTypeI64(ElementTypeI64 *p);
-    void visitElementTypeU8(ElementTypeU8 *p);
-    void visitElementTypeU16(ElementTypeU16 *p);
-    void visitElementTypeU32(ElementTypeU32 *p);
-    void visitElementTypeU64(ElementTypeU64 *p);
-    void visitElementTypeC64(ElementTypeC64 *p);
-    void visitElementTypeC128(ElementTypeC128 *p);
-    void visitElementTypeBool(ElementTypeBool *p);
-    void visitElementTypeString(ElementTypeString *p);
-    void visitInputDefinition(InputDefinition *p); /* abstract class */
-    void visitInputDef(InputDef *p);
-    void visitInputOnnxDef(InputOnnxDef *p);
-    void visitHiddenDefinition(HiddenDefinition *p); /* abstract class */
-    void visitHiddenDef(HiddenDef *p);
-    void visitOutputDefinition(OutputDefinition *p); /* abstract class */
-    void visitOutputDef(OutputDef *p);
-    void visitOutputOnnxDef(OutputOnnxDef *p);
-    void visitListInputDefinition(ListInputDefinition *p);
-    void visitListHiddenDefinition(ListHiddenDefinition *p);
-    void visitListOutputDefinition(ListOutputDefinition *p);
-    void visitNetworkDefinition(NetworkDefinition *p); /* abstract class */
-    void visitNetworkDef(NetworkDef *p);
-    void visitListNetworkDefinition(ListNetworkDefinition *p);
-    void visitQuery(Query *p); /* abstract class */
-    void visitVNNLibQuery(VNNLibQuery *p);
+    // --- Visitor methods for concrete nodes ---
 
-    void visitInteger(Integer i);
-    void visitDouble(Double d);
-    void visitChar(Char c);
-    void visitString(String s);
-    void visitIdent(String s);
-    void visitSDouble(String s);
-    void visitSInt(String s);
-    void visitInt(String s);
-    void visitVariableName(String s);
+    void visitScalarDims(ScalarDims *p) override;
+    void visitTensorDims(TensorDims *p) override;
+
+    void visitVarExpr(VarExpr* p) override;
+    void visitValExpr(ValExpr* p) override;
+    void visitNegate(Negate* p) override;
+    void visitPlus(Plus* p) override;
+    void visitMinus(Minus* p) override;
+    void visitMultiply(Multiply* p) override;
+
+    void visitGreaterThan(GreaterThan* p) override;
+    void visitLessThan(LessThan* p) override;
+    void visitGreaterEqual(GreaterEqual* p) override;
+    void visitLessEqual(LessEqual* p) override;
+    void visitNotEqual(NotEqual* p) override;
+    void visitEqual(Equal* p) override;
+    void visitAnd(And* p) override;
+    void visitOr(Or* p) override;
+
+    void visitAssert(Assert* p) override;
+
+    void visitInputDef(InputDef* p) override;
+    void visitInputOnnxDef(InputOnnxDef* p) override;
+    void visitHiddenDef(HiddenDef* p) override;
+    void visitOutputDef(OutputDef* p) override;
+    void visitOutputOnnxDef(OutputOnnxDef* p) override;
+
+    void visitNetworkDef(NetworkDef* p) override;
+    void visitVNNLibVersion(VNNLibVersion *p);
+    void visitVNNLibQuery(VNNLibQuery* p) override;
+
+    // --- Visitor methods for abstract classes ---
+
+    void visitTensorShape(TensorShape *p) override;
+    void visitArithExpr(ArithExpr *p) override;
+    void visitBoolExpr(BoolExpr *p) override;
+    void visitAssertion(Assertion *p) override;
+    void visitElementType(ElementType *p) override;
+    void visitInputDefinition(InputDefinition *p) override;
+    void visitHiddenDefinition(HiddenDefinition *p) override;
+    void visitOutputDefinition(OutputDefinition *p) override;
+    void visitNetworkDefinition(NetworkDefinition *p) override;
+    void visitVersion(Version *p);
+    void visitQuery(Query *p) override;
+
+    // --- Visitor methods for element types ---
+
+    void visitGenericElementType(GenericElementType *p) override;
+    void visitElementTypeF16(ElementTypeF16 *p) override;
+    void visitElementTypeF32(ElementTypeF32 *p) override;
+    void visitElementTypeF64(ElementTypeF64 *p) override;
+    void visitElementTypeBF16(ElementTypeBF16 *p) override;
+    void visitElementTypeF8E4M3FN(ElementTypeF8E4M3FN *p) override;
+    void visitElementTypeF8E5M2(ElementTypeF8E5M2 *p) override;
+    void visitElementTypeF8E4M3FNUZ(ElementTypeF8E4M3FNUZ *p) override;
+    void visitElementTypeF8E5M2FNUZ(ElementTypeF8E5M2FNUZ *p) override;
+    void visitElementTypeF4E2M1(ElementTypeF4E2M1 *p) override;
+    void visitElementTypeI8(ElementTypeI8 *p) override;
+    void visitElementTypeI16(ElementTypeI16 *p) override;
+    void visitElementTypeI32(ElementTypeI32 *p) override;
+    void visitElementTypeI64(ElementTypeI64 *p) override;
+    void visitElementTypeU8(ElementTypeU8 *p) override;
+    void visitElementTypeU16(ElementTypeU16 *p) override;
+    void visitElementTypeU32(ElementTypeU32 *p) override;
+    void visitElementTypeU64(ElementTypeU64 *p) override;
+    void visitElementTypeC64(ElementTypeC64 *p) override;
+    void visitElementTypeC128(ElementTypeC128 *p) override;
+    void visitElementTypeBool(ElementTypeBool *p) override;
+    void visitElementTypeString(ElementTypeString *p) override;
+
+    // --- Visitor methods for list types ---
+
+    void visitListNumber(ListNumber *p) override;
+    void visitListArithExpr(ListArithExpr *p) override;
+    void visitListBoolExpr(ListBoolExpr *p) override;
+    void visitListAssertion(ListAssertion *p) override;
+    void visitListInputDefinition(ListInputDefinition *p) override;
+    void visitListHiddenDefinition(ListHiddenDefinition *p) override;
+    void visitListOutputDefinition(ListOutputDefinition *p) override;
+    void visitListNetworkDefinition(ListNetworkDefinition *p) override;
+
+    // --- Visitor methods for tokens ---
+
+    void visitInteger(Integer x) override;
+    void visitChar(Char x) override;
+    void visitDouble(Double x) override;
+    void visitString(String x) override;
+    void visitIdent(Ident x) override;
+    void visitVariableName(VariableName *x) override;
+    void visitNumber(Number *x) override;
+    void visitVersionToken(VersionToken *x) override;
 
     // Apply scope checking to tensor elements
     void visitTensorElement(VariableName *name, std::vector<int64_t> indices);
 
     // Error collection and reporting methods
-    void addError(ErrorCode code, const std::string& message, 
-                    const std::string& offending_symbol = "", 
-                    const std::string& hint = "");
-    bool hasErrors() const;
-    size_t getErrorCount() const;
+    void addDiagnostic(Severity severity, int code, const std::string& message,
+                       const std::string& offending_symbol = "",
+                       const std::string& hint = "");
+    int getErrorCount() const;
+    int getWarningCount() const;
     std::string getErrorReport() const;
-    void clearErrors();
     
     static DType mapDType(ElementType *e);
     static Shape mapShape(TensorShape *s);
-    static std::vector<int64_t> mapIndices(const ListInt *i);
+    static std::vector<int64_t> mapIndices(const ListNumber *i);
 
 protected:
     Context& getContext() { return *ctx; }
 
 private:
-    Context *ctx = nullptr;
-    std::vector<TypeCheckError> errors;  // Store collected errors
+    std::unique_ptr<Context> ctx;
+    std::vector<Diagnostic> errors;
+    std::vector<Diagnostic> warnings;
 };
 
 #endif

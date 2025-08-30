@@ -38,8 +38,8 @@ int do_check(VNNLibQuery *parse_tree, bool verbose) {
     auto typeChecker = std::make_unique<TypedBuilder>();
     
     auto tquery = typeChecker->build(parse_tree);
-    
-    if (typeChecker->hasErrors()) {
+
+    if (typeChecker->getErrorCount() > 0) {
         std::string report = typeChecker->getErrorReport();
         std::cout << report << std::endl;
         return EXIT_FAILURE;

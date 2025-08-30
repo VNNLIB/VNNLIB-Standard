@@ -8,6 +8,7 @@ def test_float_variable_with_int_constant():
     Tests that an expression with a Real variable to an integer constant raises a TypeMismatch error.
     """
     invalid_content = """
+    (vnnlib-version <2.0>)
     (declare-network acc
         (declare-input X float16 [1])
         (declare-output Y float16 [1])
@@ -16,6 +17,8 @@ def test_float_variable_with_int_constant():
     """
     with pytest.raises(vnnlib.VNNLibException) as exc_info:
         vnnlib.parse_vnnlib_str(invalid_content)
+
+    print(exc_info.value)
 
     json_error = json.loads(str(exc_info.value))
     assert len(json_error["errors"]) == 1
@@ -28,6 +31,7 @@ def test_int_variable_with_float_constant():
     Tests that an expression with an int32 variable to a float constant raises a TypeMismatch error.
     """
     invalid_content = """
+    (vnnlib-version <2.0>)
     (declare-network acc
         (declare-input X int32 [1])
         (declare-output Y int32 [1])
@@ -48,6 +52,7 @@ def test_uint_variable_with_negative_constant():
     Tests that an expression with an unsigned integer variable to a negative constant raises a TypeMismatch error.
     """
     invalid_content = """
+    (vnnlib-version <2.0>)
     (declare-network acc
         (declare-input X uint32 [1])
         (declare-output Y uint32 [1])
@@ -68,6 +73,7 @@ def test_mixed_variable_types():
     Tests that an expression with variables of different types (float16 and int32) raises a TypeMismatch error.
     """
     invalid_content = """
+    (vnnlib-version <2.0>)
     (declare-network acc
         (declare-input X float16 [1])
         (declare-hidden Z int32 [1] "z_in")
@@ -89,6 +95,7 @@ def test_mixed_variable_precision():
     Tests that an expression with variables of different precisions (float16 and float32) raises a TypeMismatch error.
     """
     invalid_content = """
+    (vnnlib-version <2.0>)
     (declare-network acc
         (declare-input X float16 [1])
         (declare-hidden Z float32 [1] "z_in")
@@ -110,6 +117,7 @@ def test_mixed_constant_types():
     Tests that an expression with a float constant and an int constant raises a TypeMismatch error.
     """
     invalid_content = """
+    (vnnlib-version <2.0>)
     (declare-network acc
         (declare-input X int8 [1])
         (declare-output Y int8 [1])
@@ -130,6 +138,7 @@ def test_multiple_operand_mismatches():
     Tests that all operand mismatches are reported when multiple mismatches occur in a single operation.
     """
     invalid_content = """
+    (vnnlib-version <2.0>)
     (declare-network acc
         (declare-input X int8 [1])
         (declare-input Z int16 [1])
@@ -155,6 +164,7 @@ def test_multiple_assertions_mismatches():
     Tests that each assertion with mismatched types is reported separately.
     """
     invalid_content = """
+    (vnnlib-version <2.0>)
     (declare-network acc
         (declare-input X int8 [1])
         (declare-input Z int16 [1])
@@ -186,6 +196,7 @@ def test_mismatches_in_connective():
     are ignored - each expression is checked independently.
     """
     invalid_content = """
+    (vnnlib-version <2.0>)
     (declare-network acc
         (declare-input X int8 [1])
         (declare-input Z int16 [1])
@@ -194,3 +205,18 @@ def test_mismatches_in_connective():
     (assert (and (<= 0 X[0]) (<= 0 Z[0]) (<= 0 Y[0])))
     """
     vnnlib.parse_vnnlib_str(invalid_content) # No error expected here
+
+
+if __name__ == "__main__":
+    invalid_content = """
+    (vnnlib-version <2.0>)
+    (declare-network acc
+        (declare-input X float16 [1])
+        (declare-output Y int16 [1])
+    )
+    (assert (<= Y[0] 5))
+    """
+    try:
+        vnnlib.parse_vnnlib_str(invalid_content)
+    except vnnlib.VNNLibException as exc_info:
+        print(exc_info.value)

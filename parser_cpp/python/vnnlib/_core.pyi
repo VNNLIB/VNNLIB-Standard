@@ -76,17 +76,17 @@ class VarExpr(ArithExpr):
     @property
     def network_name(self) -> str: ...
 
-class DoubleExpr(ArithExpr):
-    @property
-    def value(self) -> float: ...
+class Literal(ArithExpr):
     @property
     def lexeme(self) -> str: ...
 
-class SIntExpr(ArithExpr):
+class Float(ArithExpr):
+    @property
+    def value(self) -> float: ...
+
+class Int(ArithExpr):
     @property
     def value(self) -> int: ...
-    @property
-    def lexeme(self) -> str: ...
 
 class IntExpr(ArithExpr):
     @property
@@ -202,7 +202,7 @@ class Output(Node):
     def onnx_name(self) -> Optional[str]: ...
 
 
-# --- Network / Query ---------------------------------------------------------
+# --- Network ---------------------------------------------------------
 
 class Network(Node):
     @property
@@ -213,6 +213,16 @@ class Network(Node):
     def hidden(self) -> List[Hidden]: ...
     @property
     def outputs(self) -> List[Output]: ...
+
+
+# --- Version -----------------------------------------------------------
+
+class Version(Node):
+    @property
+    def major(self) -> int: ...
+    @property
+    def minor(self) -> int: ...
+
 
 class Query(Node):
     @property
