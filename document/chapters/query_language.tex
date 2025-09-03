@@ -211,8 +211,7 @@ A \vnnlib{} query is said to be \textit{well-typed}, if it satisfies the followi
 \subsubsection*{Typing Rules}
 
 The typing rules of a vnnlib{} query are separated into two sections for the Declarations (Figure~\ref{fig:vnnlib_typing_rules}) and Assertions (Figure ?) respectively. \\
-Declarations are used to construct the context $\Gamma$, which contains network Bindings i.e. each network Binding is an abstract representation of a network function, which is a pair of the list of inputs and outputs. \\
-Assertions use the constructed (static) context, and each of the variable references ? fetch the variables type for a given context i.e. $\Sigma $. For a \texttt{constant}, $\tau$ returns the ONNX element type $e$.
+Declarations are used to construct the static context $\Gamma$ which is used to type the variables and literals used in the Assertions of a query.
 
 
 \begin{figure}
@@ -221,15 +220,41 @@ Assertions use the constructed (static) context, and each of the variable refere
         \centering
         \resizebox{\textwidth}{!}{
             \begin{tabular}{@{}lcl@{}}
-            $\langle$elementType$\rangle$ & $\ni$ & $e ::= \text{the set of all ONNX element types}$ \\
-            $\langle$tensorShape$\rangle$ & $\ni$ & $t ::= [i_0, ..., i_n] \quad i \in \mathbb{N}$ \\
-            $\langle$variableName$\rangle$ & $\ni$ & $v ::= \text{the set of non-empty strings}$ \\
-            $\langle$nodeDeclaration$\rangle$ & $\ni$ & $d ::= \texttt{declareInput}\ v\ e\ t\ |\ \texttt{declareHidden}\ v\ e\ t\ |\ \texttt{declareOutput}\ v\ e\ t$ \\
-            $\langle$networkDeclaration$\rangle$ & $\ni$ & $D ::= \texttt{declareNetwork}\ v$ \\ \\
-            $\langle$arithExpr (e)$\rangle$ & $\ni$ & $a ::= \texttt{constant} \;|\; \texttt{negate} \;|\; \texttt{varInput} \;|\; \texttt{varOutput} \;|\; \texttt{add} \;|\; \texttt{minus} \;|\; \texttt{mult}$ \\
-            $\langle$compExpr (e)$\rangle$  & $\ni$ & $c ::= \ > \;|\; < \;|\; \geq \;|\; \leq \;|\; == \;|\; !=$ \\
-            $\langle$connExpr$\rangle$  & $\ni$ & $b ::= \texttt{literal} \;|\; \texttt{and} \;|\; \texttt{or}$ \\
-            $\langle$assertion$\rangle$ & $\ni$ & $A ::= \texttt{assert}~b \;\vert\; \texttt{assert}~c$ \\
+            $\langle$ElementType$\rangle$ & $\ni$ & $e ::= \text{the set of all ONNX element types}$ \\
+            $\langle$TensorShape$\rangle$ & $\ni$ & $t ::= [i_0, ..., i_n] \quad i \in \mathbb{N}$ \\
+            $\langle$VariableName$\rangle$ & $\ni$ & $v ::= \texttt{\textasciicircum[A-Za-z][A-Za-z0-9\_]*\$} \quad \text{(regex)}$ \\
+            $\langle$InputDeclaration$\rangle$ & $\ni$ & $I::= \texttt{declareInput}~v~e~t$ \\
+            $\langle$HiddenDeclaration$\rangle$ & $\ni$ & $H ::= \texttt{declareHidden}~v~e~t$ \\
+            $\langle$OutputDeclaration$\rangle$ & $\ni$ & $O ::= \texttt{declareOutput}~v~e~t$ \\
+            $\langle$NetworkDeclaration$\rangle$ & $\ni$ & $D ::= \texttt{declareNetwork}~v \quad [I_0,...,I_n]^+ ~[H_0,...,H_n] ~[O_0,...,O_n]^+ $ \\ \\
+            $\langle$Double$\rangle$ & $\ni$ & $d ::= \mathbb{Q}$ \\
+            $\langle$TensorIndex$\rangle$ & $\ni$ & $i ::= [i_0, ..., i_n]^+ \quad i \in \mathbb{N}$ \\
+            $\langle$ArithExpr$\rangle$ & $\ni$ & 
+                \begin{tabular}[t]{@{}l@{}}
+                $a ::= d$ \\
+                $\quad\;|\; v~i$ \\
+                $\quad\;|\; \texttt{-}~a$ \\
+                $\quad\;|\; \texttt{+}~a_0~...~a_n$ \\
+                $\quad\;|\;\texttt{×}~a_0~...~a_n$ \\
+                $\quad\;|\;\texttt{-}~a_0...~a_n$ \\
+                \end{tabular} \\
+            $\langle$CompExpr$\rangle$ & $\ni$ & 
+                \begin{tabular}[t]{@{}l@{}}
+                $c ::= \texttt{>=}~a_1~a_2$ \\
+                $\quad\;|\; \texttt{>}~a_1~a_2$ \\
+                $\quad\;|\; \texttt{<=}~a_1~a_2$ \\
+                $\quad\;|\; \texttt{<}~a_1~a_2$ \\
+                $\quad\;|\; \texttt{==}~a_1~a_2$ \\
+                $\quad\;|\; \texttt{!=}~a_1~a_2$
+                \end{tabular} \\
+            $\langle$BoolExpr$\rangle$ & $\ni$ & 
+                \begin{tabular}[t]{@{}l@{}}
+                $b ::= c$ \\
+                $\quad\;|\; \texttt{and}~c_0~...~c_n$ \\
+                $\quad\;|\; \texttt{or}~c_0~...~c_n$
+                \end{tabular} \\
+            $\langle$Assertion$\rangle$ & $\ni$ & $A ::= \texttt{assert}~b $ \\ \\
+            $\langle$Query$\rangle$ & $\ni$ & $Q ::= [D_0,...,D_n] ~[A_0,...,A_n]^+$ \\
             \end{tabular}
         }
     \caption{Typing syntax}
