@@ -257,80 +257,19 @@ Declarations are used to construct the static context $\Gamma$ which is used to 
             $\langle$Query$\rangle$ & $\ni$ & $Q ::= D^*~A^+$ \\
             \end{tabular}
         }
-    \caption{Typing syntax}
+    \caption{\vnnlib{} format typing syntax}
     \end{minipage}
 
-    \vspace{1cm}
-
     \begin{minipage}[t]{0.9\textwidth}
-        \scalebox{0.8}{
         \begin{mathpar}
-            \inferrule*[Right=Network Declaration]{
-            }{
-                \texttt{declareNetwork} \ \_ : (\text{List}\ (\texttt{declareInput} \ \_ \ \_ \ \_ ) \ , \ \text{List} \ (\texttt{declareOutput} \ \_ \ \_ \ \_ ))
-            }
-
             \inferrule*[Right=Constructed Context]{
-                d_{head} \mathrel{\mathop::} \texttt{declareNetwork} \ \_  \\ d_{tail} \mathrel{\mathop::} \Gamma
+                d_{head} \mathrel{\mathop::} \text{$\langle$NetworkDeclaration$\rangle$} \quad d_{tail} \mathrel{\mathop::} \Gamma
             }{
                 d_{head} \mathrel{\mathop::} d_{tail} \quad : \quad d_{head} \mathrel{\mathop::} \Gamma
             }
         \end{mathpar}
-        }
-    \caption{Declarations typing rules}
+    \caption{Typing judgements}
     \end{minipage}
-
-    \vspace{1cm}
-
-    \begin{minipage}[t]{0.9\textwidth}
-        \scalebox{0.8}{
-        \begin{mathpar}
-
-            \inferrule*[Right=constant]{
-                % i \in the set of assignable values to ONNX literals
-            }{
-                \Gamma, \Sigma \Vdash r : \texttt{constant} (\tau \ i) 
-            }
-
-            \hfill
-
-            \inferrule*[Right=Input]{
-                i \in \mathbb{N} \;|\; r \in \mathbb{R}
-            }{
-                \Gamma, \Sigma \Vdash i : \text{Arith} \ o
-            }
-
-            \hfill
-
-            \inferrule*[Right=Variables]{
-                i \in \mathbb{N} \;|\; r \in \mathbb{R}
-            }{
-                \Gamma, \Sigma \Vdash i : \text{Arith} \ o
-            }
-
-            \hfill
-
-            \inferrule*[Right=n-ary Arithmetic Expressions]{
-            }{
-            \Gamma, \Sigma \Vdash \times,\; +,\; - : \text{List}\; n \ \text{Arith} \ o \rightarrow \text{Arith} \ o
-            }
-
-            \inferrule*[Right=Comparative Operations]{
-                % TODO: add type checking for comparative & arithmetic operations
-            }{
-            \Gamma, \Sigma \Vdash \triangle : \text{Arith} \ o \rightarrow \text{Arith} \ o \rightarrow \text{Bool}
-            }
-
-            \inferrule*[Right=Connective Operations]{
-            }{
-            \Gamma, \Sigma \Vdash \lor,\; \land : \text{List} \ n \ \text{Bool} \rightarrow \text{Bool}
-            }
-        \end{mathpar}
-        }
-    \caption{Assertions typing rules}
-    \end{minipage}
-    \caption{\vnnlib{} typing syntax and rules}
-    \label{fig:vnnlib_typing_rules}
 \end{figure}
 
 \section{Semantics}
