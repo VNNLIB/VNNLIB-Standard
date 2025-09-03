@@ -226,35 +226,35 @@ Declarations are used to construct the static context $\Gamma$ which is used to 
             $\langle$InputDeclaration$\rangle$ & $\ni$ & $I::= \texttt{declareInput}~v~e~t$ \\
             $\langle$HiddenDeclaration$\rangle$ & $\ni$ & $H ::= \texttt{declareHidden}~v~e~t$ \\
             $\langle$OutputDeclaration$\rangle$ & $\ni$ & $O ::= \texttt{declareOutput}~v~e~t$ \\
-            $\langle$NetworkDeclaration$\rangle$ & $\ni$ & $D ::= \texttt{declareNetwork}~v \quad [I_0,...,I_n]^+ ~[H_0,...,H_n] ~[O_0,...,O_n]^+ $ \\ \\
+            $\langle$NetworkDeclaration$\rangle$ & $\ni$ & $D ::= \texttt{declareNetwork}~v~I^+~H^*~O^+ $ \\ \\
             $\langle$Double$\rangle$ & $\ni$ & $d ::= \mathbb{Q}$ \\
-            $\langle$TensorIndex$\rangle$ & $\ni$ & $i ::= [i_0, ..., i_n]^+ \quad i \in \mathbb{N}$ \\
+            $\langle$TensorIndex$\rangle$ & $\ni$ & $j ::= [i_0,...,i_n]^+ \quad i \in \mathbb{N}$ \\
             $\langle$ArithExpr$\rangle$ & $\ni$ & 
                 \begin{tabular}[t]{@{}l@{}}
                 $a ::= d$ \\
-                $\quad\;|\; v~i$ \\
+                $\quad\;|\; v~j$ \\
                 $\quad\;|\; \texttt{-}~a$ \\
-                $\quad\;|\; \texttt{+}~a_0~...~a_n$ \\
-                $\quad\;|\;\texttt{×}~a_0~...~a_n$ \\
-                $\quad\;|\;\texttt{-}~a_0...~a_n$ \\
+                $\quad\;|\; \texttt{+}~a^*$ \\
+                $\quad\;|\;\texttt{×}~a^*$ \\
+                $\quad\;|\;\texttt{-}~a^*$ \\
                 \end{tabular} \\
             $\langle$CompExpr$\rangle$ & $\ni$ & 
                 \begin{tabular}[t]{@{}l@{}}
                 $c ::= \texttt{>=}~a_1~a_2$ \\
-                $\quad\;|\; \texttt{>}~a_1~a_2$ \\
+                $\quad\;|\; \texttt{>}~~a_1~a_2$ \\
                 $\quad\;|\; \texttt{<=}~a_1~a_2$ \\
-                $\quad\;|\; \texttt{<}~a_1~a_2$ \\
+                $\quad\;|\; \texttt{<}~~a_1~a_2$ \\
                 $\quad\;|\; \texttt{==}~a_1~a_2$ \\
                 $\quad\;|\; \texttt{!=}~a_1~a_2$
                 \end{tabular} \\
             $\langle$BoolExpr$\rangle$ & $\ni$ & 
                 \begin{tabular}[t]{@{}l@{}}
                 $b ::= c$ \\
-                $\quad\;|\; \texttt{and}~c_0~...~c_n$ \\
-                $\quad\;|\; \texttt{or}~c_0~...~c_n$
+                $\quad\;|\; \texttt{and}~c^*$ \\
+                $\quad\;|\; \texttt{or}~c^*$
                 \end{tabular} \\
             $\langle$Assertion$\rangle$ & $\ni$ & $A ::= \texttt{assert}~b $ \\ \\
-            $\langle$Query$\rangle$ & $\ni$ & $Q ::= [D_0,...,D_n] ~[A_0,...,A_n]^+$ \\
+            $\langle$Query$\rangle$ & $\ni$ & $Q ::= D^*~A^+$ \\
             \end{tabular}
         }
     \caption{Typing syntax}
