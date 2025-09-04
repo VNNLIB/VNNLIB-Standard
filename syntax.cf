@@ -2,7 +2,7 @@
 
 -- Defines the version number of VNNLIB. 
 -- The '<' and '>' characters are used so it doesn't clash with the Number token
-position token VersionToken '<' digit '.' digit '>' ;
+position token VersionToken '<' digit+ '.' digit+ '>' ;
 -- Defines a numeric literal
 position token Number '-'? digit+ ('.' digit+)? ;
 -- The regular expression for allowed Variable names - tensors, or networks
