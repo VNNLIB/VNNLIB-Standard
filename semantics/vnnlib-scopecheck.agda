@@ -18,6 +18,7 @@ open import Relation.Nullary
 open import Function
 open import Syntax.AST as 𝐁 hiding (String)
 open import vnnlib-syntax as 𝐕
+open import vnnlib-types as 𝐄
 open import syntax-utils
 open import types-utils
 open import check
@@ -37,7 +38,7 @@ module _ (Σ : CheckContext) where
   Γ : Context
   Γ = convertΣtoΓ Σ
   
-  checkExpressionₐᵣᵢₜₕ : 𝐁.ArithExpr → Result (𝐕.ArithExpr Γ)
+  checkExpressionₐᵣᵢₜₕ : 𝐁.ArithExpr → Result (𝐕.ArithExpr Γ {!!})
   checkExpressionₐᵣᵢₜₕ (varExpr x xs) with variableNetworkIndex x Σ
   ... | error _ = error ""
   ... | success n with variableIndexInNetworkᵢₙₚᵤₜ (proj₁ (List.lookup Σ n)) x
@@ -71,16 +72,26 @@ module _ (Σ : CheckContext) where
   checkExpressionₐᵣᵢₜₕ (intExpr x) = {!!}
 
   -- check boolean expressions
-  checkComparativeExpression : (𝐕.ArithExpr Γ → 𝐕.ArithExpr Γ → 𝐕.BoolExpr Γ) → 𝐁.ArithExpr → 𝐁.ArithExpr → Result(𝐕.BoolExpr Γ)
+  checkComparativeExpression : {τ : 𝐄.ElementType} → (𝐕.ArithExpr Γ τ → 𝐕.ArithExpr Γ τ → 𝐕.BoolExpr Γ) → 𝐁.ArithExpr → 𝐁.ArithExpr → Result(𝐕.BoolExpr Γ)
   checkComparativeExpression f b₁ b₂ with checkExpressionₐᵣᵢₜₕ b₁
   ... | error _ = error ""
   ... | success b₁ with checkExpressionₐᵣᵢₜₕ b₂
   ... | error _ = error ""
-  ... | success b₂ = success (f b₁ b₂)
+  ... | success b₂ = success (f {!!} {!!}) --  b₁ b₂)
+
+  checkCompExpr : {!𝐁.CompExpr ? ?!} → Result (𝐕.CompExpr Γ {!!})
+  checkCompExpr a = {!!}
+
+--  checkExpressionᵇᵒᵒˡ (greaterThan a₁ a₂) = checkComparativeExpression greaterThan a₁ a₂
+--  checkExpressionᵇᵒᵒˡ (lessThan a₁ a₂) = checkComparativeExpression lessThan a₁ a₂
+--  checkExpressionᵇᵒᵒˡ (greaterEqual a₁ a₂) = checkComparativeExpression greaterEqual a₁ a₂
+--  checkExpressionᵇᵒᵒˡ (lessEqual a₁ a₂) = checkComparativeExpression lessEqual a₁ a₂
+--  checkExpressionᵇᵒᵒˡ (notEqual a₁ a₂) = checkComparativeExpression notEqual a₁ a₂
+--  checkExpressionᵇᵒᵒˡ (equal a₁ a₂) = checkComparativeExpression equal a₁ a₂
   
-  checkExpressionᵇᵒᵒˡ : 𝐁.BoolExpr → Result (𝐕.BoolExpr Γ)
-  checkExpressionᵇᵒᵒˡ (BoolExpr.and bs) = {!!}
-  checkExpressionᵇᵒᵒˡ (BoolExpr.or bs) = {!!}
+  checkBoolExpr : 𝐁.BoolExpr → Result (𝐕.BoolExpr Γ)
+  checkBoolExpr (BoolExpr.and bs) = {!!}
+  checkBoolExpr (BoolExpr.or bs) = {!!}
   -- checkExpressionᵇᵒᵒˡ (BoolExpr.and []) = success (literal true)
   -- checkExpressionᵇᵒᵒˡ (BoolExpr.and (x ∷ bs)) with checkExpressionᵇᵒᵒˡ x
   -- ... | error = error
@@ -94,21 +105,15 @@ module _ (Σ : CheckContext) where
   --     connectives v (success x) c with checkExpressionᵇᵒᵒˡ c
   --     ... | error = error
   --     ... | success c = success (v (c ∷ List.[ x ]))    
-  checkExpressionᵇᵒᵒˡ (greaterThan a₁ a₂) = checkComparativeExpression greaterThan a₁ a₂
-  checkExpressionᵇᵒᵒˡ (lessThan a₁ a₂) = checkComparativeExpression lessThan a₁ a₂
-  checkExpressionᵇᵒᵒˡ (greaterEqual a₁ a₂) = checkComparativeExpression greaterEqual a₁ a₂
-  checkExpressionᵇᵒᵒˡ (lessEqual a₁ a₂) = checkComparativeExpression lessEqual a₁ a₂
-  checkExpressionᵇᵒᵒˡ (notEqual a₁ a₂) = checkComparativeExpression notEqual a₁ a₂
-  checkExpressionᵇᵒᵒˡ (equal a₁ a₂) = checkComparativeExpression equal a₁ a₂
 
-scopeCheckAssertions : (Σ : CheckContext) → List⁺ 𝐁.Assertion → Result (List (𝐕.Property (convertΣtoΓ Σ)))
+scopeCheckAssertions : (Σ : CheckContext) → List⁺ 𝐁.Assertion → Result (List (𝐕.Assertion (convertΣtoΓ Σ)))
 scopeCheckAssertions Σ asserts = List⁺.foldl checkAssertₙ checkAssert asserts
   where
-    checkAssert : 𝐁.Assertion → Result (List (𝐕.Property (convertΣtoΓ Σ)))
-    checkAssert (assert b) with checkExpressionᵇᵒᵒˡ Σ b
+    checkAssert : 𝐁.Assertion → Result (List (𝐕.Assertion (convertΣtoΓ Σ)))
+    checkAssert (assert b) with checkBoolExpr Σ b
     ... | error _ = error ""
     ... | success x = success (List.[ assert x ])
-    checkAssertₙ : Result (List (𝐕.Property (convertΣtoΓ Σ))) → 𝐁.Assertion → Result (List (𝐕.Property (convertΣtoΓ Σ)))
+    checkAssertₙ : Result (List (𝐕.Assertion (convertΣtoΓ Σ))) → 𝐁.Assertion → Result (List (𝐕.Assertion (convertΣtoΓ Σ)))
     checkAssertₙ (error _) _ = error ""
     checkAssertₙ (success props) a with checkAssert a
     ... | error _ = error ""
