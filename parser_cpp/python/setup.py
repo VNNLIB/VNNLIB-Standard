@@ -15,6 +15,7 @@ ext_modules = [
             "../cpp/src/TypeChecker.cpp",
             "../cpp/src/TypedAbsyn.cpp",
             "../cpp/src/TypedBuilder.cpp",
+            "../cpp/src/LinearArithExpr.cpp",
         ] + glob.glob("../cpp/src/generated/*.C"),
         include_dirs=[
             pybind11.get_include(),

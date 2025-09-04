@@ -9,6 +9,7 @@
 #include "TypeChecker.h"     
 #include "TypedAbsyn.h"     
 #include "TypedBuilder.h"
+#include "LinearArithExpr.h"
 
 namespace py = pybind11;
 
@@ -53,9 +54,22 @@ PYBIND11_MODULE(_core, m) {
 			return out;
 		});
 
+	// --- LinearArithExpr ---
+	py::class_<LinearAlgebra::LinearArithExpr::Term>(m, "Term")
+		.def_property_readonly("coeff",    [](const LinearAlgebra::LinearArithExpr::Term& t){ return t.coeff; })
+		.def_property_readonly("var_name", [](const LinearAlgebra::LinearArithExpr::Term& t){ return t.varName; });
+
+	py::class_<LinearAlgebra::LinearArithExpr>(m, "LinearArithExpr")
+		.def_property_readonly("terms", [](const LinearAlgebra::LinearArithExpr& e){ return e.getTerms(); })
+		.def_property_readonly("constant", [](const LinearAlgebra::LinearArithExpr& e){ return e.getConstant(); });
+
 	// --- Arithmetic Operations --- 
 	py::class_<TArithExpr, TNode>(m, "ArithExpr")
-		.def_property_readonly("dtype", [](const TArithExpr& e){ return e.dtype; });
+		.def_property_readonly("dtype", [](const TArithExpr& e){ return e.dtype; })
+		.def("linearize", [](const TArithExpr& e){
+			auto lin_expr = LinearAlgebra::linearize(&e);
+			return py::cast(lin_expr.release(), py::return_value_policy::take_ownership);
+		});
 
 	py::class_<TVarExpr, TArithExpr>(m, "Var")
 		.def_property_readonly("name",      [](const TVarExpr& v){ return v.symbol ? v.symbol->name : std::string{}; })
@@ -79,6 +93,9 @@ PYBIND11_MODULE(_core, m) {
 
 	py::class_<TInt, TLiteral>(m, "Int")
 		.def_property_readonly("value", [](const TInt& n){ return n.value; });
+
+	py::class_<TNegate, TArithExpr>(m, "Negate")
+		.def_property_readonly("expr", [](const TNegate& n){ return n.expr.get(); }, py::return_value_policy::reference_internal);
 
 	py::class_<TPlus, TArithExpr>(m, "Plus")
 	.def_property_readonly("args", [](const TPlus& n){
