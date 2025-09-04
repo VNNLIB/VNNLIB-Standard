@@ -210,8 +210,8 @@ A \vnnlib{} query is said to be \textit{well-typed}, if it satisfies the followi
 
 \subsubsection*{Typing Rules}
 
-The typing rules of a vnnlib{} query are separated into two sections for the Declarations (Figure~\ref{fig:vnnlib_typing_rules}) and Assertions (Figure ?) respectively. \\
-Declarations are used to construct the static context $\Gamma$ which is used to type the variables and literals used in the Assertions of a query.
+The typing syntax and judgements of a vnnlib{} query is given in  Figure ?. \\
+In a \vnnlib{} query, Network Declarations are used to construct the static context ($\Gamma$) which is used to type the variables and literals used in the Assertions of a query.
 
 
 \begin{figure}
@@ -220,23 +220,23 @@ Declarations are used to construct the static context $\Gamma$ which is used to 
         \centering
         \resizebox{\textwidth}{!}{
             \begin{tabular}{@{}lcl@{}}
-            $\langle$ElementType$\rangle$ & $\ni$ & $e ::= \text{the set of all ONNX element types}$ \\
-            $\langle$TensorShape$\rangle$ & $\ni$ & $t ::= [i_0, ..., i_n] \quad i \in \mathbb{N}$ \\
+            $\langle$ElementType$\rangle$ & $\ni$ & $\tau ::= \text{the set of all ONNX element types}$ \\
+            $\langle$TensorShape$\rangle$ & $\ni$ & $s ::= [i_0, ..., i_n] \quad i \in \mathbb{N}$ \\
             $\langle$VariableName$\rangle$ & $\ni$ & $v ::= \texttt{\textasciicircum[A-Za-z][A-Za-z0-9\_]*\$} \quad \text{(regex)}$ \\
-            $\langle$InputDeclaration$\rangle$ & $\ni$ & $I::= \texttt{declareInput}~v~e~t$ \\
-            $\langle$HiddenDeclaration$\rangle$ & $\ni$ & $H ::= \texttt{declareHidden}~v~e~t$ \\
-            $\langle$OutputDeclaration$\rangle$ & $\ni$ & $O ::= \texttt{declareOutput}~v~e~t$ \\
-            $\langle$NetworkDeclaration$\rangle$ & $\ni$ & $D ::= \texttt{declareNetwork}~v~I^+~H^*~O^+ $ \\ \\
-            $\langle$Double$\rangle$ & $\ni$ & $d ::= \mathbb{Q}$ \\
+            $\langle$InputDeclaration$\rangle$ & $\ni$ & $I::= \texttt{declareInput}~v~\tau~s$ \\
+            $\langle$HiddenDeclaration$\rangle$ & $\ni$ & $H ::= \texttt{declareHidden}~v~\tau~s$ \\
+            $\langle$OutputDeclaration$\rangle$ & $\ni$ & $O ::= \texttt{declareOutput}~v~\tau~s$ \\
+            $\langle$NetworkDeclaration$\rangle$ & $\ni$ & $D ::= \texttt{declareNetwork}~v~(I_0~...~I_n)^+~(H_0~...~H_n)^*~(O_0~...~O_n)^+ $ \\ \\
+            $\langle$Double$\rangle$ & $\ni$ & $d ::= \mathbf{Double}$ \\
             $\langle$TensorIndex$\rangle$ & $\ni$ & $j ::= [i_0,...,i_n]^+ \quad i \in \mathbb{N}$ \\
             $\langle$ArithExpr$\rangle$ & $\ni$ & 
                 \begin{tabular}[t]{@{}l@{}}
                 $a ::= d$ \\
                 $\quad\;|\; v~j$ \\
                 $\quad\;|\; \texttt{-}~a$ \\
-                $\quad\;|\; \texttt{+}~a^*$ \\
-                $\quad\;|\;\texttt{×}~a^*$ \\
-                $\quad\;|\;\texttt{-}~a^*$ \\
+                $\quad\;|\; \texttt{+}~a_0~...~a_n$ \\
+                $\quad\;|\;\texttt{×}~a_0~...~a_n$ \\
+                $\quad\;|\;\texttt{-}~a_0~...~a_n$ \\
                 \end{tabular} \\
             $\langle$CompExpr$\rangle$ & $\ni$ & 
                 \begin{tabular}[t]{@{}l@{}}
@@ -250,11 +250,11 @@ Declarations are used to construct the static context $\Gamma$ which is used to 
             $\langle$BoolExpr$\rangle$ & $\ni$ & 
                 \begin{tabular}[t]{@{}l@{}}
                 $b ::= c$ \\
-                $\quad\;|\; \texttt{and}~c^*$ \\
-                $\quad\;|\; \texttt{or}~c^*$
+                $\quad\;|\; \texttt{and}~b_0~...~b_n$ \\
+                $\quad\;|\; \texttt{or}~b_0~...~b_n$
                 \end{tabular} \\
             $\langle$Assertion$\rangle$ & $\ni$ & $A ::= \texttt{assert}~b $ \\ \\
-            $\langle$Query$\rangle$ & $\ni$ & $Q ::= D^*~A^+$ \\
+            $\langle$Query$\rangle$ & $\ni$ & $Q ::= (D_0~...~D_n)~(A_0~...~A_n)^+$ \\
             \end{tabular}
         }
     \caption{\vnnlib{} format typing syntax}
@@ -266,6 +266,24 @@ Declarations are used to construct the static context $\Gamma$ which is used to 
                 d_{head} \mathrel{\mathop::} \text{$\langle$NetworkDeclaration$\rangle$} \quad d_{tail} \mathrel{\mathop::} \Gamma
             }{
                 d_{head} \mathrel{\mathop::} d_{tail} \quad : \quad d_{head} \mathrel{\mathop::} \Gamma
+            }
+            \\
+            \inferrule*[Right=ArithExpr]{
+                \Gamma \Vdash a_0 : \tau \quad ... \quad \Gamma \Vdash a_n : \tau
+            }{
+                \Gamma \Vdash (\circledast~a_0~...~a_n) : \tau \quad \circledast \in \{\texttt{+}, \texttt{-}, \texttt{×}\}
+            }
+            \\
+            \inferrule*[Right=CompExpr]{
+                \Gamma \Vdash a_1 : \tau \quad \Gamma \Vdash a_2 : \tau
+            }{
+                \Gamma \Vdash (\lozenge~a_1~a_2) : \mathbf{Bool} \quad \lozenge \in \{\texttt{>=}, \texttt{>}, \texttt{<}, \texttt{<=}, \texttt{==}, \texttt{!=}\}
+            }
+            \\
+            \inferrule*[Right=BoolExpr]{
+                \Gamma \Vdash b_0 :  \mathbf{Bool} \quad ... \quad \Gamma \Vdash b_n : \mathbf{Bool}
+            }{
+                \Gamma \Vdash (\Box~b_0~...~b_n) : \mathbf{Bool} \quad \Box \in \{\texttt{and}, \texttt{or}\}
             }
         \end{mathpar}
     \caption{Typing judgements}
