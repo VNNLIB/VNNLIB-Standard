@@ -41,9 +41,10 @@ bool isConstant(DType dt) {
     return dt == DType::FloatConstant || dt == DType::NegativeIntConstant || dt == DType::PositiveIntConstant;
 }
 
-bool sameFamily(DType varDt, DType constDt) {
-    if (isConstant(constDt)) {
-        switch (varDt) {
+// Returns true if the data type of the expression is in the same family as a constant data type
+bool sameFamily(DType exprType, DType constType) {
+    if (isConstant(constType)) {
+        switch (exprType) {
             case DType::Real:
             case DType::F16:
             case DType::F32:
@@ -54,17 +55,22 @@ bool sameFamily(DType varDt, DType constDt) {
             case DType::F8E4M3FNUZ:
             case DType::F8E5M2FNUZ:
             case DType::F4E2M1:
-                return constDt == DType::FloatConstant;
+              return constType == DType::FloatConstant;
             case DType::I8:
             case DType::I16:
             case DType::I32:
             case DType::I64:
-                return constDt == DType::NegativeIntConstant || constDt == DType::PositiveIntConstant;
+              return constType == DType::NegativeIntConstant || constType == DType::PositiveIntConstant;
             case DType::U8:
             case DType::U16:
             case DType::U32:
             case DType::U64:
-                return constDt == DType::PositiveIntConstant;
+              return constType == DType::PositiveIntConstant;
+            case DType::FloatConstant:
+              return constType == DType::FloatConstant;
+            case DType::NegativeIntConstant:
+            case DType::PositiveIntConstant:
+              return constType == DType::NegativeIntConstant || constType == DType::PositiveIntConstant;
             default:
                 return false;
         }
