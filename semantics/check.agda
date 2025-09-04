@@ -63,7 +63,7 @@ CheckContextPair : Set
 CheckContextPair = NetworkBinding × 𝐕.NetworkDefinition
 
 CheckContext : Set
-CheckContext = List⁺ (CheckContextPair)
+CheckContext = List (CheckContextPair)
 
 convertNetworkBindingToDef : 𝐕.VariableName → NetworkBinding → 𝐕.NetworkDefinition
 convertNetworkBindingToDef networkName (networkBinding inputs₁ outputs₁) = declareNetwork networkName (List.map fromVariableBindingᵢ (toList inputs₁)) (List.map fromVariableBindingₒ (toList outputs₁))
@@ -94,15 +94,15 @@ isResultSuccess : Result Bool → Bool
 isResultSuccess (error _) = false
 isResultSuccess (success _) = true
 
-getNetworkBindings : CheckContext → List⁺ NetworkBinding
-getNetworkBindings Γ = List⁺.map proj₁ Γ
+getNetworkBindings : CheckContext → List NetworkBinding
+getNetworkBindings Γ = List.map proj₁ Γ
 
-variableNetworkIndex : (varName : 𝐁.VariableName) → (l : CheckContext) → Result (Fin (List.length (toList l)))
-variableNetworkIndex varName Γ with any? (λ x → isResultSuccess x Bool.≟ true) (List.map (checkNetworkIndex varName ∘ proj₁) (toList Γ))
+variableNetworkIndex : (varName : 𝐁.VariableName) → (l : CheckContext) → Result (Fin (List.length l))
+variableNetworkIndex varName Γ with any? (λ x → isResultSuccess x Bool.≟ true) (List.map (checkNetworkIndex varName ∘ proj₁) Γ)
 ... | yes p = success (subst Fin equal-length (index p))
   where
-    equal-length : List.length (List.map (checkNetworkIndex varName ∘ proj₁) (toList Γ)) ≡ List.length (toList Γ)
-    equal-length = length-map (checkNetworkIndex varName ∘ proj₁) (toList Γ)
+    equal-length : List.length (List.map (checkNetworkIndex varName ∘ proj₁) Γ) ≡ List.length Γ
+    equal-length = length-map (checkNetworkIndex varName ∘ proj₁) Γ
 ... | no ¬p = error ""
 
 isVariableNameInVariableBinding : 𝐁.VariableName → List⁺ VariableBinding → Bool
@@ -204,17 +204,9 @@ mkNetworkContextₙ Γ is os with mkNetworkInputsₙ Γ is    -- add input defin
 ... | success varsₒ = success (networkBinding varsᵢ varsₒ)
 
 ------------ Create the Check context -----------
-mkCheckContext : List⁺ 𝐁.NetworkDefinition → Result CheckContext
-mkCheckContext networkDefs = List⁺.foldl networkₙ network₁ networkDefs
+mkCheckContext : List 𝐁.NetworkDefinition → Result CheckContext
+mkCheckContext networkDefs = List.foldl networkₙ (success []) networkDefs
   where
-    network₁ : 𝐁.NetworkDefinition → Result CheckContext
-    network₁ netDef with convertListToList⁺ (getInputDefs netDef)
-    ... | error _ = error ""
-    ... | success is with convertListToList⁺ (getOutputDefs netDef)
-    ... | error _ = error ""
-    ... | success os with mkNetworkContext₁ is os
-    ... | error _ = error ""
-    ... | success x = success List⁺.[ x , convertNetworkBindingToDef (convertVariableName (getNetworkName netDef)) x ]
     networkₙ : Result CheckContext → 𝐁.NetworkDefinition → Result CheckContext
     networkₙ (error _) netDef = error ""
     networkₙ (success Γ) netDef with convertListToList⁺ (getInputDefs netDef)
@@ -223,5 +215,5 @@ mkCheckContext networkDefs = List⁺.foldl networkₙ network₁ networkDefs
     ... | error _ = error ""
     ... | success os with mkNetworkContextₙ Γ is os
     ... | error _ = error ""
-    ... | success x = success ( (x , convertNetworkBindingToDef (convertVariableName (getNetworkName netDef)) x) ∷⁺ Γ)
+    ... | success x = success ( (x , convertNetworkBindingToDef (convertVariableName (getNetworkName netDef)) x) ∷ Γ)
 

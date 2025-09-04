@@ -16,61 +16,61 @@ open import check
 open import utils
 
 convertΣtoΓ : CheckContext → Context
-convertΣtoΓ Σ = mkContext (List.map proj₂ (toList Σ))
+convertΣtoΓ Σ = mkContext (List.map proj₂ Σ)
 
 
 -- Proof that the length of the CheckContext and the Syntax context are equivalent
 length-CheckContext-Context :
   (Σ : CheckContext) →
-  List.length (toList Σ) ≡ List.length (convertΣtoΓ Σ)
+  List.length Σ ≡ List.length (convertΣtoΓ Σ)
 length-CheckContext-Context Σ = begin
-  List.length (toList Σ)                              ≡⟨ sym (length-map proj₂ (toList Σ)) ⟩
-  List.length (List.map proj₂ (toList Σ))             ≡⟨ sym (length-map convertNetworkΓ (List.map proj₂ (toList Σ))) ⟩
-  List.length (mkContext (List.map proj₂ (toList Σ))) ≡⟨⟩
+  List.length Σ                              ≡⟨ sym (length-map proj₂ Σ) ⟩
+  List.length (List.map proj₂ Σ)             ≡⟨ sym (length-map convertNetworkΓ (List.map proj₂ Σ)) ⟩
+  List.length (mkContext (List.map proj₂ Σ)) ≡⟨⟩
   List.length (convertΣtoΓ Σ)                         ∎
 
 -- Proof that the length of inputs in a CheckContext NetworkBinding and Syntax Context Network type are equivalent
 cong-input :
   (Σ : CheckContext)
-  (n : Fin (List.length (toList Σ))) →
-  List.length (toList (NetworkBinding.inputs (proj₁ (lookup (toList Σ) n)))) ≡ List.length (NetworkType.inputShape (convertNetworkΓ (proj₂ (lookup (toList Σ) n))))
+  (n : Fin (List.length Σ)) →
+  List.length (toList (NetworkBinding.inputs (proj₁ (lookup Σ n)))) ≡ List.length (NetworkType.inputShape (convertNetworkΓ (proj₂ (lookup Σ n))))
 cong-input Σ n = begin 
-  List.length (toList (NetworkBinding.inputs (proj₁ (lookup (toList Σ) n)))) ≡⟨ {!!} ⟩
-  List.length (NetworkType.inputShape (convertNetworkΓ (proj₂ (lookup (toList Σ) n)))) ∎
+  List.length (toList (NetworkBinding.inputs (proj₁ (lookup Σ n)))) ≡⟨ {!!} ⟩
+  List.length (NetworkType.inputShape (convertNetworkΓ (proj₂ (lookup Σ n)))) ∎
   
 
 length-inputs :
   (Σ : CheckContext)
-  (n : Fin (List.length (toList Σ))) →
+  (n : Fin (List.length Σ)) →
   List.length 
-    (toList (NetworkBinding.inputs (proj₁ (List.lookup (toList Σ) n))))
+    (toList (NetworkBinding.inputs (proj₁ (List.lookup Σ n))))
   ≡
   List.length
     (NetworkType.inputShape (List.lookup (convertΣtoΓ Σ) (subst Fin (length-CheckContext-Context Σ) n)))
 length-inputs Σ n = begin
-  List.length (toList (NetworkBinding.inputs (proj₁ (List.lookup (toList Σ) n))))            ≡⟨ cong-input Σ n ⟩
-  List.length (NetworkType.inputShape (convertNetworkΓ (proj₂ (List.lookup (toList Σ) n))))  ≡⟨ {!!} ⟩ --  sym (length-map convertInputΓ {!!}) ⟩ -- sym (length-map {!!} {!!}) ⟩
+  List.length (toList (NetworkBinding.inputs (proj₁ (List.lookup Σ n))))            ≡⟨ cong-input Σ n ⟩
+  List.length (NetworkType.inputShape (convertNetworkΓ (proj₂ (List.lookup Σ n))))  ≡⟨ {!!} ⟩ --  sym (length-map convertInputΓ {!!}) ⟩ -- sym (length-map {!!} {!!}) ⟩
   List.length (NetworkType.inputShape (List.lookup (convertΣtoΓ Σ) (subst Fin (length-CheckContext-Context Σ) n))) ∎
 
 cong-output :
   (Σ : CheckContext)
-  (n : Fin (List.length (toList Σ))) →
-  List.length (toList (NetworkBinding.outputs (proj₁ (lookup (toList Σ) n)))) ≡ List.length (NetworkType.outputShape (convertNetworkΓ (proj₂ (lookup (toList Σ) n))))
+  (n : Fin (List.length Σ)) →
+  List.length (toList (NetworkBinding.outputs (proj₁ (lookup Σ n)))) ≡ List.length (NetworkType.outputShape (convertNetworkΓ (proj₂ (lookup Σ n))))
 cong-output Σ n = begin 
-  List.length (toList (NetworkBinding.outputs (proj₁ (lookup (toList Σ) n)))) ≡⟨ {!!} ⟩
-  List.length (NetworkType.outputShape (convertNetworkΓ (proj₂ (lookup (toList Σ) n)))) ∎
+  List.length (toList (NetworkBinding.outputs (proj₁ (lookup Σ n)))) ≡⟨ {!!} ⟩
+  List.length (NetworkType.outputShape (convertNetworkΓ (proj₂ (lookup Σ n)))) ∎
 
 length-outputs :
   (Σ : CheckContext)
-  (n : Fin (List.length (toList Σ))) →
+  (n : Fin (List.length Σ)) →
   List.length
-    (toList (NetworkBinding.outputs (proj₁ (List.lookup (toList Σ) n))))
+    (toList (NetworkBinding.outputs (proj₁ (List.lookup Σ n))))
   ≡
   List.length
     (NetworkType.outputShape (List.lookup (convertΣtoΓ Σ) (subst Fin (length-CheckContext-Context Σ) n)))
 length-outputs Σ n = begin
-  List.length (toList (NetworkBinding.outputs (proj₁ (List.lookup (toList Σ) n))))            ≡⟨ {!!} ⟩ 
-  List.length (NetworkType.outputShape (convertNetworkΓ (proj₂ (List.lookup (toList Σ) n))))  ≡⟨ {!!} ⟩
+  List.length (toList (NetworkBinding.outputs (proj₁ (List.lookup Σ n))))            ≡⟨ {!!} ⟩ 
+  List.length (NetworkType.outputShape (convertNetworkΓ (proj₂ (List.lookup Σ n))))  ≡⟨ {!!} ⟩
   List.length (NetworkType.outputShape (List.lookup (convertΣtoΓ Σ) (subst Fin (length-CheckContext-Context Σ) n))) ∎
 
 -- tensorShape-input : (Σ : CheckContext) → (i : Fin (List.length (toList Σ))) → (j : Fin (List.length (toList (NetworkBinding.inputs (proj₁ (List.lookup (toList Σ) i))))))

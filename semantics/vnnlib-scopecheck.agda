@@ -40,7 +40,7 @@ module _ (Σ : CheckContext) where
   checkExpressionₐᵣᵢₜₕ : 𝐁.ArithExpr → Result (𝐕.ArithExpr Γ)
   checkExpressionₐᵣᵢₜₕ (varExpr x xs) with variableNetworkIndex x Σ
   ... | error _ = error ""
-  ... | success n with variableIndexInNetworkᵢₙₚᵤₜ (proj₁ (List.lookup (toList Σ) n)) x
+  ... | success n with variableIndexInNetworkᵢₙₚᵤₜ (proj₁ (List.lookup Σ n)) x
   ...   | success i = success (varInput networkInd inputInd {!!})
     where
       networkInd : Fin (List.length (Γ))
@@ -49,7 +49,7 @@ module _ (Σ : CheckContext) where
       inputInd : Fin (List.length (NetworkType.inputShape (List.lookup Γ (subst Fin (length-CheckContext-Context Σ) n))))
       inputInd = subst Fin (length-inputs Σ n) i
       
-  ... | error _ with variableIndexInNetworkₒᵤₜₚᵤₜ (proj₁ (List.lookup (toList Σ) n)) x
+  ... | error _ with variableIndexInNetworkₒᵤₜₚᵤₜ (proj₁ (List.lookup Σ n)) x
   ... | error _ = error ""
   ... | success o = success (varOutput networkInd outputInd {!!})
     where
@@ -115,7 +115,7 @@ scopeCheckAssertions Σ asserts = List⁺.foldl checkAssertₙ checkAssert asser
     ... | success x = success (x ++ props)
 
 -- Check Assertions from the constructed Scope Context
-checkAssertions : List⁺ 𝐁.NetworkDefinition → List⁺ 𝐁.Assertion → Result 𝐕.Query
+checkAssertions : List 𝐁.NetworkDefinition → List⁺ 𝐁.Assertion → Result 𝐕.Query
 checkAssertions defs asserts with mkCheckContext defs
 ... | error _ = error ""
 ... | success Σ with scopeCheckAssertions Σ asserts
@@ -123,13 +123,12 @@ checkAssertions defs asserts with mkCheckContext defs
 ... | success x = success (𝐕.mkQuery checkedNetworkDefs x) -- mkCheckContext should return the networkdefs
   where
     checkedNetworkDefs : List 𝐕.NetworkDefinition
-    checkedNetworkDefs = List.map proj₂ (toList Σ)
+    checkedNetworkDefs = List.map proj₂ Σ
 
 -- change to non-empty list
 scopeCheck : 𝐁.Query → Result 𝐕.Query
-scopeCheck (vNNLibQuery ns as) = queries⁺ (convertListToList⁺ ns) (convertListToList⁺ as)
+scopeCheck (vNNLibQuery ns as) = asserts⁺ (convertListToList⁺ as)
   where
-    queries⁺ : Result (List⁺ 𝐁.NetworkDefinition) → Result (List⁺ 𝐁.Assertion) → Result 𝐕.Query
-    queries⁺ (error _) asserts = error ""
-    queries⁺ (success x) (error _) = error ""
-    queries⁺ (success x) (success x₁) = checkAssertions x x₁
+    asserts⁺ : Result (List⁺ 𝐁.Assertion) → Result 𝐕.Query
+    asserts⁺ (error _) = error "Cannot have no assertions"
+    asserts⁺ (success x₁) = checkAssertions ns x₁
