@@ -29,14 +29,15 @@ Multiply. ArithExpr ::= "(" "*" [ArithExpr] ")" ;
 separator nonempty ArithExpr "" ;
 
 -- A comparative operator is a binary operator that compares two inputs
-GreaterThan. BoolExpr ::= "(" ">" ArithExpr ArithExpr ")" ;
-LessThan. BoolExpr ::= "(" "<" ArithExpr ArithExpr ")" ;
-GreaterEqual. BoolExpr ::= "(" ">=" ArithExpr ArithExpr ")" ;
-LessEqual. BoolExpr ::= "(" "<=" ArithExpr ArithExpr ")" ;
-NotEqual. BoolExpr ::= "(" "!=" ArithExpr ArithExpr ")" ;
-Equal. BoolExpr ::= "(" "==" ArithExpr ArithExpr ")";
+GreaterThan. CompExpr ::= "(" ">" ArithExpr ArithExpr ")" ;
+LessThan. CompExpr ::= "(" "<" ArithExpr ArithExpr ")" ;
+GreaterEqual. CompExpr ::= "(" ">=" ArithExpr ArithExpr ")" ;
+LessEqual. CompExpr ::= "(" "<=" ArithExpr ArithExpr ")" ;
+NotEqual. CompExpr ::= "(" "!=" ArithExpr ArithExpr ")" ;
+Equal. CompExpr ::= "(" "==" ArithExpr ArithExpr ")";
 
 -- A connective (or logical) operator is an n-ary operator that combines multiple Boolean formulas
+Literal. BoolExpr ::= CompExpr ;
 And. BoolExpr ::= "(" "and" [BoolExpr] ")" ;
 Or. BoolExpr ::= "(" "or" [BoolExpr] ")";
 separator nonempty BoolExpr "" ;
