@@ -55,10 +55,10 @@ void TypedBuilder::visitValExpr(ValExpr* p) {
     auto node_str = p->number_->string_;
     if (node_str.find('.') != std::string::npos) {
         node = std::make_unique<TFloat>();
-        node->value = std::stod(node_str);
+        static_cast<TFloat*>(node.get())->value = std::stod(node_str);
     } else {
         node = std::make_unique<TInt>();
-        node->value = std::stoll(node_str);
+        static_cast<TInt*>(node.get())->value = std::stoll(node_str);
     }
     
     node->lexeme = node_str;
