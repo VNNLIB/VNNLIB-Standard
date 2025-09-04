@@ -1,23 +1,23 @@
 *.bak
 Syntax
 
-# BNFC generated files in parser_cpp
-parser_cpp/cpp/src/generated/**
+# BNFC generated files in parsers
+parsers/cpp/src/generated/**
 
-# Build artifacts for parser_cpp
-parser_cpp/cpp/build/
-parser_cpp/cpp/bin/
-parser_cpp/python/build/
-parser_cpp/python/dist/
-parser_cpp/python/cpp/
-parser_cpp/python/*.egg-info/
-parser_cpp/python/vnnlib/*.so
-parser_cpp/python/vnnlib/__pycache__/
+# Build artifacts for parsers
+parsers/cpp/build/
+parsers/cpp/bin/
+parsers/python/build/
+parsers/python/dist/
+parsers/python/cpp/
+parsers/python/*.egg-info/
+parsers/python/vnnlib/*.so
+parsers/python/vnnlib/__pycache__/
 
 # Test artifacts
-parser_cpp/.pytest_cache/
-parser_cpp/test/__pycache__/
-parser_cpp/test/.vscode/
+parsers/.pytest_cache/
+parsers/test/__pycache__/
+parsers/test/.vscode/
 
 # Development environment
 .vscode

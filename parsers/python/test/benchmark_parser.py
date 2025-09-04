@@ -9,7 +9,7 @@ import argparse
 from pathlib import Path
 
 # Add the parser path to import vnnlib
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'parser_cpp', 'python'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'parsers', 'python'))
 
 try:
     import vnnlib
