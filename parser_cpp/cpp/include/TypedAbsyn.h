@@ -92,7 +92,6 @@ public:
 
 class TLiteral : public TArithExpr {
 public:
-	std::string value{};
 	std::string lexeme;
 	int line{-1};
 	void children(std::vector<const TNode*>& out) const override;
