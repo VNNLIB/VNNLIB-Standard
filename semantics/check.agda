@@ -18,6 +18,7 @@ open import Function using (_∘_)
 open import tensor as 𝐓 using (TensorShape)
 open import syntax-utils
 open import types-utils
+open import vnnlib-types as 𝐄
 
 open import Level
 open import Data.Sum.Effectful.Left String 0ℓ renaming (Sumₗ to Result)
@@ -28,7 +29,7 @@ open RawMonad monad
 
 -- Context for both scope and type checking
 data VariableBinding : Set where
-  var : 𝐕.VariableName → 𝐓.TensorShape → 𝐕.ElementType → VariableBinding
+  var : 𝐕.VariableName → 𝐓.TensorShape → 𝐄.ElementType → VariableBinding
 
 getVariableNameᴮ : VariableBinding → 𝐁.VariableName
 getVariableNameᴮ (var (SVariableName x) x₁ x₂) = variableName x

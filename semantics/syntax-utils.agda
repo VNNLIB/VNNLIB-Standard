@@ -7,6 +7,7 @@ open import Syntax.AST as 𝐁 hiding (String)
 open import vnnlib-syntax as 𝐕
 open import Data.Nat as ℕ
 open import Data.Integer as ℤ using (∣_∣)
+open import vnnlib-types as 𝐄
 
 -- convert the BNFC VariableName to agda string type
 ⟦_⟧asString : 𝐁.VariableName → String
@@ -15,7 +16,7 @@ open import Data.Integer as ℤ using (∣_∣)
 ⟦_⟧asStringᵥ : 𝐕.VariableName → String
 ⟦ (SVariableName name) ⟧asStringᵥ = name
 
-convertElementType : 𝐁.ElementType → 𝐕.ElementType
+convertElementType : 𝐁.ElementType → 𝐄.ElementType
 convertElementType genericElementType = real
 convertElementType elementTypeF16 = float16
 convertElementType elementTypeF32 = float32
