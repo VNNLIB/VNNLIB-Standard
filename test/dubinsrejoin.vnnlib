@@ -1,3 +1,4 @@
+(vnnlib-version <2.0>)
 ; dubinsrejoin property safe_6
 
 (declare-network dubinsrejoin
