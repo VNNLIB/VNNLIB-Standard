@@ -10,12 +10,13 @@ If anything here is unclear, please open an issue so we can improve this doc.
 .
 ├── syntax.cf           # LBNF grammar for VNNLIB 2.0
 ├── document/           # .tex files for VNNLIB specification document
-├── parser_cpp/         # C++ library (parser + typechecker)
-│ └── test/             # Unit tests and golden tests
-| └── cpp/              # C++ source code
+├── parsers/            # Parser libraries library (parser + typechecker)
+| └── cpp/              # C++ library
+|   └── src/generated/  # BNFC generated code
 | └── python/           # Python library
 |   └── vnnlib/         # Python bindings + stub files
 |   └── setup.py        # Build instructions
+|   └── test/           # Unit tests and golden tests
 ├── build_parser.sh     # Build entrypoint
 ├── test.sh             # Test harness for grammar
 └── CONTRIBUTING.md     # This guide

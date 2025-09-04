@@ -35,32 +35,32 @@ clean_build() {
     log_info "Cleaning previous builds..."
     
     # Clean C++ parser
-    if [ -d "parser_cpp/cpp/build" ]; then
-        rm -rf parser_cpp/cpp/build
+    if [ -d "parsers/cpp/build" ]; then
+        rm -rf parsers/cpp/build
         log_info "Removed C++ build directory"
     fi
     
-    if [ -d "parser_cpp/cpp/bin" ]; then
-        rm -rf parser_cpp/cpp/bin
+    if [ -d "parsers/cpp/bin" ]; then
+        rm -rf parsers/cpp/bin
         log_info "Removed C++ bin directory"
     fi
     
     # Clean generated parser files
-    if [ -d "parser_cpp/cpp/src/generated" ]; then
-        cd parser_cpp/cpp/src/generated
+    if [ -d "parsers/cpp/src/generated" ]; then
+        cd parsers/cpp/src/generated
         rm -f Parser.C Lexer.C Bison.H *.o
         cd ../../../../
         log_info "Cleaned generated parser files"
     fi
     
     # Clean Python builds
-    if [ -d "parser_cpp/python/build" ]; then
-        rm -rf parser_cpp/python/build
+    if [ -d "parsers/python/build" ]; then
+        rm -rf parsers/python/build
         log_info "Removed Python build directory"
     fi
     
-    if [ -d "parser_cpp/python/vnnlib.egg-info" ]; then
-        rm -rf parser_cpp/python/vnnlib.egg-info
+    if [ -d "parsers/python/vnnlib.egg-info" ]; then
+        rm -rf parsers/python/vnnlib.egg-info
         log_info "Removed Python egg-info"
     fi
     
@@ -78,7 +78,7 @@ generate_bnfc_files() {
     fi
     
     # Generate C++ files from the grammar
-    bnfc --cpp -o parser_cpp/cpp/src/generated syntax.cf || {
+    bnfc --cpp -o parsers/cpp/src/generated syntax.cf || {
         log_error "BNFC generation failed"
         exit 1
     }
@@ -102,7 +102,7 @@ build_cpp() {
         exit 1
     fi
     
-    cd parser_cpp
+    cd parsers
     
     # Build using Makefile
     make clean >/dev/null 2>&1 || true  # Don't fail if already clean
@@ -136,7 +136,7 @@ build_python() {
         exit 1
     fi
     
-    cd parser_cpp/python
+    cd parsers/python
     
     # Install in development mode with force reinstall
     python3 -m pip install . --force-reinstall || {
@@ -157,7 +157,7 @@ run_tests() {
 
     log_info "Running test suite..."
     
-    cd parser_cpp
+    cd parsers
     
     # Run pytest
     python3 -m pytest test/ -v || {
