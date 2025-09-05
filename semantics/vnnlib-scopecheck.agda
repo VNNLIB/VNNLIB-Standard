@@ -15,6 +15,7 @@ open import Data.List.NonEmpty as List⁺
 open import Relation.Binary.PropositionalEquality as Eq using (_≡_; refl; sym; subst; module ≡-Reasoning)
 open Eq.≡-Reasoning
 open import Relation.Nullary
+open import Data.Maybe hiding (_>>=_)
 open import Function
 open import Syntax.AST as 𝐁 hiding (String)
 open import vnnlib-syntax as 𝐕
@@ -37,8 +38,11 @@ open RawMonad monad
 module _ (Σ : CheckContext) where
   Γ : Context
   Γ = convertΣtoΓ Σ
+
+  inferArithExprType : 𝐁.ArithExpr → Maybe (𝐄.ElementType)
+  inferArithExprType a = {!!}
   
-  checkExpressionₐᵣᵢₜₕ : 𝐁.ArithExpr → Result (𝐕.ArithExpr Γ {!!})
+  checkExpressionₐᵣᵢₜₕ : {τ : 𝐄.ElementType } → 𝐁.ArithExpr → Result (𝐕.ArithExpr Γ τ)
   checkExpressionₐᵣᵢₜₕ (varExpr x xs) with variableNetworkIndex x Σ
   ... | error _ = error ""
   ... | success n with variableIndexInNetworkᵢₙₚᵤₜ (proj₁ (List.lookup Σ n)) x
@@ -67,18 +71,23 @@ module _ (Σ : CheckContext) where
   checkExpressionₐᵣᵢₜₕ (minus a as) = List.foldl (λ z z₁ → {!!}) (checkExpressionₐᵣᵢₜₕ a) as
   checkExpressionₐᵣᵢₜₕ (multiply as) = List.foldl (λ z z₁ → {!!}) (error "") as
   -- BNFC literals as strings
-  checkExpressionₐᵣᵢₜₕ (doubleExpr x) = {!!}
-  checkExpressionₐᵣᵢₜₕ (sIntExpr x) = {!!}
-  checkExpressionₐᵣᵢₜₕ (intExpr x) = {!!}
 
   -- check boolean expressions
-  checkComparativeExpression : {τ : 𝐄.ElementType} → (𝐕.ArithExpr Γ τ → 𝐕.ArithExpr Γ τ → 𝐕.BoolExpr Γ) → 𝐁.ArithExpr → 𝐁.ArithExpr → Result(𝐕.BoolExpr Γ)
-  checkComparativeExpression f b₁ b₂ with checkExpressionₐᵣᵢₜₕ b₁
-  ... | error _ = error ""
-  ... | success b₁ with checkExpressionₐᵣᵢₜₕ b₂
-  ... | error _ = error ""
-  ... | success b₂ = success (f {!!} {!!}) --  b₁ b₂)
+  checkComparativeExpression : ({τ : 𝐄.ElementType} → 𝐕.ArithExpr Γ τ → 𝐕.ArithExpr Γ τ → 𝐕.BoolExpr Γ) → 𝐁.ArithExpr → 𝐁.ArithExpr → Result(𝐕.BoolExpr Γ)
+  checkComparativeExpression f b₁ b₂ = do
+    let type = findType b₁ b₂
+    t₁ ← checkExpressionₐᵣᵢₜₕ {type} b₁
+    t₂ ← checkExpressionₐᵣᵢₜₕ {type} b₂
+    return (f t₁ t₂)
+    where
+    findType : 𝐁.ArithExpr → 𝐁.ArithExpr → 𝐄.ElementType
+    findType b₁ b₂ with inferArithExprType b₁ |  inferArithExprType b₂
+    ... | just x | just x₁ = x
+    ... | just x | nothing = x
+    ... | nothing | just x = x
+    ... | nothing | nothing = real
 
+  
   checkCompExpr : {!𝐁.CompExpr ? ?!} → Result (𝐕.CompExpr Γ {!!})
   checkCompExpr a = {!!}
 
@@ -90,6 +99,7 @@ module _ (Σ : CheckContext) where
 --  checkExpressionᵇᵒᵒˡ (equal a₁ a₂) = checkComparativeExpression equal a₁ a₂
   
   checkBoolExpr : 𝐁.BoolExpr → Result (𝐕.BoolExpr Γ)
+  
   checkBoolExpr (BoolExpr.and bs) = {!!}
   checkBoolExpr (BoolExpr.or bs) = {!!}
   -- checkExpressionᵇᵒᵒˡ (BoolExpr.and []) = success (literal true)
@@ -132,7 +142,7 @@ checkAssertions defs asserts with mkCheckContext defs
 
 -- change to non-empty list
 scopeCheck : 𝐁.Query → Result 𝐕.Query
-scopeCheck (vNNLibQuery ns as) = asserts⁺ (convertListToList⁺ as)
+scopeCheck (vNNLibQuery ver ns as) = asserts⁺ (convertListToList⁺ as)
   where
     asserts⁺ : Result (List⁺ 𝐁.Assertion) → Result 𝐕.Query
     asserts⁺ (error _) = error "Cannot have no assertions"
