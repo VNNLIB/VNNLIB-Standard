@@ -58,9 +58,9 @@ jobs:
           chmod +x build_parser.sh
           ./build_parser.sh
 
-      - name: Test C++ parser
+      - name: Test Python bindings
         run: |
           echo "Running C++ parser tests..."
           ./build_parser.sh test
           
-          echo "C++ parser tests completed successfully."
+          echo "Parser tests completed successfully."

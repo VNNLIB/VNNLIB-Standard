@@ -160,7 +160,7 @@ run_tests() {
     cd parsers
     
     # Run pytest
-    python3 -m pytest test/ -v || {
+    python3 -m pytest -v || {
         log_error "Tests failed"
         exit 1
     }
