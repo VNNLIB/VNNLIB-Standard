@@ -282,6 +282,6 @@ PYBIND11_MODULE(_core, m) {
 	},
 	py::arg("query"));
 
-	m.attr("__version__") = "0.2.0";
+	m.attr("__version__") = "1.0.0";
 }
 

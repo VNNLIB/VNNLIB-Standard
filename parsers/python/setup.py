@@ -33,7 +33,7 @@ ext_modules = [
 
 setup(
     name="vnnlib",
-    version="0.0.1",
+    version="1.0.0",
     description="Python bindings for VNNLib parsing and AST manipulation",
     long_description="",
     author="Allen Antony",
@@ -49,5 +49,6 @@ setup(
     ],
     package_data={
         "vnnlib": ["*.so", "*.pyi", "py.typed"],
-    }
+    },
+    platforms=["linux"]
 )

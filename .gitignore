@@ -13,6 +13,7 @@ parsers/python/cpp/
 parsers/python/*.egg-info/
 parsers/python/vnnlib/*.so
 parsers/python/vnnlib/__pycache__/
+parsers/python/wheelhouse/
 
 # CMake build files
 parsers/cpp/CMakeFiles/
