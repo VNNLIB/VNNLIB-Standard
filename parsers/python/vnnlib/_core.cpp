@@ -10,6 +10,7 @@
 #include "TypedAbsyn.h"     
 #include "TypedBuilder.h"
 #include "LinearArithExpr.h"
+#include "DNFConverter.hpp"
 
 namespace py = pybind11;
 
@@ -123,7 +124,21 @@ PYBIND11_MODULE(_core, m) {
 	});
 
   	// ---------- Boolean Operations ----------
-	py::class_<TBoolExpr, TNode>(m, "BoolExpr");
+	py::class_<TBoolExpr, TNode>(m, "BoolExpr")
+		.def("dnf_form", [](const TBoolExpr& e){
+			DNFConverter::DNF dnf = DNFConverter::toDNF(&e);
+			py::list py_dnf;
+
+			for (size_t i = 0; i < dnf.size(); ++i) {
+				auto& clause = dnf[i];
+				py::list py_clause;
+				for (auto* lit : clause) {
+					py_clause.append(py::cast(lit, py::return_value_policy::reference_internal, py::cast(&e)));
+				}
+				py_dnf.append(py_clause);
+			}
+			return py_dnf;
+		});
 
 	py::class_<TCompare, TBoolExpr>(m, "Compare")
 		.def_property_readonly("lhs", [](const TCompare& n){ return n.lhs.get(); }, py::return_value_policy::reference_internal)
