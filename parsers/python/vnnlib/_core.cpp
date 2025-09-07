@@ -125,40 +125,27 @@ PYBIND11_MODULE(_core, m) {
   	// ---------- Boolean Operations ----------
 	py::class_<TBoolExpr, TNode>(m, "BoolExpr");
 
-	py::class_<TGreaterThan, TBoolExpr>(m, "GreaterThan")
-		.def_property_readonly("lhs", [](const TGreaterThan& n){ return n.lhs.get(); }, py::return_value_policy::reference_internal)
-		.def_property_readonly("rhs", [](const TGreaterThan& n){ return n.rhs.get(); }, py::return_value_policy::reference_internal);
-	py::class_<TLessThan, TBoolExpr>(m, "LessThan")
-		.def_property_readonly("lhs", [](const TLessThan& n){ return n.lhs.get(); }, py::return_value_policy::reference_internal)
-		.def_property_readonly("rhs", [](const TLessThan& n){ return n.rhs.get(); }, py::return_value_policy::reference_internal);
-	py::class_<TGreaterEqual, TBoolExpr>(m, "GreaterEqual")
-		.def_property_readonly("lhs", [](const TGreaterEqual& n){ return n.lhs.get(); }, py::return_value_policy::reference_internal)
-		.def_property_readonly("rhs", [](const TGreaterEqual& n){ return n.rhs.get(); }, py::return_value_policy::reference_internal);
-	py::class_<TLessEqual, TBoolExpr>(m, "LessEqual")
-		.def_property_readonly("lhs", [](const TLessEqual& n){ return n.lhs.get(); }, py::return_value_policy::reference_internal)
-		.def_property_readonly("rhs", [](const TLessEqual& n){ return n.rhs.get(); }, py::return_value_policy::reference_internal);
-	py::class_<TNotEqual, TBoolExpr>(m, "NotEqual")
-		.def_property_readonly("lhs", [](const TNotEqual& n){ return n.lhs.get(); }, py::return_value_policy::reference_internal)
-		.def_property_readonly("rhs", [](const TNotEqual& n){ return n.rhs.get(); }, py::return_value_policy::reference_internal);
-	py::class_<TEqual, TBoolExpr>(m, "Equal")
-		.def_property_readonly("lhs", [](const TEqual& n){ return n.lhs.get(); }, py::return_value_policy::reference_internal)
-		.def_property_readonly("rhs", [](const TEqual& n){ return n.rhs.get(); }, py::return_value_policy::reference_internal);
+	py::class_<TCompare, TBoolExpr>(m, "Compare")
+		.def_property_readonly("lhs", [](const TCompare& n){ return n.lhs.get(); }, py::return_value_policy::reference_internal)
+		.def_property_readonly("rhs", [](const TCompare& n){ return n.rhs.get(); }, py::return_value_policy::reference_internal);
 
-	py::class_<TAnd, TBoolExpr>(m, "And")
-		.def_property_readonly("args", [](const TAnd& n){
+	py::class_<TGreaterThan, TCompare>(m, "GreaterThan");
+	py::class_<TEqual, TCompare>(m, "Equal");
+	py::class_<TLessThan, TCompare>(m, "LessThan");
+	py::class_<TGreaterEqual, TCompare>(m, "GreaterEqual");
+	py::class_<TLessEqual, TCompare>(m, "LessEqual");
+	py::class_<TNotEqual, TCompare>(m, "NotEqual");
+
+	py::class_<TConnective, TBoolExpr>(m, "Connective")
+		.def_property_readonly("args", [](const TConnective& n){
 			py::tuple args_tuple(n.args.size());
 			for (size_t i = 0; i < n.args.size(); ++i)
 				args_tuple[i] = py::cast(n.args[i].get(), py::return_value_policy::reference_internal, py::cast(&n));
 			return args_tuple;
 		});
 
-	py::class_<TOr, TBoolExpr>(m, "Or")
-		.def_property_readonly("args", [](const TOr& n){
-			py::tuple args_tuple(n.args.size());
-			for (size_t i = 0; i < n.args.size(); ++i)
-				args_tuple[i] = py::cast(n.args[i].get(), py::return_value_policy::reference_internal, py::cast(&n));
-			return args_tuple;
-		});
+	py::class_<TAnd, TBoolExpr>(m, "And");
+	py::class_<TOr, TBoolExpr>(m, "Or");
 
 	// --- Assertion ---
 	py::class_<TAssertion, TNode>(m, "Assertion")

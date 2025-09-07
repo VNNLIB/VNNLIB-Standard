@@ -143,53 +143,27 @@ protected:
 	BoolExpr* src_BoolExpr{nullptr};
 };
 
-class TGreaterThan final : public TBoolExpr {
+class TCompare : public TBoolExpr {
 public:
   std::unique_ptr<TArithExpr> lhs, rhs;
   void children(std::vector<const TNode*>& out) const override;
 };
 
-class TLessThan final : public TBoolExpr {
-public:
-  std::unique_ptr<TArithExpr> lhs, rhs;
-  void children(std::vector<const TNode*>& out) const override;
-};
+class TGreaterThan final : public TCompare {};
+class TLessThan final : public TCompare {};
+class TGreaterEqual final : public TCompare {};
+class TLessEqual final : public TCompare {};
+class TEqual final : public TCompare {};
+class TNotEqual final : public TCompare {};
 
-class TGreaterEqual final : public TBoolExpr {
-public:
-  std::unique_ptr<TArithExpr> lhs, rhs;
-  void children(std::vector<const TNode*>& out) const override;
-};
-
-class TLessEqual final : public TBoolExpr {
-public:
-  std::unique_ptr<TArithExpr> lhs, rhs;
-  void children(std::vector<const TNode*>& out) const override;
-};
-
-class TNotEqual final : public TBoolExpr {
-public:
-  std::unique_ptr<TArithExpr> lhs, rhs;
-  void children(std::vector<const TNode*>& out) const override;
-};
-
-class TEqual final : public TBoolExpr {
-public:
-  std::unique_ptr<TArithExpr> lhs, rhs;
-  void children(std::vector<const TNode*>& out) const override;
-};
-
-class TAnd final : public TBoolExpr {
+class TConnective : public TBoolExpr {
 public:
   std::vector<std::unique_ptr<TBoolExpr>> args;
   void children(std::vector<const TNode*>& out) const override;
 };
 
-class TOr final : public TBoolExpr {
-public:
-  std::vector<std::unique_ptr<TBoolExpr>> args;
-  void children(std::vector<const TNode*>& out) const override;
-};
+class TAnd final : public TConnective {};
+class TOr final : public TConnective {};
 
 // --- Assertion ---
 

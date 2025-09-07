@@ -153,41 +153,12 @@ std::string TBoolExpr::toString() const {
     return bnfcPrint(src_BoolExpr);
 }
 
-void TGreaterThan::children(std::vector<const TNode*>& out) const {
+void TCompare::children(std::vector<const TNode*>& out) const {
   if (lhs) out.push_back(lhs.get());
   if (rhs) out.push_back(rhs.get());
 }
 
-void TLessThan::children(std::vector<const TNode*>& out) const {
-  if (lhs) out.push_back(lhs.get());
-  if (rhs) out.push_back(rhs.get());
-}
-
-void TGreaterEqual::children(std::vector<const TNode*>& out) const {
-  if (lhs) out.push_back(lhs.get());
-  if (rhs) out.push_back(rhs.get());
-}
-
-void TLessEqual::children(std::vector<const TNode*>& out) const {
-  if (lhs) out.push_back(lhs.get());
-  if (rhs) out.push_back(rhs.get());
-}
-
-void TNotEqual::children(std::vector<const TNode*>& out) const {
-  if (lhs) out.push_back(lhs.get());
-  if (rhs) out.push_back(rhs.get());
-}
-
-void TEqual::children(std::vector<const TNode*>& out) const {
-  if (lhs) out.push_back(lhs.get());
-  if (rhs) out.push_back(rhs.get());
-}
-
-void TAnd::children(std::vector<const TNode*>& out) const {
-  for (auto const& a : args) if (a) out.push_back(a.get());
-}
-
-void TOr::children(std::vector<const TNode*>& out) const {
+void TConnective::children(std::vector<const TNode*>& out) const {
   for (auto const& a : args) if (a) out.push_back(a.get());
 }
 
