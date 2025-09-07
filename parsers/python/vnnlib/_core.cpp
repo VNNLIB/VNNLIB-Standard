@@ -291,6 +291,6 @@ PYBIND11_MODULE(_core, m) {
 			If there is an error during parsing, or if the specification is not well-formed.
 	)pbdoc");
 
-	m.attr("__version__") = "0.2.0";
+	m.attr("__version__") = "1.0.0";
 }
 

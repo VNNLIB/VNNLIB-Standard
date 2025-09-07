@@ -1,0 +1,82 @@
+name: Deploy to PyPI
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential flex bison patchelf
+
+      - name: Install Python build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install build twine auditwheel pybind11
+
+      - name: Install BNFC and Haskell dependencies
+        run: |
+          sudo apt-get install -y cabal-install
+          cabal update
+          cabal install alex happy BNFC
+          echo "$HOME/.cabal/bin" >> $GITHUB_PATH
+
+      - name: Build C++ parser
+        run: |
+          echo "Building the C++ VNNLib parser..."
+          chmod +x build_parser.sh
+          ./build_parser.sh
+
+      - name: Build Python wheel
+        run: |
+          cd parsers/python
+          python -m build
+
+      - name: Repair wheel with auditwheel
+        run: |
+          cd parsers/python
+          auditwheel repair dist/*.whl
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: linux-wheels
+          path: parsers/python/wheelhouse/*.whl
+
+  deploy:
+    needs: [build-linux]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Linux wheels
+        uses: actions/download-artifact@v3
+        with:
+          name: linux-wheels
+          path: dist/
+
+      - name: Publish to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          pip install twine
+          python -m twine upload dist/*
+
+      - name: Publish to Test PyPI (optional)
+        if: github.event.release.prerelease == true
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
+        run: |
+          python -m twine upload --repository testpypi dist/*
