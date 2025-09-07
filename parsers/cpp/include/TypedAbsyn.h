@@ -52,20 +52,20 @@ public:
 	virtual std::string toString() const = 0;
 
 protected:
-  TNode() = default;                               
-  TNode(const TNode&) = delete;
-  TNode& operator=(const TNode&) = delete;
-  TNode(TNode&&) noexcept = default;            
-  TNode& operator=(TNode&&) noexcept = default;
+	TNode() = default;                               
+	TNode(const TNode&) = delete;
+	TNode& operator=(const TNode&) = delete;
+	TNode(TNode&&) noexcept = default;            
+	TNode& operator=(TNode&&) noexcept = default;
 };
 
 class TElementType : public TNode {
 friend class TypedBuilder;
 public:
-  DType dtype{DType::Unknown};
-  virtual ~TElementType() = default;
-  void children(std::vector<const TNode*>& out) const override;
-  std::string toString() const override;
+	DType dtype{DType::Unknown};
+	virtual ~TElementType() = default;
+	void children(std::vector<const TNode*>& out) const override;
+	std::string toString() const override;
 protected:
 	ElementType* src_ElementType{nullptr};
 };
@@ -109,27 +109,27 @@ public:
 
 class TNegate final : public TArithExpr {
 public:
-  std::unique_ptr<TArithExpr> expr;
-  void children(std::vector<const TNode*>& out) const override;
+	std::unique_ptr<TArithExpr> expr;
+	void children(std::vector<const TNode*>& out) const override;
 };
 
 class TPlus final : public TArithExpr {
 public:
-  std::vector<std::unique_ptr<TArithExpr>> args;
-  void children(std::vector<const TNode*>& out) const override;
+	std::vector<std::unique_ptr<TArithExpr>> args;
+	void children(std::vector<const TNode*>& out) const override;
 };
 
 class TMinus final : public TArithExpr {
 public:
-  std::unique_ptr<TArithExpr> head;
-  std::vector<std::unique_ptr<TArithExpr>> rest;
-  void children(std::vector<const TNode*>& out) const override;
+	std::unique_ptr<TArithExpr> head;
+	std::vector<std::unique_ptr<TArithExpr>> rest;
+	void children(std::vector<const TNode*>& out) const override;
 };
 
 class TMultiply final : public TArithExpr {
 public:
-  std::vector<std::unique_ptr<TArithExpr>> args;
-  void children(std::vector<const TNode*>& out) const override;
+	std::vector<std::unique_ptr<TArithExpr>> args;
+	void children(std::vector<const TNode*>& out) const override;
 };
 
 // --- Boolean Expressions ---
@@ -137,16 +137,16 @@ public:
 class TBoolExpr : public TNode {
 friend class TypedBuilder;
 public:
-  virtual ~TBoolExpr() = default;
-  std::string toString() const override;
+	virtual ~TBoolExpr() = default;
+	std::string toString() const override;
 protected:
 	BoolExpr* src_BoolExpr{nullptr};
 };
 
 class TCompare : public TBoolExpr {
 public:
-  std::unique_ptr<TArithExpr> lhs, rhs;
-  void children(std::vector<const TNode*>& out) const override;
+	std::unique_ptr<TArithExpr> lhs, rhs;
+	void children(std::vector<const TNode*>& out) const override;
 };
 
 class TGreaterThan final : public TCompare {};
@@ -158,8 +158,8 @@ class TNotEqual final : public TCompare {};
 
 class TConnective : public TBoolExpr {
 public:
-  std::vector<std::unique_ptr<TBoolExpr>> args;
-  void children(std::vector<const TNode*>& out) const override;
+	std::vector<std::unique_ptr<TBoolExpr>> args;
+	void children(std::vector<const TNode*>& out) const override;
 };
 
 class TAnd final : public TConnective {};
@@ -192,9 +192,9 @@ protected:
 class THiddenDefinition final : public TNode {
 friend class TypedBuilder;
 public:
-  std::shared_ptr<const SymbolInfo> symbol{};
-  void children(std::vector<const TNode*>& out) const override;
-  std::string toString() const override;
+	std::shared_ptr<const SymbolInfo> symbol{};
+	void children(std::vector<const TNode*>& out) const override;
+	std::string toString() const override;
 protected:
 	HiddenDefinition* src_HiddenDefinition{nullptr};
 };
@@ -202,9 +202,9 @@ protected:
 class TOutputDefinition final : public TNode {
 friend class TypedBuilder;
 public:
-  std::shared_ptr<const SymbolInfo> symbol{};
-  void children(std::vector<const TNode*>& out) const override;
-  std::string toString() const override;
+	std::shared_ptr<const SymbolInfo> symbol{};
+	void children(std::vector<const TNode*>& out) const override;
+	std::string toString() const override;
 protected:
 	OutputDefinition* src_OutputDefinition{nullptr};
 };

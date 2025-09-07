@@ -83,22 +83,22 @@ bool sameType(DType a, DType b) {
 }
 
 std::string shapeToString(const Shape& s) {
-  if (s.empty()) return "[]";
-  std::ostringstream oss;
-  oss << '[';
-  for (size_t i = 0; i < s.size(); ++i) {
-    if (i) oss << ',';
-    oss << s[i];
-  }
-  oss << ']';
-  return oss.str();
+	if (s.empty()) return "[]";
+	std::ostringstream oss;
+	oss << '[';
+	for (size_t i = 0; i < s.size(); ++i) {
+	if (i) oss << ',';
+	oss << s[i];
+	}
+	oss << ']';
+	return oss.str();
 }
 
 template <class T>
 std::string bnfcPrint(const T* p) {
-  if (!p) return "<null>";
-  PrintAbsyn pr;
-  return pr.print(const_cast<T*>(p));
+	if (!p) return "<null>";
+	PrintAbsyn pr;
+	return pr.print(const_cast<T*>(p));
 }
 
 // ---------- SymbolInfo ----------
@@ -109,7 +109,7 @@ size_t SymbolInfo::rank() const { return shape.size(); }
 // ---------- TElementType ----------
 
 void TElementType::children(std::vector<const TNode*>& out) const {
-  (void)out; // leaf
+	(void)out; // leaf
 }
 
 std::string TElementType::toString() const {
@@ -123,28 +123,28 @@ std::string TArithExpr::toString() const {
 }
 
 void TVarExpr::children(std::vector<const TNode*>& out) const {
-  (void)out;
+	(void)out;
 }
 
 void TLiteral::children(std::vector<const TNode*>& out) const {
-  (void)out;
+	(void)out;
 }
 
 void TNegate::children(std::vector<const TNode*>& out) const {
-  if (expr) out.push_back(expr.get());
+	if (expr) out.push_back(expr.get());
 }
 
 void TPlus::children(std::vector<const TNode*>& out) const {
-  for (auto const& a : args) if (a) out.push_back(a.get());
+	for (auto const& a : args) if (a) out.push_back(a.get());
 }
 
 void TMinus::children(std::vector<const TNode*>& out) const {
-  if (head) out.push_back(head.get());
-  for (auto const& r : rest) if (r) out.push_back(r.get());
+	if (head) out.push_back(head.get());
+	for (auto const& r : rest) if (r) out.push_back(r.get());
 }
 
 void TMultiply::children(std::vector<const TNode*>& out) const {
-  for (auto const& a : args) if (a) out.push_back(a.get());
+	for (auto const& a : args) if (a) out.push_back(a.get());
 }
 
 // ---------- TBoolExpr ----------
@@ -154,18 +154,18 @@ std::string TBoolExpr::toString() const {
 }
 
 void TCompare::children(std::vector<const TNode*>& out) const {
-  if (lhs) out.push_back(lhs.get());
-  if (rhs) out.push_back(rhs.get());
+	if (lhs) out.push_back(lhs.get());
+	if (rhs) out.push_back(rhs.get());
 }
 
 void TConnective::children(std::vector<const TNode*>& out) const {
-  for (auto const& a : args) if (a) out.push_back(a.get());
+	for (auto const& a : args) if (a) out.push_back(a.get());
 }
 
 // --- Assertion ---
 
 void TAssertion::children(std::vector<const TNode*>& out) const {
-  if (cond) out.push_back(cond.get());
+	if (cond) out.push_back(cond.get());
 }
 
 std::string TAssertion::toString() const {
@@ -175,7 +175,7 @@ std::string TAssertion::toString() const {
 // --- Definitions ---
 
 void TInputDefinition::children(std::vector<const TNode*>& out) const {
-  (void)out; 
+	(void)out; 
 }
 
 std::string TInputDefinition::toString() const {
@@ -184,7 +184,7 @@ std::string TInputDefinition::toString() const {
 
 
 void THiddenDefinition::children(std::vector<const TNode*>& out) const {
-  (void)out;
+	(void)out;
 }
 
 std::string THiddenDefinition::toString() const {
@@ -192,7 +192,7 @@ std::string THiddenDefinition::toString() const {
 }
 
 void TOutputDefinition::children(std::vector<const TNode*>& out) const {
-  (void)out; 
+	(void)out; 
 }
 
 std::string TOutputDefinition::toString() const {
@@ -214,7 +214,7 @@ std::string TNetworkDefinition::toString() const {
 // --- Version ---
 
 void TVersion::children(std::vector<const TNode*>& out) const {
-  (void)out;
+	(void)out;
 }
 
 std::string TVersion::toString() const {
@@ -224,8 +224,8 @@ std::string TVersion::toString() const {
 // --- Query ---
 
 void TQuery::children(std::vector<const TNode*>& out) const {
-  for (auto const& n : networks)   if (n) out.push_back(n.get());
-  for (auto const& a : assertions) if (a) out.push_back(a.get());
+	for (auto const& n : networks)   if (n) out.push_back(n.get());
+	for (auto const& a : assertions) if (a) out.push_back(a.get());
 }
 
 std::string TQuery::toString() const {
