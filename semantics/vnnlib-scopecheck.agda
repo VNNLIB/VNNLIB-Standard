@@ -1,7 +1,7 @@
 module vnnlib-scopecheck where
 
 open import Data.Nat as ℕ
-open import Data.Product as Product using (Σ; proj₁; proj₂)
+open import Data.Product as Product using (Σ; proj₁; proj₂; _,_)
 open import Data.Bool as Bool
 open import Data.Integer as ℤ using (∣_∣)
 open import Data.String as String using (String; _==_)
@@ -38,8 +38,17 @@ module _ (Σ : CheckContext) where
   Γ : Context
   Γ = convertΣtoΓ Σ
 
-  inferArithExprType : 𝐁.ArithExpr → Maybe (𝐄.ElementType)
-  inferArithExprType a = {!!}
+
+  inferArithExprType : 𝐁.ArithExpr → Maybe 𝐄.ElementType
+  inferArithExprType (varExpr x xs) = {!!}
+  inferArithExprType (valExpr x) = nothing
+  inferArithExprType (negate a) = inferArithExprType a
+  inferArithExprType (plus []) = nothing
+  inferArithExprType (plus (x ∷ as)) with inferArithExprType x
+  ... | nothing = inferArithExprType (plus as)
+  ... | just t = just t
+  inferArithExprType (minus a as) = List.foldl {!!} (inferArithExprType a) as
+  inferArithExprType (multiply as) = List.foldl {!!} nothing as
   
   checkArithExpr : {τ : 𝐄.ElementType } → 𝐁.ArithExpr → Result (𝐕.ArithExpr Γ τ)
   checkArithExpr (valExpr x) = success {!!}
@@ -85,18 +94,20 @@ module _ (Σ : CheckContext) where
     ... | just x | nothing = x
     ... | nothing | just x = x
     ... | nothing | nothing = real
+
+  -- wrapper function for checkCompExpr
+  checkComparative : ({τ : 𝐄.ElementType} → 𝐕.ArithExpr Γ τ → 𝐕.ArithExpr Γ τ → 𝐕.CompExpr Γ τ) → 𝐁.ArithExpr → 𝐁.ArithExpr → Result(𝐕.BoolExpr Γ)
+  checkComparative f b₁ b₂ = checkCompExpr (λ x x₁ → compExpr (_ , f x x₁)) b₁ b₂
   
   checkBoolExpr : 𝐁.BoolExpr → Result (𝐕.BoolExpr Γ)
-  checkBoolExpr (greaterThan a₁ a₂) = checkCompExpr {!!} a₁ a₂
-  checkBoolExpr (lessThan a₁ a₂) = checkCompExpr {!!} a₁ a₂
-  checkBoolExpr (greaterEqual a₁ a₂) = checkCompExpr {!!} a₁ a₂
-  checkBoolExpr (lessEqual a₁ a₂) = checkCompExpr {!!} a₁ a₂
-  checkBoolExpr (notEqual a₁ a₂) = checkCompExpr {!!} a₁ a₂
-  checkBoolExpr (equal a₁ a₂) = {!!}
+  checkBoolExpr (greaterThan a₁ a₂) = checkComparative greaterThan a₁ a₂
+  checkBoolExpr (lessThan a₁ a₂) = checkComparative lessThan a₁ a₂
+  checkBoolExpr (greaterEqual a₁ a₂) = checkComparative greaterEqual a₁ a₂
+  checkBoolExpr (lessEqual a₁ a₂) = checkComparative lessEqual a₁ a₂
+  checkBoolExpr (notEqual a₁ a₂) = checkComparative notEqual a₁ a₂
+  checkBoolExpr (equal a₁ a₂) = checkComparative equal a₁ a₂
   checkBoolExpr (BoolExpr.and bs) = {!!}
   checkBoolExpr (BoolExpr.or bs) = {!!}
---   checkBoolExpr (BoolExpr.and bs) = {!!}
---  checkBoolExpr (BoolExpr.or bs) = {!!}
   -- checkBoolExpr (BoolExpr.and []) = success (literal true)
   -- checkBoolExpr (BoolExpr.and (x ∷ bs)) with checkBoolExpr x
   -- ... | error = error
