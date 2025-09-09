@@ -220,40 +220,47 @@ In a \vnnlib{} query, Network Declarations are used to construct the static cont
         \centering
         \resizebox{\textwidth}{!}{
             \begin{tabular}{@{}lcl@{}}
-            $\langle$ElementType$\rangle$ & $\ni$ & $\tau ::= \text{the set of all ONNX element types}$ \\
+            $\langle$ElementType$\rangle$ & $\ni$ & 
+            \begin{tabular}[t]{@{}l@{}}
+                $\tau ::= \left\{\text{int4, int8, int16, int32, int64,}\right.$ \\
+                $\quad\quad\quad\text{uint4, uint8, uint16, uint32, uint64,}$ \\
+                $\quad\quad\quad\text{float16, float32, float64, bfloat16,} $\\
+                $\quad\quad\quad\text{float8e4m3fn, float8e5m2, float4e2m1,}$\\
+                $\quad\quad\quad\left.\text{float8e4m3fnuz, float8e5m2fnuz}\right\} $\\
+                \end{tabular} \\
             $\langle$TensorShape$\rangle$ & $\ni$ & $s ::= [i_0, ..., i_n] \quad i \in \mathbb{N}$ \\
             $\langle$VariableName$\rangle$ & $\ni$ & $v ::= \texttt{\textasciicircum[A-Za-z][A-Za-z0-9\_]*\$} \quad \text{(regex)}$ \\
-            $\langle$InputDeclaration$\rangle$ & $\ni$ & $I::= \texttt{declareInput}~v~\tau~s$ \\
-            $\langle$HiddenDeclaration$\rangle$ & $\ni$ & $H ::= \texttt{declareHidden}~v~\tau~s$ \\
-            $\langle$OutputDeclaration$\rangle$ & $\ni$ & $O ::= \texttt{declareOutput}~v~\tau~s$ \\
-            $\langle$NetworkDeclaration$\rangle$ & $\ni$ & $D ::= \texttt{declareNetwork}~v~(I_0~...~I_n)^+~(H_0~...~H_n)^*~(O_0~...~O_n)^+ $ \\ \\
+            $\langle$InputDeclaration$\rangle$ & $\ni$ & $I::= (\texttt{declareInput}~v~\tau~s$) \\
+            $\langle$HiddenDeclaration$\rangle$ & $\ni$ & $H ::= (\texttt{declareHidden}~v~\tau~s$) \\
+            $\langle$OutputDeclaration$\rangle$ & $\ni$ & $O ::= (\texttt{declareOutput}~v~\tau~s$) \\
+            $\langle$NetworkDeclaration$\rangle$ & $\ni$ & $D ::= (\texttt{declareNetwork}~v~(I_0~...~I_n)^+~(H_0~...~H_n)^*~(O_0~...~O_n)^+$) \\ \\
             $\langle$Double$\rangle$ & $\ni$ & $d ::= \mathbf{Double}$ \\
             $\langle$TensorIndex$\rangle$ & $\ni$ & $j ::= [i_0,...,i_n]^+ \quad i \in \mathbb{N}$ \\
             $\langle$ArithExpr$\rangle$ & $\ni$ & 
                 \begin{tabular}[t]{@{}l@{}}
                 $a ::= d$ \\
                 $\quad\;|\; v~j$ \\
-                $\quad\;|\; \texttt{-}~a$ \\
-                $\quad\;|\; \texttt{+}~a_0~...~a_n$ \\
-                $\quad\;|\;\texttt{×}~a_0~...~a_n$ \\
-                $\quad\;|\;\texttt{-}~a_0~...~a_n$ \\
+                $\quad\;|\; (\texttt{-}~a$) \\
+                $\quad\;|\; (\texttt{+}~a_0~...~a_n$) \\
+                $\quad\;|\; (\texttt{×}~a_0~...~a_n$) \\
+                $\quad\;|\; (\texttt{-}~a_0~...~a_n$) \\
                 \end{tabular} \\
             $\langle$CompExpr$\rangle$ & $\ni$ & 
                 \begin{tabular}[t]{@{}l@{}}
-                $c ::= \texttt{>=}~a_1~a_2$ \\
-                $\quad\;|\; \texttt{>}~~a_1~a_2$ \\
-                $\quad\;|\; \texttt{<=}~a_1~a_2$ \\
-                $\quad\;|\; \texttt{<}~~a_1~a_2$ \\
-                $\quad\;|\; \texttt{==}~a_1~a_2$ \\
-                $\quad\;|\; \texttt{!=}~a_1~a_2$
+                $c ::= (\texttt{>=}~a_1~a_2$) \\
+                $\quad\;|\; (\texttt{>}~~a_1~a_2$) \\
+                $\quad\;|\; (\texttt{<=}~a_1~a_2$) \\
+                $\quad\;|\; (\texttt{<}~~a_1~a_2$) \\
+                $\quad\;|\; (\texttt{==}~a_1~a_2$) \\
+                $\quad\;|\; (\texttt{!=}~a_1~a_2$)
                 \end{tabular} \\
             $\langle$BoolExpr$\rangle$ & $\ni$ & 
                 \begin{tabular}[t]{@{}l@{}}
                 $b ::= c$ \\
-                $\quad\;|\; \texttt{and}~b_0~...~b_n$ \\
-                $\quad\;|\; \texttt{or}~b_0~...~b_n$
+                $\quad\;|\; (\texttt{and}~b_0~...~b_n$) \\
+                $\quad\;|\; (\texttt{or}~b_0~...~b_n$)
                 \end{tabular} \\
-            $\langle$Assertion$\rangle$ & $\ni$ & $A ::= \texttt{assert}~b $ \\ \\
+            $\langle$Assertion$\rangle$ & $\ni$ & $A ::= (\texttt{assert}~b$) \\ \\
             $\langle$Query$\rangle$ & $\ni$ & $Q ::= (D_0~...~D_n)~(A_0~...~A_n)^+$ \\
             \end{tabular}
         }
@@ -268,6 +275,22 @@ In a \vnnlib{} query, Network Declarations are used to construct the static cont
                 d_{head} \mathrel{\mathop::} d_{tail} \quad : \quad d_{head} \mathrel{\mathop::} \Gamma
             }
             \\
+            \inferrule*[]{\;}{
+                \Gamma \Vdash d : \tau
+            }
+            \hspace{1cm}
+            \inferrule*[]{
+                \Gamma [v] : \tau \quad j : \text{validIndices} (\Gamma[v])
+            }{
+                \Gamma \Vdash v~j : \tau
+            }
+            \hspace{1cm}
+            \inferrule*[]{
+                \Gamma \Vdash a : \tau
+            }{
+                \Gamma \Vdash (\texttt{-}~a) : \tau
+            }
+            \\
             \inferrule*[Right=ArithExpr]{
                 \Gamma \Vdash a_0 : \tau \quad ... \quad \Gamma \Vdash a_n : \tau
             }{
@@ -280,6 +303,10 @@ In a \vnnlib{} query, Network Declarations are used to construct the static cont
                 \Gamma \Vdash (\lozenge~a_1~a_2) : \mathbf{Bool} \quad \lozenge \in \{\texttt{>=}, \texttt{>}, \texttt{<}, \texttt{<=}, \texttt{==}, \texttt{!=}\}
             }
             \\
+            \inferrule*[]{\;}{
+                \Gamma \Vdash c : \mathbf{Bool}
+            }
+            \hspace{1cm}
             \inferrule*[Right=BoolExpr]{
                 \Gamma \Vdash b_0 :  \mathbf{Bool} \quad ... \quad \Gamma \Vdash b_n : \mathbf{Bool}
             }{
