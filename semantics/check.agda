@@ -31,8 +31,8 @@ open RawMonad monad
 data VariableBinding : Set where
   var : 𝐕.VariableName → 𝐓.TensorShape → 𝐄.ElementType → VariableBinding
 
-getVariableNameᴮ : VariableBinding → 𝐁.VariableName
-getVariableNameᴮ (var (SVariableName x) x₁ x₂) = variableName x
+getVariableNameⱽ : VariableBinding → 𝐕.VariableName
+getVariableNameⱽ (var x x₁ x₂) = x
 
 getTensorShape : VariableBinding → 𝐓.TensorShape
 getTensorShape (var x x₁ x₂) = x₁
@@ -74,12 +74,12 @@ convertNetworkBindingToDef networkName (networkBinding inputs₁ outputs₁) = d
 open NetworkBinding
 
 variableIndexInNetworkᵢₙₚᵤₜ : (n : NetworkBinding) → (varName : 𝐁.VariableName) → Result (Fin (List.length (toList (inputs n))))
-variableIndexInNetworkᵢₙₚᵤₜ Ν name with any? (λ x → ⟦ name ⟧asString String.≟ ⟦ getVariableNameᴮ x ⟧asString) (toList (inputs Ν))
+variableIndexInNetworkᵢₙₚᵤₜ Ν name with any? (λ x → ⟦ name ⟧asString String.≟ ⟦ getVariableNameⱽ x ⟧asStringᵥ) (toList (inputs Ν))
 ... | yes p = success (index p)
 ... | no ¬p = error "Variable Name not in inputs"
 
 variableIndexInNetworkₒᵤₜₚᵤₜ : (n : NetworkBinding) → (varName : 𝐁.VariableName) → Result (Fin (List.length (toList (outputs n))))
-variableIndexInNetworkₒᵤₜₚᵤₜ Ν name with any? (λ x → ⟦ name ⟧asString String.≟ ⟦ getVariableNameᴮ x ⟧asString) (toList (outputs Ν))
+variableIndexInNetworkₒᵤₜₚᵤₜ Ν name with any? (λ x → ⟦ name ⟧asString String.≟ ⟦ getVariableNameⱽ x ⟧asStringᵥ) (toList (outputs Ν))
 ... | yes p = success (index p)
 ... | no ¬p = error "Variable Input Name must be unique"
 
@@ -107,7 +107,7 @@ variableNetworkIndex varName Γ with any? (λ x → isResultSuccess x Bool.≟ t
 ... | no ¬p = error ""
 
 isVariableNameInVariableBinding : 𝐁.VariableName → List⁺ VariableBinding → Bool
-isVariableNameInVariableBinding varName vars with any? (λ x → ⟦ varName ⟧asString String.≟ ⟦ getVariableNameᴮ x ⟧asString) (toList vars)
+isVariableNameInVariableBinding varName vars with any? (λ x → ⟦ varName ⟧asString String.≟ ⟦ getVariableNameⱽ x ⟧asStringᵥ) (toList vars)
 ... | yes _ = true
 ... | no _ = false
 

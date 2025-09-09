@@ -34,7 +34,6 @@ open import Effect.Monad
 
 open RawMonad monad
 
-
 module _ (Σ : CheckContext) where
   Γ : Context
   Γ = convertΣtoΓ Σ
@@ -42,8 +41,9 @@ module _ (Σ : CheckContext) where
   inferArithExprType : 𝐁.ArithExpr → Maybe (𝐄.ElementType)
   inferArithExprType a = {!!}
   
-  checkExpressionₐᵣᵢₜₕ : {τ : 𝐄.ElementType } → 𝐁.ArithExpr → Result (𝐕.ArithExpr Γ τ)
-  checkExpressionₐᵣᵢₜₕ (varExpr x xs) with variableNetworkIndex x Σ
+  checkArithExpr : {τ : 𝐄.ElementType } → 𝐁.ArithExpr → Result (𝐕.ArithExpr Γ τ)
+  checkArithExpr (valExpr x) = success {!!}
+  checkArithExpr (varExpr x xs) with variableNetworkIndex x Σ
   ... | error _ = error ""
   ... | success n with variableIndexInNetworkᵢₙₚᵤₜ (proj₁ (List.lookup Σ n)) x
   ...   | success i = success (varInput networkInd inputInd {!!})
@@ -64,20 +64,19 @@ module _ (Σ : CheckContext) where
       outputInd : Fin (List.length (NetworkType.outputShape (List.lookup Γ (subst Fin (length-CheckContext-Context Σ) n))))
       outputInd = subst Fin (length-outputs Σ n) o
       
-  checkExpressionₐᵣᵢₜₕ (negate a) with checkExpressionₐᵣᵢₜₕ a
+  checkArithExpr (negate a) with checkArithExpr a
   ... | error _ = error ""
   ... | success x = success (negate x)
-  checkExpressionₐᵣᵢₜₕ (plus as) = List.foldl (λ z z₁ → {!!}) (error "") as
-  checkExpressionₐᵣᵢₜₕ (minus a as) = List.foldl (λ z z₁ → {!!}) (checkExpressionₐᵣᵢₜₕ a) as
-  checkExpressionₐᵣᵢₜₕ (multiply as) = List.foldl (λ z z₁ → {!!}) (error "") as
-  -- BNFC literals as strings
+  checkArithExpr (plus as) = List.foldl (λ z z₁ → {!!}) (error "") as
+  checkArithExpr (minus a as) = List.foldl (λ z z₁ → {!!}) (checkArithExpr a) as
+  checkArithExpr (multiply as) = List.foldl (λ z z₁ → {!!}) (error "") as
 
   -- check boolean expressions
-  checkComparativeExpression : ({τ : 𝐄.ElementType} → 𝐕.ArithExpr Γ τ → 𝐕.ArithExpr Γ τ → 𝐕.BoolExpr Γ) → 𝐁.ArithExpr → 𝐁.ArithExpr → Result(𝐕.BoolExpr Γ)
-  checkComparativeExpression f b₁ b₂ = do
+  checkCompExpr : ({τ : 𝐄.ElementType} → 𝐕.ArithExpr Γ τ → 𝐕.ArithExpr Γ τ → 𝐕.BoolExpr Γ) → 𝐁.ArithExpr → 𝐁.ArithExpr → Result(𝐕.BoolExpr Γ)
+  checkCompExpr f b₁ b₂ = do
     let type = findType b₁ b₂
-    t₁ ← checkExpressionₐᵣᵢₜₕ {type} b₁
-    t₂ ← checkExpressionₐᵣᵢₜₕ {type} b₂
+    t₁ ← checkArithExpr {type} b₁
+    t₂ ← checkArithExpr {type} b₂
     return (f t₁ t₂)
     where
     findType : 𝐁.ArithExpr → 𝐁.ArithExpr → 𝐄.ElementType
@@ -86,33 +85,29 @@ module _ (Σ : CheckContext) where
     ... | just x | nothing = x
     ... | nothing | just x = x
     ... | nothing | nothing = real
-
-  
-  checkCompExpr : {!𝐁.CompExpr ? ?!} → Result (𝐕.CompExpr Γ {!!})
-  checkCompExpr a = {!!}
-
---  checkExpressionᵇᵒᵒˡ (greaterThan a₁ a₂) = checkComparativeExpression greaterThan a₁ a₂
---  checkExpressionᵇᵒᵒˡ (lessThan a₁ a₂) = checkComparativeExpression lessThan a₁ a₂
---  checkExpressionᵇᵒᵒˡ (greaterEqual a₁ a₂) = checkComparativeExpression greaterEqual a₁ a₂
---  checkExpressionᵇᵒᵒˡ (lessEqual a₁ a₂) = checkComparativeExpression lessEqual a₁ a₂
---  checkExpressionᵇᵒᵒˡ (notEqual a₁ a₂) = checkComparativeExpression notEqual a₁ a₂
---  checkExpressionᵇᵒᵒˡ (equal a₁ a₂) = checkComparativeExpression equal a₁ a₂
   
   checkBoolExpr : 𝐁.BoolExpr → Result (𝐕.BoolExpr Γ)
-  
+  checkBoolExpr (greaterThan a₁ a₂) = checkCompExpr {!!} a₁ a₂
+  checkBoolExpr (lessThan a₁ a₂) = checkCompExpr {!!} a₁ a₂
+  checkBoolExpr (greaterEqual a₁ a₂) = checkCompExpr {!!} a₁ a₂
+  checkBoolExpr (lessEqual a₁ a₂) = checkCompExpr {!!} a₁ a₂
+  checkBoolExpr (notEqual a₁ a₂) = checkCompExpr {!!} a₁ a₂
+  checkBoolExpr (equal a₁ a₂) = {!!}
   checkBoolExpr (BoolExpr.and bs) = {!!}
   checkBoolExpr (BoolExpr.or bs) = {!!}
-  -- checkExpressionᵇᵒᵒˡ (BoolExpr.and []) = success (literal true)
-  -- checkExpressionᵇᵒᵒˡ (BoolExpr.and (x ∷ bs)) with checkExpressionᵇᵒᵒˡ x
+--   checkBoolExpr (BoolExpr.and bs) = {!!}
+--  checkBoolExpr (BoolExpr.or bs) = {!!}
+  -- checkBoolExpr (BoolExpr.and []) = success (literal true)
+  -- checkBoolExpr (BoolExpr.and (x ∷ bs)) with checkBoolExpr x
   -- ... | error = error
-  -- ... | success x' with checkExpressionᵇᵒᵒˡ (BoolExpr.and bs)
+  -- ... | success x' with checkBoolExpr (BoolExpr.and bs)
   -- ... | error = error
   -- ... | success bs' = success (andExpr (x' ∷ bs' ∷ []))
-  -- checkExpressionᵇᵒᵒˡ (BoolExpr.or bs) = {!!} -- List.foldl (connectives orExpr) (success (literal false)) bs
+  -- checkBoolExpr (BoolExpr.or bs) = {!!} -- List.foldl (connectives orExpr) (success (literal false)) bs
   --   where
   --     connectives : (List (𝐕.BoolExpr Γ) → 𝐕.BoolExpr Γ) → Result (𝐕.BoolExpr Γ) → 𝐁.BoolExpr → Result (𝐕.BoolExpr Γ)
   --     connectives v error _ = error
-  --     connectives v (success x) c with checkExpressionᵇᵒᵒˡ c
+  --     connectives v (success x) c with checkBoolExpr c
   --     ... | error = error
   --     ... | success c = success (v (c ∷ List.[ x ]))    
 

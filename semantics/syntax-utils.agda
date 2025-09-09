@@ -8,13 +8,17 @@ open import vnnlib-syntax as 𝐕
 open import Data.Nat as ℕ
 open import Data.Integer as ℤ using (∣_∣)
 open import vnnlib-types as 𝐄
+open import Data.Maybe using (Maybe)
 
 -- convert the BNFC VariableName to agda string type
 ⟦_⟧asString : 𝐁.VariableName → String
-⟦ (variableName name) ⟧asString = name
+⟦ variableName (#pair pos name) ⟧asString = name
 
 ⟦_⟧asStringᵥ : 𝐕.VariableName → String
 ⟦ (SVariableName name) ⟧asStringᵥ = name
+
+⟦_⟧asStringₙ : 𝐁.Number → String
+⟦ number (#pair pos name) ⟧asStringₙ = name
 
 convertElementType : 𝐁.ElementType → 𝐄.ElementType
 convertElementType genericElementType = real
@@ -41,8 +45,9 @@ convertElementType elementTypeBool = boolType
 convertElementType elementTypeString = stringType
 
 convertVariableName : 𝐁.VariableName → 𝐕.VariableName
-convertVariableName (variableName x) = SVariableName x
+convertVariableName (variableName (#pair x x₁)) = SVariableName x₁
 
+postulate convertIndices : List 𝐁.Number → Maybe (List ℕ) -- convert a list of number to valid indices
 postulate convertTensorShape : 𝐁.TensorShape → List ℕ
 -- convertTensorShape scalarDims = []
 -- convertTensorShape (tensorDims []) = []
