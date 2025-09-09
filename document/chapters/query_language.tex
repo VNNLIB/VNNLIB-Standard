@@ -245,18 +245,14 @@ In a \vnnlib{} query, Network Declarations are used to construct the static cont
                 $\quad\;|\; (\texttt{×}~a_0~...~a_n$) \\
                 $\quad\;|\; (\texttt{-}~a_0~...~a_n$) \\
                 \end{tabular} \\
-            $\langle$CompExpr$\rangle$ & $\ni$ & 
+            $\langle$BoolExpr$\rangle$ & $\ni$ & 
                 \begin{tabular}[t]{@{}l@{}}
-                $c ::= (\texttt{>=}~a_1~a_2$) \\
+                $b ::= (\texttt{>=}~a_1~a_2$) \\
                 $\quad\;|\; (\texttt{>}~~a_1~a_2$) \\
                 $\quad\;|\; (\texttt{<=}~a_1~a_2$) \\
                 $\quad\;|\; (\texttt{<}~~a_1~a_2$) \\
                 $\quad\;|\; (\texttt{==}~a_1~a_2$) \\
-                $\quad\;|\; (\texttt{!=}~a_1~a_2$)
-                \end{tabular} \\
-            $\langle$BoolExpr$\rangle$ & $\ni$ & 
-                \begin{tabular}[t]{@{}l@{}}
-                $b ::= c$ \\
+                $\quad\;|\; (\texttt{!=}~a_1~a_2$) \\
                 $\quad\;|\; (\texttt{and}~b_0~...~b_n$) \\
                 $\quad\;|\; (\texttt{or}~b_0~...~b_n$)
                 \end{tabular} \\
@@ -280,32 +276,29 @@ In a \vnnlib{} query, Network Declarations are used to construct the static cont
             }
             \hspace{1cm}
             \inferrule*[]{
-                \Gamma [v] : \tau \quad j : \text{validIndices} (\Gamma[v])
+                \Gamma [v] : (\tau,s) \quad j : \text{validIndices} (j, s)
             }{
                 \Gamma \Vdash v~j : \tau
             }
             \hspace{1cm}
-            \inferrule*[]{
+            \inferrule*[Right=ArithExpr]{
                 \Gamma \Vdash a : \tau
             }{
                 \Gamma \Vdash (\texttt{-}~a) : \tau
             }
             \\
-            \inferrule*[Right=ArithExpr]{
+            \inferrule*[Right=ArithExpr N-ary]{
                 \Gamma \Vdash a_0 : \tau \quad ... \quad \Gamma \Vdash a_n : \tau
             }{
                 \Gamma \Vdash (\circledast~a_0~...~a_n) : \tau \quad \circledast \in \{\texttt{+}, \texttt{-}, \texttt{×}\}
             }
             \\
-            \inferrule*[Right=CompExpr]{
+            \inferrule*[Right=BoolExpr Comparisons]{
                 \Gamma \Vdash a_1 : \tau \quad \Gamma \Vdash a_2 : \tau
             }{
                 \Gamma \Vdash (\lozenge~a_1~a_2) : \mathbf{Bool} \quad \lozenge \in \{\texttt{>=}, \texttt{>}, \texttt{<}, \texttt{<=}, \texttt{==}, \texttt{!=}\}
             }
             \\
-            \inferrule*[]{\;}{
-                \Gamma \Vdash c : \mathbf{Bool}
-            }
             \hspace{1cm}
             \inferrule*[Right=BoolExpr]{
                 \Gamma \Vdash b_0 :  \mathbf{Bool} \quad ... \quad \Gamma \Vdash b_n : \mathbf{Bool}
