@@ -37,6 +37,9 @@ getVariableNameⱽ (var x x₁ x₂) = x
 getTensorShape : VariableBinding → 𝐓.TensorShape
 getTensorShape (var x x₁ x₂) = x₁
 
+getElementType : VariableBinding → 𝐄.ElementType
+getElementType (var x x₁ x₂) = x₂
+
 fromVariableBindingᵢ : VariableBinding → 𝐕.InputDefinition
 fromVariableBindingᵢ (var x x₁ x₂) = declareInput x x₂ x₁
 

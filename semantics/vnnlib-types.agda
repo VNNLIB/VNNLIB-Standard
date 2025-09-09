@@ -1,6 +1,8 @@
 module vnnlib-types where
 
-open import Data.Rational as ℚ
+open import Data.Rational as ℚ hiding (_≟_)
+open import Relation.Binary.PropositionalEquality using (_≡_; refl)
+open import Relation.Nullary using (Dec)
 
 -- -- Element Types
 data ElementType : Set where
@@ -30,3 +32,7 @@ data ElementType : Set where
 -- Add semantics for each type
 ElementTypeToSet : ElementType → Set
 ElementTypeToSet e = ℚ
+
+
+postulate _≟_ : (x y : ElementType) → Dec (x ≡ y)
+-- a ≟ b = {!   !}

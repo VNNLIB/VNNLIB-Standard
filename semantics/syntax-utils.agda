@@ -20,6 +20,8 @@ open import Data.Maybe using (Maybe)
 ⟦_⟧asStringₙ : 𝐁.Number → String
 ⟦ number (#pair pos name) ⟧asStringₙ = name
 
+postulate parseNumber : (τ : 𝐄.ElementType) → 𝐁.Number → Maybe (𝐄.ElementTypeToSet τ)
+
 convertElementType : 𝐁.ElementType → 𝐄.ElementType
 convertElementType genericElementType = real
 convertElementType elementTypeF16 = float16

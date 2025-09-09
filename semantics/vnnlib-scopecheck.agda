@@ -38,20 +38,35 @@ module _ (Σ : CheckContext) where
   Γ : Context
   Γ = convertΣtoΓ Σ
 
+  isTypedVariable : 𝐄.ElementType → VariableBinding → Bool
+  isTypedVariable τ v with τ 𝐄.≟ getElementType v
+  ... | yes p = true
+  ... | no _ = false
+
+  postulate validIndices : List 𝐁.Number → (s : 𝐓.TensorShape) → Result (𝐓.TensorIndices s)
 
   inferArithExprType : 𝐁.ArithExpr → Maybe 𝐄.ElementType
-  inferArithExprType (varExpr x xs) = {!!}
+  inferArithExprType (varExpr x xs) with variableNetworkIndex x Σ
+  ... | error _ = nothing
+  ... | success n with variableIndexInNetworkᵢₙₚᵤₜ (proj₁ (List.lookup Σ n)) x
+  ... | success i = just (getElementType (List.lookup (toList (NetworkBinding.inputs (proj₁ (List.lookup Σ n)))) i))
+  ... | error _ with variableIndexInNetworkₒᵤₜₚᵤₜ (proj₁ (List.lookup Σ n)) x
+  ... | success j = just (getElementType (List.lookup (toList (NetworkBinding.outputs (proj₁ (List.lookup Σ n)))) j))
+  ... | error _ = nothing -- out-of-scope
   inferArithExprType (valExpr x) = nothing
   inferArithExprType (negate a) = inferArithExprType a
-  inferArithExprType (plus []) = nothing
-  inferArithExprType (plus (x ∷ as)) with inferArithExprType x
-  ... | nothing = inferArithExprType (plus as)
-  ... | just t = just t
+  inferArithExprType (plus as) = {!!}
+  -- inferArithExprType (plus []) = nothing
+  -- inferArithExprType (plus (x ∷ as)) with inferArithExprType x
+  -- ... | nothing = inferArithExprType (plus as)
+  -- ... | just t = just t
   inferArithExprType (minus a as) = List.foldl {!!} (inferArithExprType a) as
   inferArithExprType (multiply as) = List.foldl {!!} nothing as
   
-  checkArithExpr : {τ : 𝐄.ElementType } → 𝐁.ArithExpr → Result (𝐕.ArithExpr Γ τ)
-  checkArithExpr (valExpr x) = success {!!}
+  checkArithExpr : {τ : 𝐄.ElementType} → 𝐁.ArithExpr → Result (𝐕.ArithExpr Γ τ)
+  checkArithExpr {τ} (valExpr x) with parseNumber τ x
+  ... | just t = success (constant t)
+  ... | nothing = error "Cannot parse number"
   checkArithExpr (varExpr x xs) with variableNetworkIndex x Σ
   ... | error _ = error ""
   ... | success n with variableIndexInNetworkᵢₙₚᵤₜ (proj₁ (List.lookup Σ n)) x
@@ -107,20 +122,7 @@ module _ (Σ : CheckContext) where
   checkBoolExpr (notEqual a₁ a₂) = checkComparative notEqual a₁ a₂
   checkBoolExpr (equal a₁ a₂) = checkComparative equal a₁ a₂
   checkBoolExpr (BoolExpr.and bs) = {!!}
-  checkBoolExpr (BoolExpr.or bs) = {!!}
-  -- checkBoolExpr (BoolExpr.and []) = success (literal true)
-  -- checkBoolExpr (BoolExpr.and (x ∷ bs)) with checkBoolExpr x
-  -- ... | error = error
-  -- ... | success x' with checkBoolExpr (BoolExpr.and bs)
-  -- ... | error = error
-  -- ... | success bs' = success (andExpr (x' ∷ bs' ∷ []))
-  -- checkBoolExpr (BoolExpr.or bs) = {!!} -- List.foldl (connectives orExpr) (success (literal false)) bs
-  --   where
-  --     connectives : (List (𝐕.BoolExpr Γ) → 𝐕.BoolExpr Γ) → Result (𝐕.BoolExpr Γ) → 𝐁.BoolExpr → Result (𝐕.BoolExpr Γ)
-  --     connectives v error _ = error
-  --     connectives v (success x) c with checkBoolExpr c
-  --     ... | error = error
-  --     ... | success c = success (v (c ∷ List.[ x ]))    
+  checkBoolExpr (BoolExpr.or bs) = {!!} 
 
 scopeCheckAssertions : (Σ : CheckContext) → List⁺ 𝐁.Assertion → Result (List (𝐕.Assertion (convertΣtoΓ Σ)))
 scopeCheckAssertions Σ asserts = List⁺.foldl checkAssertₙ checkAssert asserts
