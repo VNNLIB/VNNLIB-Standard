@@ -218,7 +218,6 @@ In a \vnnlib{} query, Network Declarations are used to construct the static cont
     \centering
     \begin{minipage}[t]{1\textwidth}
         \centering
-        \resizebox{\textwidth}{!}{
             \begin{tabular}{@{}lcl@{}}
             $\langle$ElementType$\rangle$ & $\ni$ & 
             \begin{tabular}[t]{@{}l@{}}
@@ -259,18 +258,38 @@ In a \vnnlib{} query, Network Declarations are used to construct the static cont
             $\langle$Assertion$\rangle$ & $\ni$ & $A ::= (\texttt{assert}~b$) \\ \\
             $\langle$Query$\rangle$ & $\ni$ & $Q ::= (D_0~...~D_n)~(A_0~...~A_n)^+$ \\
             \end{tabular}
-        }
     \caption{\vnnlib{} format typing syntax}
     \end{minipage}
+\end{figure}
 
-    \begin{minipage}[t]{0.9\textwidth}
+\begin{figure}
+    \begin{minipage}[t]{1\textwidth}
+        \resizebox{\textwidth}{!}{
         \begin{mathpar}
-            \inferrule*[Right=Constructed Context]{
-                d_{head} \mathrel{\mathop::} \text{$\langle$NetworkDeclaration$\rangle$} \quad d_{tail} \mathrel{\mathop::} \Gamma
-            }{
-                d_{head} \mathrel{\mathop::} d_{tail} \quad : \quad d_{head} \mathrel{\mathop::} \Gamma
+            \inferrule*[Right=InputDeclaration]{\;}{
+                \Gamma \vdash (\texttt{declareInput}~v~\tau~s) : \Gamma := \Gamma, v :(\tau,s) 
             }
             \\
+            \inferrule*[Right=HiddenDeclaration]{\;}{
+                \Gamma \vdash (\texttt{declareHidden}~v~\tau~s) : \Gamma := \Gamma, v :(\tau,s)
+            }
+            \\
+            \inferrule*[Right=OutputDeclaration]{\;}{
+                \Gamma \vdash (\texttt{declareOutput}~v~\tau~s) : \Gamma := \Gamma, v :(\tau,s)
+            }
+            \\
+            \inferrule*[Right=NetworkDeclaration]{
+                \Gamma_{i=0} := \Gamma \vdash I_0 \\
+                \Gamma_{h=0} := \Gamma_I \vdash H_0\\
+                \Gamma_{o=0} := \Gamma_H \vdash O_o \\
+                \Gamma_{i+1} := \Gamma_i \vdash I_i \\
+                \Gamma_{h+1} := \Gamma_h \vdash H_h \\
+                \Gamma_{o+1} := \Gamma_o \vdash O_o \\
+            }{
+                \Gamma \vdash (\texttt{declareNetwork}~v~(I_0~...~I_n)^+~(H_0~...~H_n)^*~(O_0~...~O_n)^+) : \Gamma_O
+            } \\
+            \hspace*{\fill}\text{\small where $\Gamma_O$ is the final context after extending by the last output declaration}
+            \\ \\ \\
             \inferrule*[]{\;}{
                 \Gamma \Vdash d : \tau
             }
@@ -306,6 +325,7 @@ In a \vnnlib{} query, Network Declarations are used to construct the static cont
                 \Gamma \Vdash (\Box~b_0~...~b_n) : \mathbf{Bool} \quad \Box \in \{\texttt{and}, \texttt{or}\}
             }
         \end{mathpar}
+        }
     \caption{Typing judgements}
     \end{minipage}
 \end{figure}
