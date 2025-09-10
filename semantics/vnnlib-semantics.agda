@@ -90,4 +90,8 @@ module _ (Γ : Context) (ε : Environment Γ) where
   ⟦_⟧ₚ : Assertion Γ → Bool
   ⟦ (assert p) ⟧ₚ = ⟦ p ⟧ᵇ
 
+  
+⟦_⟧q : Query → Set
+⟦ mkQuery networks x ⟧q = let ctx = mkContext networks in {!!}
+
 

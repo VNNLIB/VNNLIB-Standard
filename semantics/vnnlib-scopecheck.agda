@@ -43,7 +43,7 @@ module _ (Σ : CheckContext) where
   ... | yes p = true
   ... | no _ = false
 
-  postulate validIndices : List 𝐁.Number → (s : 𝐓.TensorShape) → Result (𝐓.TensorIndices s)
+  postulate validIndices : List 𝐁.Number → (s : 𝐓.TensorShape) → Result (𝐓.TensorIndices s) -- Data.Nat.Show readMaybe
 
   inferArithExprType : 𝐁.ArithExpr → Maybe 𝐄.ElementType
   inferArithExprType (varExpr x xs) with variableNetworkIndex x Σ
@@ -56,48 +56,54 @@ module _ (Σ : CheckContext) where
   inferArithExprType (valExpr x) = nothing
   inferArithExprType (negate a) = inferArithExprType a
   inferArithExprType (plus as) = {!!}
-  -- inferArithExprType (plus []) = nothing
-  -- inferArithExprType (plus (x ∷ as)) with inferArithExprType x
-  -- ... | nothing = inferArithExprType (plus as)
-  -- ... | just t = just t
   inferArithExprType (minus a as) = List.foldl {!!} (inferArithExprType a) as
   inferArithExprType (multiply as) = List.foldl {!!} nothing as
   
-  checkArithExpr : {τ : 𝐄.ElementType} → 𝐁.ArithExpr → Result (𝐕.ArithExpr Γ τ)
-  checkArithExpr {τ} (valExpr x) with parseNumber τ x
-  ... | just t = success (constant t)
-  ... | nothing = error "Cannot parse number"
-  checkArithExpr {τ} (varExpr x xs) with variableNetworkIndex x Σ
-  ... | error _ = error ""
-  ... | success n with variableIndexInNetworkᵢₙₚᵤₜ (proj₁ (List.lookup Σ n)) x
-  ...   | success i = if isTypedVariable τ varBinding then success (varInput networkInd inputInd {!!}) else error "Variable type mis-match"
-    where
-      varBinding : VariableBinding
-      varBinding = List.lookup (toList (NetworkBinding.inputs (proj₁ (List.lookup Σ n)))) i
-      
-      networkInd : Fin (List.length (Γ))
-      networkInd = subst Fin (length-CheckContext-Context Σ) n      
+  mutual
+    checkArithExpr : {τ : 𝐄.ElementType} → 𝐁.ArithExpr → Result (𝐕.ArithExpr Γ τ)
+    checkArithExpr {τ} (valExpr x) with parseNumber τ x
+    ... | just t = success (constant t)
+    ... | nothing = error "Cannot parse number"
+    checkArithExpr {τ} (varExpr x xs) with variableNetworkIndex x Σ
+    ... | error _ = error ""
+    ... | success n with variableIndexInNetworkᵢₙₚᵤₜ (proj₁ (List.lookup Σ n)) x
+    ...   | success i = if isTypedVariable τ varBinding then success (varInput networkInd inputInd {!!}) else error "Variable type mis-match"
+      where
+        varBinding : VariableBinding
+        varBinding = List.lookup (toList (NetworkBinding.inputs (proj₁ (List.lookup Σ n)))) i
+        
+        networkInd : Fin (List.length (Γ))
+        networkInd = subst Fin (length-CheckContext-Context Σ) n      
 
-      inputInd : Fin (List.length (NetworkType.inputShape (List.lookup Γ (subst Fin (length-CheckContext-Context Σ) n))))
-      inputInd = subst Fin (length-inputs Σ n) i
-  ... | error _ with variableIndexInNetworkₒᵤₜₚᵤₜ (proj₁ (List.lookup Σ n)) x
-  ... | error _ = error ""
-  ... | success o = if isTypedVariable τ varBinding then success (varOutput networkInd outputInd {!!}) else error "Variable type mis-match"
-    where
-      varBinding : VariableBinding
-      varBinding = List.lookup (toList (NetworkBinding.outputs (proj₁ (List.lookup Σ n)))) o
-      
-      networkInd : Fin (List.length (Γ))
-      networkInd = subst Fin (length-CheckContext-Context Σ) n
-      
-      outputInd : Fin (List.length (NetworkType.outputShape (List.lookup Γ (subst Fin (length-CheckContext-Context Σ) n))))
-      outputInd = subst Fin (length-outputs Σ n) o
-  checkArithExpr {τ} (negate a) with checkArithExpr {τ} a
-  ... | error _ = error "Type error in negated expression"
-  ... | success x = success (negate x)
-  checkArithExpr (plus as) = List.foldl (λ z z₁ → {!!}) (error "") as
-  checkArithExpr (minus a as) = List.foldl (λ z z₁ → {!!}) (checkArithExpr a) as
-  checkArithExpr (multiply as) = List.foldl (λ z z₁ → {!!}) (error "") as
+        inputInd : Fin (List.length (NetworkType.inputShape (List.lookup Γ (subst Fin (length-CheckContext-Context Σ) n))))
+        inputInd = subst Fin (length-inputs Σ n) i
+    ... | error _ with variableIndexInNetworkₒᵤₜₚᵤₜ (proj₁ (List.lookup Σ n)) x
+    ... | error _ = error ""
+    ... | success o = if isTypedVariable τ varBinding then success (varOutput networkInd outputInd {!!}) else error "Variable type mis-match"
+      where
+        varBinding : VariableBinding
+        varBinding = List.lookup (toList (NetworkBinding.outputs (proj₁ (List.lookup Σ n)))) o
+        
+        networkInd : Fin (List.length (Γ))
+        networkInd = subst Fin (length-CheckContext-Context Σ) n
+        
+        outputInd : Fin (List.length (NetworkType.outputShape (List.lookup Γ (subst Fin (length-CheckContext-Context Σ) n))))
+        outputInd = subst Fin (length-outputs Σ n) o
+    checkArithExpr {τ} (negate a) with checkArithExpr {τ} a
+    ... | error _ = error "Type error in negated expression"
+    ... | success x = success (negate x)
+    checkArithExpr {τ} (plus as) = do
+      as' ← checkListArithExpr {τ} as
+      return (add as')
+    checkArithExpr (minus a as) = List.foldl (λ z z₁ → {!!}) (checkArithExpr a) as
+    checkArithExpr (multiply as) = List.foldl (λ z z₁ → {!!}) (error "") as
+
+    checkListArithExpr : {τ : 𝐄.ElementType} → List 𝐁.ArithExpr → Result (List (𝐕.ArithExpr Γ τ))
+    checkListArithExpr [] = success [] 
+    checkListArithExpr {τ} (x ∷ xs) = do
+      x' ← checkArithExpr {τ} x
+      xs' ← checkListArithExpr {τ} xs
+      return (x' ∷ xs')
 
   -- check boolean expressions
   checkCompExpr : ({τ : 𝐄.ElementType} → 𝐕.ArithExpr Γ τ → 𝐕.ArithExpr Γ τ → 𝐕.BoolExpr Γ) → 𝐁.ArithExpr → 𝐁.ArithExpr → Result(𝐕.BoolExpr Γ)
