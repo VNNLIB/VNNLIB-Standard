@@ -67,29 +67,33 @@ module _ (Σ : CheckContext) where
   checkArithExpr {τ} (valExpr x) with parseNumber τ x
   ... | just t = success (constant t)
   ... | nothing = error "Cannot parse number"
-  checkArithExpr (varExpr x xs) with variableNetworkIndex x Σ
+  checkArithExpr {τ} (varExpr x xs) with variableNetworkIndex x Σ
   ... | error _ = error ""
   ... | success n with variableIndexInNetworkᵢₙₚᵤₜ (proj₁ (List.lookup Σ n)) x
-  ...   | success i = success (varInput networkInd inputInd {!!})
+  ...   | success i = if isTypedVariable τ varBinding then success (varInput networkInd inputInd {!!}) else error "Variable type mis-match"
     where
+      varBinding : VariableBinding
+      varBinding = List.lookup (toList (NetworkBinding.inputs (proj₁ (List.lookup Σ n)))) i
+      
       networkInd : Fin (List.length (Γ))
       networkInd = subst Fin (length-CheckContext-Context Σ) n      
 
       inputInd : Fin (List.length (NetworkType.inputShape (List.lookup Γ (subst Fin (length-CheckContext-Context Σ) n))))
       inputInd = subst Fin (length-inputs Σ n) i
-      
   ... | error _ with variableIndexInNetworkₒᵤₜₚᵤₜ (proj₁ (List.lookup Σ n)) x
   ... | error _ = error ""
-  ... | success o = success (varOutput networkInd outputInd {!!})
+  ... | success o = if isTypedVariable τ varBinding then success (varOutput networkInd outputInd {!!}) else error "Variable type mis-match"
     where
+      varBinding : VariableBinding
+      varBinding = List.lookup (toList (NetworkBinding.outputs (proj₁ (List.lookup Σ n)))) o
+      
       networkInd : Fin (List.length (Γ))
       networkInd = subst Fin (length-CheckContext-Context Σ) n
       
       outputInd : Fin (List.length (NetworkType.outputShape (List.lookup Γ (subst Fin (length-CheckContext-Context Σ) n))))
       outputInd = subst Fin (length-outputs Σ n) o
-      
-  checkArithExpr (negate a) with checkArithExpr a
-  ... | error _ = error ""
+  checkArithExpr {τ} (negate a) with checkArithExpr {τ} a
+  ... | error _ = error "Type error in negated expression"
   ... | success x = success (negate x)
   checkArithExpr (plus as) = List.foldl (λ z z₁ → {!!}) (error "") as
   checkArithExpr (minus a as) = List.foldl (λ z z₁ → {!!}) (checkArithExpr a) as
