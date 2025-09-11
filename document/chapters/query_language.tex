@@ -228,11 +228,12 @@ In a \vnnlib{} query, Network Declarations are used to construct the static cont
                 $\quad\quad\quad\left.\text{float8e4m3fnuz, float8e5m2fnuz}\right\} $\\
                 \end{tabular} \\
             $\langle$TensorShape$\rangle$ & $\ni$ & $s ::= [i_0, ..., i_n] \quad i \in \mathbb{N}$ \\
-            $\langle$VariableName$\rangle$ & $\ni$ & $v ::= \texttt{\textasciicircum[A-Za-z][A-Za-z0-9\_]*\$} \quad \text{(regex)}$ \\
+            $\langle$VariableName$\rangle$ & $\ni$ & $v ::= \verb|^[A-Za-z][A-Za-z0-9\_]*$| \quad \text{(regex)}$ \\
             $\langle$InputDeclaration$\rangle$ & $\ni$ & $I::= (\texttt{declareInput}~v~\tau~s$) \\
             $\langle$HiddenDeclaration$\rangle$ & $\ni$ & $H ::= (\texttt{declareHidden}~v~\tau~s$) \\
             $\langle$OutputDeclaration$\rangle$ & $\ni$ & $O ::= (\texttt{declareOutput}~v~\tau~s$) \\
-            $\langle$NetworkDeclaration$\rangle$ & $\ni$ & $D ::= (\texttt{declareNetwork}~v~(I_0~...~I_n)^+~(H_0~...~H_n)^*~(O_0~...~O_n)^+$) \\ \\
+            $\langle$CongruenceStatements$\rangle$ & $\ni$ & $c ::= (\texttt{isomorphic-to}~v) \;|\ (\texttt{equal-to}~v)$ \\
+            $\langle$NetworkDeclaration$\rangle$ & $\ni$ & $D ::= (\texttt{declareNetwork}~v~c_?~I^+~H^*~O^+$) \\ \\
             $\langle$Double$\rangle$ & $\ni$ & $d ::= \mathbf{Double}$ \\
             $\langle$TensorIndex$\rangle$ & $\ni$ & $j ::= [i_0,...,i_n]^+ \quad i \in \mathbb{N}$ \\
             $\langle$ArithExpr$\rangle$ & $\ni$ & 
@@ -240,9 +241,9 @@ In a \vnnlib{} query, Network Declarations are used to construct the static cont
                 $a ::= d$ \\
                 $\quad\;|\; v~j$ \\
                 $\quad\;|\; (\texttt{-}~a$) \\
-                $\quad\;|\; (\texttt{+}~a_0~...~a_n$) \\
-                $\quad\;|\; (\texttt{×}~a_0~...~a_n$) \\
-                $\quad\;|\; (\texttt{-}~a_0~...~a_n$) \\
+                $\quad\;|\; (\texttt{+}~a^*$) \\
+                $\quad\;|\; (\texttt{×}~a^*$) \\
+                $\quad\;|\; (\texttt{-}~a^*$) \\
                 \end{tabular} \\
             $\langle$BoolExpr$\rangle$ & $\ni$ & 
                 \begin{tabular}[t]{@{}l@{}}
@@ -252,11 +253,12 @@ In a \vnnlib{} query, Network Declarations are used to construct the static cont
                 $\quad\;|\; (\texttt{<}~~a_1~a_2$) \\
                 $\quad\;|\; (\texttt{==}~a_1~a_2$) \\
                 $\quad\;|\; (\texttt{!=}~a_1~a_2$) \\
-                $\quad\;|\; (\texttt{and}~b_0~...~b_n$) \\
-                $\quad\;|\; (\texttt{or}~b_0~...~b_n$)
+                $\quad\;|\; (\texttt{and}~b^*$) \\
+                $\quad\;|\; (\texttt{or}~b^*$)
                 \end{tabular} \\
             $\langle$Assertion$\rangle$ & $\ni$ & $A ::= (\texttt{assert}~b$) \\ \\
-            $\langle$Query$\rangle$ & $\ni$ & $Q ::= (D_0~...~D_n)~(A_0~...~A_n)^+$ \\
+            $\langle$Version$\rangle$ & $\ni$ & $V ::= \verb|^<[0-9]+\.[0-9]+>$| \quad \text{(regex)}$ \\
+            $\langle$Query$\rangle$ & $\ni$ & $Q ::= V~D^*~A^+$ \\
             \end{tabular}
     \caption{\vnnlib{} format typing syntax}
     \end{minipage}
@@ -277,25 +279,25 @@ In a \vnnlib{} query, Network Declarations are used to construct the static cont
             \inferrule*[Right=OutputDeclaration]{\;}{
                 \Gamma \vdash (\texttt{declareOutput}~v~\tau~s) : \Gamma := \Gamma, v :(\tau,s)
             }
-            \\
+            \\ \\
             \inferrule*[Right=NetworkDeclaration]{
-                \Gamma_{i=0} := \Gamma \vdash I_0 \\
-                \Gamma_{h=0} := \Gamma_I \vdash H_0\\
-                \Gamma_{o=0} := \Gamma_H \vdash O_o \\
-                \Gamma_{i+1} := \Gamma_i \vdash I_i \\
-                \Gamma_{h+1} := \Gamma_h \vdash H_h \\
-                \Gamma_{o+1} := \Gamma_o \vdash O_o \\
+                \ensuremath{
+                    \begin{array}{ccc}
+                    \Gamma_0 := \Gamma \vdash I_0 & \Gamma_{n+1} := \Gamma_n \vdash H_0 & \Gamma_{m+n+1} := \Gamma_{m+n} \vdash O_o \\
+                    \vdots & \vdots & \vdots \\
+                    \Gamma_n := \Gamma_{n-1} \vdash I_n & \Gamma_{m+n} := \Gamma_{m+n-1} \vdash H_m & \Gamma_{n+m+o} := \Gamma_{m+n+o-1} \vdash O_o
+                    \end{array}
+                }
             }{
-                \Gamma \vdash (\texttt{declareNetwork}~v~(I_0~...~I_n)^+~(H_0~...~H_n)^*~(O_0~...~O_n)^+) : \Gamma_O
-            } \\
-            \hspace*{\fill}\text{\small where $\Gamma_O$ is the final context after extending by the last output declaration}
+                \Gamma \vdash (\texttt{declareNetwork}~v~c_?~(I_0~...~I_n)^+~(H_0~...~H_m)^*~(O_0~...~O_o)^+) : \Gamma_{n+m+o}
+            }
             \\ \\ \\
             \inferrule*[]{\;}{
                 \Gamma \Vdash d : \tau
             }
             \hspace{1cm}
             \inferrule*[]{
-                \Gamma [v] : (\tau,s) \quad j : \text{validIndices} (j, s)
+                \Gamma [v] : (\tau,s) \quad \text{validIndices} (j, s)
             }{
                 \Gamma \Vdash v~j : \tau
             }
