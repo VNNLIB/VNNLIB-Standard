@@ -203,6 +203,8 @@ PYBIND11_MODULE(_core, m) {
 	// --- Network ---
 	py::class_<TNetworkDefinition, TNode>(m, "Network")
 	.def_property_readonly("name", [](const TNetworkDefinition& n){ return n.networkName; })
+	.def_property_readonly("isometric_to", [](const TNetworkDefinition& n){ return n.isometricTo; })
+	.def_property_readonly("equal_to", [](const TNetworkDefinition& n){ return n.equalTo; })
 	.def_property_readonly("inputs", [](const TNetworkDefinition& n){
 		py::tuple input_tuple(n.inputs.size());
 		for (size_t i = 0; i < n.inputs.size(); ++i)

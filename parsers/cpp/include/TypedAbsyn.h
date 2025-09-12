@@ -214,6 +214,8 @@ protected:
 class TNetworkDefinition final : public TNode {
 friend class TypedBuilder;
 public:
+	std::string isometricTo{};
+	std::string equalTo{};
 	std::string networkName{};
 	std::vector<std::unique_ptr<TInputDefinition>> inputs{};
 	std::vector<std::unique_ptr<THiddenDefinition>> hidden{};
