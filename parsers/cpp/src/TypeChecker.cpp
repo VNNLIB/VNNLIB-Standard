@@ -685,6 +685,7 @@ void TypeChecker::visitNetworkDef(NetworkDef *p) {
     // Store network information for later validation
     NetworkInfo networkInfo;
     networkInfo.name = currentNetworkName;
+    networkInfo.usesOnnxNames = (ctx->usesOnnxNames == OnnxNamesUsage::OnnxNamesUsed);
     collectNetworkVariables(networkInfo, p->listinputdefinition_, p->listoutputdefinition_);
     networks[currentNetworkName] = networkInfo;
 
@@ -880,6 +881,7 @@ void TypeChecker::validateNetworkCongruence(VariableName* referencedNetworkName,
     }
 }
 
+
 // Helper method to collect network input and output variables
 void TypeChecker::collectNetworkVariables(NetworkInfo& networkInfo, const ListInputDefinition* inputs, const ListOutputDefinition* outputs) {
     // Collect input variables
@@ -913,6 +915,7 @@ void TypeChecker::collectNetworkVariables(NetworkInfo& networkInfo, const ListIn
     }
 }
 
+
 // Helper method to compare the variables of two networks for congruence
 bool TypeChecker::areVariablesCongruent(const NetworkInfo& current, const NetworkInfo& target, int line) {
     // Check if the number of variables matches
@@ -926,45 +929,95 @@ bool TypeChecker::areVariablesCongruent(const NetworkInfo& current, const Networ
         return false;
     }
     
-    // Check each variable pair for type and shape compatibility
+    // For ordered variables, check each variable pair for type and shape compatibility
+    if (current.usesOnnxNames != target.usesOnnxNames) {
+        addDiagnostic(Severity::Error, static_cast<int>(ErrorCode::UnexpectedOnnxName),
+                    string_format("Variable naming convention mismatch between networks '%s' and '%s'",
+                                  current.name.c_str(), target.name.c_str()),
+                    target.name,
+                    "To assert congruence, both networks must either the same ONNX naming convention (all or none)",
+                    line);
+        return false;
+    }
+
+    // If ONNX names are used, match variables by ONNX name
+    if (current.usesOnnxNames) {
+        for (size_t i = 0; i < current.vars.size(); ++i) {
+            const SymbolInfo* sym1 = current.vars[i];
+            const SymbolInfo* sym2 = nullptr;
+            // Find the corresponding variable in the target network by ONNX name. Let's make this more efficient later.
+            for (const auto& targetSym : target.vars) {
+                if (sym1->onnxName == targetSym->onnxName) {
+                    sym2 = targetSym;
+                    break;
+                }
+            }
+
+            if (sym2 == nullptr) {
+                addDiagnostic(Severity::Error, static_cast<int>(ErrorCode::OnnxNameMismatch),
+                            string_format("ONNX name '%s' not found in target network '%s'",
+                                          sym1->onnxName.c_str(), target.name.c_str()),
+                            target.name,
+                            "Ensure corresponding variables have matching ONNX names",
+                            line);
+                return false;
+            }
+
+            if (!validateSymbolCongruence(*sym1, *sym2, current, target, i, line)) {
+                return false;
+            }
+        }
+        return true; // Skip the ordered check if ONNX names are used
+    }
+
+    // If ordered variables are used, match variables by position
     for (size_t i = 0; i < current.vars.size(); ++i) {
-        const SymbolInfo* var1 = current.vars[i];
-        const SymbolInfo* var2 = target.vars[i];
+        const SymbolInfo* sym1 = current.vars[i];
+        const SymbolInfo* sym2 = target.vars[i];
+        if (!validateSymbolCongruence(*sym1, *sym2, current, target, i, line)) {
+            return false;
+        }
+    }
 
-        // Check kind compatibility (input vs output)
-        if (var1->kind != var2->kind) {
-            addDiagnostic(Severity::Error, static_cast<int>(ErrorCode::VariableKindMismatch),
-                         string_format("Variable kind mismatch for variable number %d between networks '%s' and '%s'",
-                                       i, current.name.c_str(), target.name.c_str()),
-                         target.name,
-                         string_format("Expected variable number %d to be of kind '%s', but found kind '%s'.",
-                                       i, kindToString(var1->kind).c_str(), kindToString(var2->kind).c_str()),
-                         line);
-            return false;
-        }
-        
-        // Check data type compatibility
-        if (var1->dtype != var2->dtype) {
-            addDiagnostic(Severity::Error, static_cast<int>(ErrorCode::TypeMismatch),
-                         string_format("Type mismatch for variable number %d between networks '%s' and '%s'",
-                                       i, current.name.c_str(), target.name.c_str()),
-                         target.name,
-                         string_format("Expected variable number %d to be of type '%s', but found type '%s'.",
-                                       i, dtypeToString(var1->dtype).c_str(), dtypeToString(var2->dtype).c_str()),
-                         line);
-            return false;
-        }
+    return true;
+}
 
-        // Check shape compatibility
-        if (var1->shape != var2->shape) {
-            addDiagnostic(Severity::Error, static_cast<int>(ErrorCode::VariableShapeMismatch),
-                         string_format("Shape mismatch for variable number %d between networks '%s' and '%s'",
-                                       i, current.name.c_str(), target.name.c_str()),
-                         target.name,
-                         "Ensure corresponding variables have the same shape",
-                         line);
-            return false;
-        }
+
+bool TypeChecker::validateSymbolCongruence(const SymbolInfo& sym1, const SymbolInfo& sym2, 
+    const NetworkInfo& current, const NetworkInfo& target, size_t i, int line) {
+    // Check kind compatibility (input vs output)
+    if (sym1.kind != sym2.kind) {
+        addDiagnostic(Severity::Error, static_cast<int>(ErrorCode::VariableKindMismatch),
+                    string_format("Variable kind mismatch for variable number %d between networks '%s' and '%s'",
+                                i, current.name.c_str(), target.name.c_str()),
+                    target.name,
+                    string_format("Expected variable number %d to be of kind '%s', but found kind '%s'.",
+                                i, kindToString(sym1.kind).c_str(), kindToString(sym2.kind).c_str()),
+                    line);
+        return false;
+    }
+    
+    // Check data type compatibility
+    if (sym1.dtype != sym2.dtype) {
+        addDiagnostic(Severity::Error, static_cast<int>(ErrorCode::TypeMismatch),
+                        string_format("Type mismatch for variable number %d between networks '%s' and '%s'",
+                                    i, current.name.c_str(), target.name.c_str()),
+                        target.name,
+                        string_format("Expected variable number %d to be of type '%s', but found type '%s'.",
+                                    i, dtypeToString(sym1.dtype).c_str(), dtypeToString(sym2.dtype).c_str()),
+                        line);
+        return false;
+    }
+
+    // Check shape compatibility
+    if (sym1.shape != sym2.shape) {
+        addDiagnostic(Severity::Error, static_cast<int>(ErrorCode::VariableShapeMismatch),
+                        string_format("Shape mismatch for variable number %d between networks '%s' and '%s'",
+                                    i, current.name.c_str(), target.name.c_str()),
+                        target.name,
+                        "Ensure corresponding variables have the same shape",
+                        line);
+        return false;
     }
     
     return true;
