@@ -23,7 +23,7 @@ bool isConstant(DType dt);
 bool sameFamily(DType varDt, DType constDt);
 bool sameType(DType a, DType b);
 
-enum class SymbolKind {Input, Hidden, Output, Unknown};
+enum class SymbolKind {Input, Hidden, Output, Network, Unknown};
 using Shape = std::vector<int64_t>;
 using Indices = std::vector<int64_t>;
 
