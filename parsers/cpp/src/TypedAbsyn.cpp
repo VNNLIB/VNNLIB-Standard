@@ -1,10 +1,6 @@
-#include <sstream>
-#include <typeinfo>
-#include <algorithm>
-
 #include "TypedAbsyn.h"  
-#include "Absyn.H"
-#include "Printer.H"
+
+// ----------- Utility Functions ----------
 
 std::string dtypeToString(DType dt) {
   switch (dt) {
@@ -101,10 +97,6 @@ std::string bnfcPrint(const T* p) {
 	return pr.print(const_cast<T*>(p));
 }
 
-// ---------- SymbolInfo ----------
-
-bool SymbolInfo::isScalar() const { return shape.empty(); }
-size_t SymbolInfo::rank() const { return shape.size(); }
 
 // ---------- TElementType ----------
 

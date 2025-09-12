@@ -17,13 +17,9 @@
 #include "json.hpp"
 #include "TypedAbsyn.h"
 
-// Structure to store network information for validation
-struct NetworkInfo {
-    std::string name;
-    std::vector<const SymbolInfo*> vars;   // References to input and output variables
-    NetworkInfo() = default;
-    NetworkInfo(const std::string& networkName) : name(networkName) {}
-};
+
+class TypeChecker; // Forward declaration
+
 
 #define VNNLIB_MAJOR_VERSION 2
 #define VNNLIB_MINOR_VERSION 0
@@ -43,7 +39,8 @@ enum class ErrorCode {
     MissingNetwork,
     VariableCountMismatch,
     VariableShapeMismatch,
-    VariableKindMismatch
+    VariableKindMismatch,
+    OnnxNameMismatch
 };
 
 enum class WarningCode {
@@ -56,6 +53,7 @@ enum class Severity {
     Info
 };
 
+// Structure to store diagnostic information that will be reported to the user as errors or warnings
 struct Diagnostic {
     Diagnostic(Severity severity, int code, std::string message, std::string offending_symbol, std::string hint, int line)
         : severity_(severity), code_(code), message_(std::move(message)), offending_symbol_(std::move(offending_symbol)), hint_(std::move(hint)), line_(line) {}
@@ -72,15 +70,44 @@ private:
     int line_;
 };
 
+// Status of whether input or output variables in the network are using ONNX names
 typedef enum {
     OnnxNamesUsed,
     OnnxNamesNotUsed,
     Unknown
-} OnnxNamesUsage;   // Status of whether input or output variables in the network are using ONNX names
+} OnnxNamesUsage; 
 
+// Structure to store network information for validation
+struct NetworkInfo {
+    std::string name;
+    bool usesOnnxNames{false};              // Whether the network uses ONNX names for any input/output
+    std::vector<const SymbolInfo*> vars;    // References to input and output variables
+    NetworkInfo() = default;
+    NetworkInfo(const std::string& networkName) : name(networkName) {}
+};
 
-class TypeChecker; // Forward declaration
+// Structure to store symbol information
+enum class SymbolKind {Input, Hidden, Output, Network, Unknown};
 
+class SymbolInfo final {
+public:
+	std::string name{};
+	std::string onnxName{};
+	DType dtype{DType::Unknown};
+	Shape shape{};
+	SymbolKind kind{SymbolKind::Unknown};
+	std::string networkName{};
+
+	bool isScalar() const;
+	size_t rank() const;
+
+	SymbolInfo(std::string name, DType dtype, Shape shape, SymbolKind kind, std::string onnxName = "")
+        : name(name), onnxName(onnxName), dtype(dtype), shape(std::move(shape)), kind(kind) {}
+
+    bool operator==(const SymbolInfo &other) const;
+};
+
+// Context class to manage symbols and current scope
 class Context {
 public:
     Context(TypeChecker* typeChecker = nullptr);
@@ -96,7 +123,7 @@ private:
     TypeChecker* checker;                                       // Reference to parent TypeChecker for error reporting
 };
 
-
+// TypeChecker class implementing the Visitor pattern
 class TypeChecker : public Visitor {
 public:
     TypeChecker();
@@ -220,6 +247,7 @@ public:
     void validateNetworkCongruence(VariableName* referencedNetworkName, const std::string& statementType);
     void collectNetworkVariables(NetworkInfo& networkInfo, const ListInputDefinition* inputs, const ListOutputDefinition* outputs);
     bool areVariablesCongruent(const NetworkInfo& current, const NetworkInfo& target, int line);
+    bool validateSymbolCongruence(const SymbolInfo& a, const SymbolInfo& b, const NetworkInfo& current, const NetworkInfo& target, size_t i, int line);
 
 protected:
     Context& getContext() { return *ctx; }
