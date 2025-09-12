@@ -119,8 +119,10 @@ public:
     void visitOutputDef(OutputDef* p) override;
     void visitOutputOnnxDef(OutputOnnxDef* p) override;
 
+    void visitIsomorphicTo(IsomorphicTo *p) override;
+    void visitEqualTo(EqualTo *p) override;
     void visitNetworkDef(NetworkDef* p) override;
-    void visitVNNLibVersion(VNNLibVersion *p);
+    void visitVNNLibVersion(VNNLibVersion *p) override;
     void visitVNNLibQuery(VNNLibQuery* p) override;
 
     // --- Visitor methods for abstract classes ---
@@ -133,8 +135,9 @@ public:
     void visitInputDefinition(InputDefinition *p) override;
     void visitHiddenDefinition(HiddenDefinition *p) override;
     void visitOutputDefinition(OutputDefinition *p) override;
+    void visitCompStm(CompStm *p) override;
     void visitNetworkDefinition(NetworkDefinition *p) override;
-    void visitVersion(Version *p);
+    void visitVersion(Version *p) override;
     void visitQuery(Query *p) override;
 
     // --- Visitor methods for element types ---
@@ -171,6 +174,7 @@ public:
     void visitListInputDefinition(ListInputDefinition *p) override;
     void visitListHiddenDefinition(ListHiddenDefinition *p) override;
     void visitListOutputDefinition(ListOutputDefinition *p) override;
+    void visitListCompStm(ListCompStm *p) override;
     void visitListNetworkDefinition(ListNetworkDefinition *p) override;
 
     // --- Visitor methods for tokens ---

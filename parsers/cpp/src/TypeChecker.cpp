@@ -643,6 +643,21 @@ void TypeChecker::visitListOutputDefinition(ListOutputDefinition *listoutputdefi
     }
 }
 
+// TODO: Add checks for valid comparison statement
+// If variables are ONNX named, variables with the same ONNX name must have the same shape and type
+// If variables are ordered, variables in the same position must have the same shape and type
+
+void TypeChecker::visitCompStm(CompStm *p) {} // abstract base class
+
+void TypeChecker::visitIsomorphicTo(IsomorphicTo *p) {}
+void TypeChecker::visitEqualTo(EqualTo *p) {}
+
+void TypeChecker::visitListCompStm(ListCompStm *p) {
+    for (auto &compStm : *p) {
+        compStm->accept(this);
+    }
+}
+
 void TypeChecker::visitNetworkDefinition(NetworkDefinition *p) {} // abstract base class
 
 void TypeChecker::visitNetworkDef(NetworkDef *p) {

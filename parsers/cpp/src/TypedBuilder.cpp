@@ -324,6 +324,24 @@ void TypedBuilder::visitOutputOnnxDef(OutputOnnxDef* p) {
     lastNetwork->outputs.push_back(std::move(node));
 }
 
+// --- Relations ---
+
+void TypedBuilder::visitEqualTo(EqualTo *p) {
+    TypeChecker::visitEqualTo(p);
+
+    if (!netStack_.empty()) {
+        netStack_.back()->equalTo = p->variablename_->string_;
+    }
+}
+
+void TypedBuilder::visitIsomorphicTo(IsomorphicTo *p) {
+    TypeChecker::visitIsomorphicTo(p);
+
+    if (!netStack_.empty()) {
+        netStack_.back()->isometricTo = p->variablename_->string_;
+    }
+}
+
 // --- Network ---
 
 void TypedBuilder::visitNetworkDef(NetworkDef* p) {
@@ -484,6 +502,10 @@ void TypedBuilder::visitListHiddenDefinition(ListHiddenDefinition *p) {
 
 void TypedBuilder::visitListOutputDefinition(ListOutputDefinition *p) {
     TypeChecker::visitListOutputDefinition(p);
+}
+
+void TypedBuilder::visitListCompStm(ListCompStm *p) {
+    TypeChecker::visitListCompStm(p);
 }
 
 void TypedBuilder::visitListNetworkDefinition(ListNetworkDefinition *p) {
