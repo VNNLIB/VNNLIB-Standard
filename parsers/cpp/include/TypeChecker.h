@@ -11,10 +11,19 @@
 #include <iostream>
 #include <string_view>
 #include <charconv>
+#include <set>
 
 #include "Absyn.H"
 #include "json.hpp"
 #include "TypedAbsyn.h"
+
+// Structure to store network information for validation
+struct NetworkInfo {
+    std::string name;
+    std::vector<const SymbolInfo*> vars;   // References to input and output variables
+    NetworkInfo() = default;
+    NetworkInfo(const std::string& networkName) : name(networkName) {}
+};
 
 #define VNNLIB_MAJOR_VERSION 2
 #define VNNLIB_MINOR_VERSION 0
@@ -31,7 +40,10 @@ enum class ErrorCode {
     UnexpectedOnnxName,
     InvalidDimensions,
     MajorVersionMismatch,
-    MissingNetwork
+    MissingNetwork,
+    VariableCountMismatch,
+    VariableShapeMismatch,
+    VariableKindMismatch
 };
 
 enum class WarningCode {
@@ -204,6 +216,11 @@ public:
     static Shape mapShape(TensorShape *s);
     static std::vector<int64_t> mapIndices(const ListNumber *i);
 
+    // Helper methods for network congruence validation
+    void validateNetworkCongruence(VariableName* referencedNetworkName, const std::string& statementType);
+    void collectNetworkVariables(NetworkInfo& networkInfo, const ListInputDefinition* inputs, const ListOutputDefinition* outputs);
+    bool areVariablesCongruent(const NetworkInfo& current, const NetworkInfo& target, int line);
+
 protected:
     Context& getContext() { return *ctx; }
 
@@ -211,6 +228,8 @@ private:
     std::unique_ptr<Context> ctx;
     std::vector<Diagnostic> errors;
     std::vector<Diagnostic> warnings;
+    std::unordered_map<std::string, NetworkInfo> networks;
+    std::string currentNetworkName;
 };
 
 #endif

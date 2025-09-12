@@ -78,6 +78,16 @@ static std::string string_format( const std::string& format, Args ... args )
     return std::string( buf.get(), buf.get() + size - 1 ); // We don't want the '\0' inside
 }
 
+// Helper function to convert SymbolKind to string
+static std::string kindToString(SymbolKind kind) {
+    switch (kind) {
+        case SymbolKind::Input: return "input";
+        case SymbolKind::Hidden: return "hidden";
+        case SymbolKind::Output: return "output";
+        default: return "unknown";
+    }
+}
+
 // --- Context methods ---
 
 Context::Context(TypeChecker* typeChecker) :
@@ -101,6 +111,8 @@ bool Context::addSymbol(VariableName *name, ElementType *type, ListNumber shape,
     }
 
     Indices tmp;
+    
+    // Convert shape dimensions to integers for validation
     for (const auto& dim : shape) {
         int64_t dim_val;
         try {
@@ -643,14 +655,15 @@ void TypeChecker::visitListOutputDefinition(ListOutputDefinition *listoutputdefi
     }
 }
 
-// TODO: Add checks for valid comparison statement
-// If variables are ONNX named, variables with the same ONNX name must have the same shape and type
-// If variables are ordered, variables in the same position must have the same shape and type
-
 void TypeChecker::visitCompStm(CompStm *p) {} // abstract base class
 
-void TypeChecker::visitIsomorphicTo(IsomorphicTo *p) {}
-void TypeChecker::visitEqualTo(EqualTo *p) {}
+void TypeChecker::visitIsomorphicTo(IsomorphicTo *p) {
+    validateNetworkCongruence(p->variablename_, "isomorphic-to");
+}
+
+void TypeChecker::visitEqualTo(EqualTo *p) {
+    validateNetworkCongruence(p->variablename_, "equal-to");
+}
 
 void TypeChecker::visitListCompStm(ListCompStm *p) {
     for (auto &compStm : *p) {
@@ -662,10 +675,20 @@ void TypeChecker::visitNetworkDefinition(NetworkDefinition *p) {} // abstract ba
 
 void TypeChecker::visitNetworkDef(NetworkDef *p) {
     ctx->usesOnnxNames = OnnxNamesUsage::Unknown;
+    currentNetworkName = p->variablename_->string_;
+    
     visitVariableName(p->variablename_);
     visitListInputDefinition(p->listinputdefinition_);
     visitListHiddenDefinition(p->listhiddendefinition_);
     visitListOutputDefinition(p->listoutputdefinition_);
+    
+    // Store network information for later validation
+    NetworkInfo networkInfo;
+    networkInfo.name = currentNetworkName;
+    collectNetworkVariables(networkInfo, p->listinputdefinition_, p->listoutputdefinition_);
+    networks[currentNetworkName] = networkInfo;
+
+    visitListCompStm(p->listcompstm_);
 }
 
 void TypeChecker::visitListNetworkDefinition(ListNetworkDefinition *listnetworkdefinition)
@@ -827,3 +850,122 @@ void TypeChecker::visitListNumber(ListNumber *p) {
 void TypeChecker::visitNumber(Number *p) {}                 // Token for number literals
 
 void TypeChecker::visitVersionToken(VersionToken *x) {}     // Token for version
+
+
+// Helper method to validate whether two networks are congruent (isometric or equal graphs)
+void TypeChecker::validateNetworkCongruence(VariableName* referencedNetworkName, const std::string& statementType) {
+    std::string referencedName = referencedNetworkName->string_;
+    auto it = networks.find(referencedName);
+    if (it == networks.end()) {
+        addDiagnostic(Severity::Error, static_cast<int>(ErrorCode::MissingNetwork),
+                     string_format("Referenced network '%s' not found for %s statement",
+                                   referencedName.c_str(), statementType.c_str()),
+                     referencedName,
+                     "Ensure the network is declared before this statement",
+                     referencedNetworkName->integer_);
+        return;
+    }
+    
+    if (!currentNetworkName.empty()) {
+        auto currentIt = networks.find(currentNetworkName);
+        if (currentIt != networks.end()) {
+            const NetworkInfo& referencedNetwork = it->second;
+            const NetworkInfo& currentNetwork = currentIt->second;
+            
+            // Check variables congruence
+            if (!areVariablesCongruent(currentNetwork, referencedNetwork, referencedNetworkName->integer_)) {
+                return;
+            }
+        }
+    }
+}
+
+// Helper method to collect network input and output variables
+void TypeChecker::collectNetworkVariables(NetworkInfo& networkInfo, const ListInputDefinition* inputs, const ListOutputDefinition* outputs) {
+    // Collect input variables
+    for (auto input : *inputs) {
+        if (auto inputDef = dynamic_cast<InputDef*>(input)) {
+            SymbolInfo* symbol = ctx->getSymbol(*inputDef->variablename_);
+            if (symbol) {
+                networkInfo.vars.push_back(symbol);
+            }
+        } else if (auto inputOnnxDef = dynamic_cast<InputOnnxDef*>(input)) {
+            SymbolInfo* symbol = ctx->getSymbol(*inputOnnxDef->variablename_);
+            if (symbol) {
+                networkInfo.vars.push_back(symbol);
+            }
+        }
+    }
+    
+    // Collect output variables
+    for (auto output : *outputs) {
+        if (auto outputDef = dynamic_cast<OutputDef*>(output)) {
+            SymbolInfo* symbol = ctx->getSymbol(*outputDef->variablename_);
+            if (symbol) {
+                networkInfo.vars.push_back(symbol);
+            }
+        } else if (auto outputOnnxDef = dynamic_cast<OutputOnnxDef*>(output)) {
+            SymbolInfo* symbol = ctx->getSymbol(*outputOnnxDef->variablename_);
+            if (symbol) {
+                networkInfo.vars.push_back(symbol);
+            }
+        }
+    }
+}
+
+// Helper method to compare the variables of two networks for congruence
+bool TypeChecker::areVariablesCongruent(const NetworkInfo& current, const NetworkInfo& target, int line) {
+    // Check if the number of variables matches
+    if (current.vars.size() != target.vars.size()) {
+        addDiagnostic(Severity::Error, static_cast<int>(ErrorCode::VariableCountMismatch),
+                    string_format("Number of variables mismatch between networks '%s' and '%s'",
+                                  current.name.c_str(), target.name.c_str()),
+                    target.name,
+                    "Ensure both networks have the same number of input/output variables",
+                    line);
+        return false;
+    }
+    
+    // Check each variable pair for type and shape compatibility
+    for (size_t i = 0; i < current.vars.size(); ++i) {
+        const SymbolInfo* var1 = current.vars[i];
+        const SymbolInfo* var2 = target.vars[i];
+
+        // Check kind compatibility (input vs output)
+        if (var1->kind != var2->kind) {
+            addDiagnostic(Severity::Error, static_cast<int>(ErrorCode::VariableKindMismatch),
+                         string_format("Variable kind mismatch for variable number %d between networks '%s' and '%s'",
+                                       i, current.name.c_str(), target.name.c_str()),
+                         target.name,
+                         string_format("Expected variable number %d to be of kind '%s', but found kind '%s'.",
+                                       i, kindToString(var1->kind).c_str(), kindToString(var2->kind).c_str()),
+                         line);
+            return false;
+        }
+        
+        // Check data type compatibility
+        if (var1->dtype != var2->dtype) {
+            addDiagnostic(Severity::Error, static_cast<int>(ErrorCode::TypeMismatch),
+                         string_format("Type mismatch for variable number %d between networks '%s' and '%s'",
+                                       i, current.name.c_str(), target.name.c_str()),
+                         target.name,
+                         string_format("Expected variable number %d to be of type '%s', but found type '%s'.",
+                                       i, dtypeToString(var1->dtype).c_str(), dtypeToString(var2->dtype).c_str()),
+                         line);
+            return false;
+        }
+
+        // Check shape compatibility
+        if (var1->shape != var2->shape) {
+            addDiagnostic(Severity::Error, static_cast<int>(ErrorCode::VariableShapeMismatch),
+                         string_format("Shape mismatch for variable number %d between networks '%s' and '%s'",
+                                       i, current.name.c_str(), target.name.c_str()),
+                         target.name,
+                         "Ensure corresponding variables have the same shape",
+                         line);
+            return false;
+        }
+    }
+    
+    return true;
+}
