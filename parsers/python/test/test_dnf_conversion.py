@@ -6,6 +6,7 @@ import json
 import pytest
 import vnnlib
 from typing import List, Set, Tuple
+from vnnlib import BoolExpr
 
 
 class TestDNFConversion:
@@ -17,30 +18,15 @@ class TestDNFConversion:
         assertion = query.assertions[0]
         return assertion.expr
 
-    def _assert_dnf_structure(self, dnf, expected_clause_count: int, expected_clause_sizes: List[int]):
-        """Helper method to assert DNF structure matches expectations."""
-        assert len(dnf) == expected_clause_count, f"Expected {expected_clause_count} clauses, got {len(dnf)}"
+    def _assert_dnf_equals(self, dnf: List[Set[BoolExpr]], expected_dnf: List[Set[str]]):
+        """Assert that the DNF matches the expected stringified DNF"""
+        assert len(dnf) == len(expected_dnf), f"Expected {len(expected_dnf)} clauses, got {len(dnf)}"
         
-        actual_sizes = [len(clause) for clause in dnf]
-        expected_sizes = sorted(expected_clause_sizes)
-        actual_sizes_sorted = sorted(actual_sizes)
-        
-        assert actual_sizes_sorted == expected_sizes, f"Expected clause sizes {expected_sizes}, got {actual_sizes_sorted}"
+        for clause, expected_lits in zip(dnf, expected_dnf):
+            assert len(clause) == len(expected_lits), f"Expected clause size {len(expected_lits)}, got {len(clause)}"
 
-    def _get_literal_signature(self, literal):
-        """Get a string signature for a literal for comparison."""
-        lhs_str = str(literal.lhs)
-        rhs_str = str(literal.rhs)
-        op_name = type(literal).__name__
-        return f"{op_name}({lhs_str}, {rhs_str})"
-
-    def _assert_clause_contains_literals(self, clause, expected_literal_patterns: List[str]):
-        """Assert that a clause contains literals matching expected patterns."""
-        actual_signatures = [self._get_literal_signature(lit) for lit in clause]
-        
-        for pattern in expected_literal_patterns:
-            found = any(pattern in sig for sig in actual_signatures)
-            assert found, f"Expected pattern '{pattern}' not found in clause. Actual: {actual_signatures}"
+            actual_lits = {str(lit) for lit in clause}
+            assert actual_lits == expected_lits, f"Expected literals {expected_lits}, got {actual_lits}"
 
     # Basic DNF Tests - Single Literals ----------------------------------------
 
@@ -57,8 +43,7 @@ class TestDNFConversion:
         bool_expr = self._parse_and_get_bool_expr(content)
         dnf = bool_expr.dnf_form()
         
-        self._assert_dnf_structure(dnf, 1, [1])
-        self._assert_clause_contains_literals(dnf[0], ["LessEqual"])
+        self._assert_dnf_equals(dnf, [{"(<= X [0] 10.0) "}])
 
     # Conjunction Tests --------------------------------------------------------
 
@@ -76,8 +61,7 @@ class TestDNFConversion:
         dnf = bool_expr.dnf_form()
         
         # AND in DNF: single clause with multiple literals
-        self._assert_dnf_structure(dnf, 1, [2])
-        self._assert_clause_contains_literals(dnf[0], ["LessEqual", "GreaterEqual"])
+        self._assert_dnf_equals(dnf, [{"(<= X [0] 10.0) ", "(>= X [1] 5.0) "}])
 
     def test_three_way_conjunction(self):
         """Test DNF of a three-way AND expression."""
@@ -92,8 +76,7 @@ class TestDNFConversion:
         bool_expr = self._parse_and_get_bool_expr(content)
         dnf = bool_expr.dnf_form()
         
-        self._assert_dnf_structure(dnf, 1, [3])
-        self._assert_clause_contains_literals(dnf[0], ["LessEqual", "GreaterEqual", "LessEqual"])
+        self._assert_dnf_equals(dnf, [{"(<= X [0] 10.0) ", "(>= X [1] 5.0) ", "(<= X [2] 20.0) "}])
 
     # Disjunction Tests --------------------------------------------------------
 
@@ -111,7 +94,7 @@ class TestDNFConversion:
         dnf = bool_expr.dnf_form()
         
         # OR in DNF: multiple clauses with single literals
-        self._assert_dnf_structure(dnf, 2, [1, 1])
+        self._assert_dnf_equals(dnf, [{"(<= X [0] 10.0) "}, {"(>= X [1] 5.0) "}])
 
     def test_three_way_disjunction(self):
         """Test DNF of a three-way OR expression."""
@@ -126,7 +109,7 @@ class TestDNFConversion:
         bool_expr = self._parse_and_get_bool_expr(content)
         dnf = bool_expr.dnf_form()
         
-        self._assert_dnf_structure(dnf, 3, [1, 1, 1])
+        self._assert_dnf_equals(dnf, [{"(<= X [0] 10.0) "}, {"(>= X [1] 5.0) "}, {"(<= X [2] 0.0) "}])
 
     # Distributive Law Tests ---------------------------------------------------
 
@@ -146,7 +129,16 @@ class TestDNFConversion:
         dnf = bool_expr.dnf_form()
         
         # Should distribute to 8 clauses (2×2×2), each with 3 literals
-        self._assert_dnf_structure(dnf, 8, [3, 3, 3, 3, 3, 3, 3, 3])
+        self._assert_dnf_equals(dnf, [
+            {"(<= X [0] 10.0) ", "(<= X [2] 20.0) ", "(<= Y [1] 30.0) "},
+            {"(<= X [0] 10.0) ", "(<= X [2] 20.0) ", "(>= Y [2] 25.0) "},
+            {"(<= X [0] 10.0) ", "(>= Y [0] 15.0) ", "(<= Y [1] 30.0) "},
+            {"(<= X [0] 10.0) ", "(>= Y [0] 15.0) ", "(>= Y [2] 25.0) "},
+            {"(>= X [1] 5.0) ", "(<= X [2] 20.0) ", "(<= Y [1] 30.0) "},
+            {"(>= X [1] 5.0) ", "(<= X [2] 20.0) ", "(>= Y [2] 25.0) "},
+            {"(>= X [1] 5.0) ", "(>= Y [0] 15.0) ", "(<= Y [1] 30.0) "},
+            {"(>= X [1] 5.0) ", "(>= Y [0] 15.0) ", "(>= Y [2] 25.0) "}
+        ])
 
     # Complex Nested Expressions -----------------------------------------------
 
@@ -164,7 +156,12 @@ class TestDNFConversion:
         bool_expr = self._parse_and_get_bool_expr(content)
         dnf = bool_expr.dnf_form()
         
-        self._assert_dnf_structure(dnf, 4, [2, 2, 3, 3])
+        self._assert_dnf_equals(dnf, [
+            {"(<= X [0] 10.0) ", "(>= Y [0] 20.0) "},
+            {"(<= X [0] 10.0) ", "(<= Y [1] 25.0) "},
+            {"(>= X [1] 5.0) ", "(<= X [2] 15.0) ", "(>= Y [0] 20.0) "},
+            {"(>= X [1] 5.0) ", "(<= X [2] 15.0) ", "(<= Y [1] 25.0) "}
+        ])
 
     # Reference Preservation Tests ---------------------------------------------
 
@@ -202,7 +199,7 @@ class TestDNFConversion:
         bool_expr = self._parse_and_get_bool_expr(content)
         dnf = bool_expr.dnf_form()
         
-        self._assert_dnf_structure(dnf, 1, [2])
+        self._assert_dnf_equals(dnf, [{"(<= (+ X [0] X [1]) 10.0) ", "(>= (* -1.0 X [0]) -5.0) "}])
 
 
 if __name__ == "__main__":
