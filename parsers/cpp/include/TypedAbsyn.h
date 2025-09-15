@@ -12,12 +12,11 @@
 #include "Absyn.H"
 #include "Printer.H"
 
-// Forward declarations
-class SymbolInfo;
 
 using Shape = std::vector<int64_t>;
 using Indices = std::vector<int64_t>;
 
+// Supported Data Types
 enum class DType {
 	Real,
 	F16, F32, F64, BF16,
@@ -33,6 +32,28 @@ bool isConstant(DType dt);
 bool sameFamily(DType varDt, DType constDt);
 bool sameType(DType a, DType b);
 
+// Structure to store symbol information
+enum class SymbolKind {Input, Hidden, Output, Network, Unknown};
+
+class SymbolInfo final {
+public:
+	std::string name{};
+	std::string onnxName{};
+	DType dtype{DType::Unknown};
+	Shape shape{};
+	SymbolKind kind{SymbolKind::Unknown};
+	std::string networkName{};
+
+	bool isScalar() const;
+	size_t rank() const;
+
+	SymbolInfo(std::string name, DType dtype, Shape shape, SymbolKind kind, std::string onnxName = "")
+        : name(name), onnxName(onnxName), dtype(dtype), shape(std::move(shape)), kind(kind) {}
+
+    bool operator==(const SymbolInfo &other) const;
+};
+
+// --- Base Node ---
 
 class TNode {
 public:
