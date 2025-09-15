@@ -1,5 +1,4 @@
-#ifndef TYPE_CHECKER_H
-#define TYPE_CHECKER_H
+#pragma once
 
 #define MAX_DIMENSIONS 10
 
@@ -84,27 +83,6 @@ struct NetworkInfo {
     std::vector<const SymbolInfo*> vars;    // References to input and output variables
     NetworkInfo() = default;
     NetworkInfo(const std::string& networkName) : name(networkName) {}
-};
-
-// Structure to store symbol information
-enum class SymbolKind {Input, Hidden, Output, Network, Unknown};
-
-class SymbolInfo final {
-public:
-	std::string name{};
-	std::string onnxName{};
-	DType dtype{DType::Unknown};
-	Shape shape{};
-	SymbolKind kind{SymbolKind::Unknown};
-	std::string networkName{};
-
-	bool isScalar() const;
-	size_t rank() const;
-
-	SymbolInfo(std::string name, DType dtype, Shape shape, SymbolKind kind, std::string onnxName = "")
-        : name(name), onnxName(onnxName), dtype(dtype), shape(std::move(shape)), kind(kind) {}
-
-    bool operator==(const SymbolInfo &other) const;
 };
 
 // Context class to manage symbols and current scope
@@ -259,5 +237,3 @@ private:
     std::unordered_map<std::string, NetworkInfo> networks;
     std::string currentNetworkName;
 };
-
-#endif

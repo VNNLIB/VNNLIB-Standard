@@ -1,11 +1,4 @@
 #include "LinearArithExpr.h"
-#include <algorithm>
-#include <sstream>
-#include <stdexcept>
-#include <cmath>
-#include <iomanip>
-
-namespace LinearAlgebra {
 
 // Constructors and Destructor
 LinearArithExpr::LinearArithExpr() : constant_(0.0) {}
@@ -254,5 +247,3 @@ std::unique_ptr<LinearArithExpr> linearize(const TArithExpr* arithExpr) {
     result->simplify();
     return result;
 }
-
-} // namespace LinearAlgebra

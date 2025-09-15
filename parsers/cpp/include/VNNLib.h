@@ -1,8 +1,5 @@
 #pragma once
 
-#ifndef VNNLIB_H
-#define VNNLIB_H
-
 #include <cstdlib>
 
 #if defined(_WIN32) || defined(__CYGWIN__)
@@ -24,20 +21,10 @@
 #include "Printer.H"
 #include "ParserError.H"
 
+#include "Error.hpp"
+
 VNNLIB_API std::unique_ptr<TQuery> parse_query(std::string path);
 VNNLIB_API std::unique_ptr<TQuery> parse_query_str(std::string content);
 VNNLIB_API std::string check_query(std::string content);
 VNNLIB_API std::string check_query_str(std::string content);
-
-class VNNLibException : public std::exception {
-private:
-    std::string message_;
-public:
-    VNNLibException(const std::string &message) : message_(message) {}
-    const char* what() const noexcept override {
-        return message_.c_str();
-    }
-};
-
-#endif
 
