@@ -1,14 +1,12 @@
-#ifndef LINEAR_ARITH_EXPR_H
-#define LINEAR_ARITH_EXPR_H
+#pragma once
 
 #include <vector>
 #include <string>
 #include <memory>
 #include <iostream>
+#include <iomanip>
 #include "TypedAbsyn.h"
-#include "VNNLib.h"
-
-namespace LinearAlgebra {
+#include "Error.hpp"
 
 /**
  * @brief Represents a linear arithmetic expression of the form:
@@ -77,7 +75,3 @@ private:
  * @throws VNNLibException if the expression is non-linear.
  */
 std::unique_ptr<LinearArithExpr> linearize(const TArithExpr* arithExpr);
-
-} // namespace LinearAlgebra
-
-#endif // LINEAR_ARITH_EXPR_H

@@ -12,8 +12,6 @@
 #include "TypedAbsyn.h"
 #include "Absyn.H"
 
-namespace DNFConverter {
-
 using Literal = const TCompare*;                // A Boolean literal is a comparison (e.g., x <= 5)
 using Clause = std::vector<Literal>;            // A clause is a conjunction of literals 
 using DNF    = std::vector<Clause>;             // DNF is a disjunction of clauses
@@ -81,7 +79,5 @@ DNF distrib(const DNF& left, const DNF& right) {
     }
     return out;
 }
-
-} // namespace DNFConverter
 
 
