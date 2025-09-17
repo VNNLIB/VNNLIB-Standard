@@ -1,7 +1,9 @@
-module vnnlib-scopecheck where
+{-# OPTIONS --allow-unsolved-metas #-}
+open import vnnlib-check-declarations
+module vnnlib-check-assertions (Σ : CheckContext) where
 
 open import Data.Nat as ℕ
-open import Data.Product as Product using (Σ; proj₁; proj₂; _,_)
+open import Data.Product as Product using (proj₁; proj₂; _,_)
 open import Data.Bool as Bool
 open import Data.Integer as ℤ using (∣_∣)
 open import Data.String as String using (String; _==_)
@@ -17,35 +19,33 @@ open Eq.≡-Reasoning
 open import Relation.Nullary
 open import Data.Maybe hiding (_>>=_)
 open import Function
+
 open import Syntax.AST as 𝐁 hiding (String)
 open import vnnlib-syntax as 𝐕
 open import vnnlib-types as 𝐄
 open import syntax-utils
 open import types-utils
-open import check
 open import tensor as 𝐓
 open import context-isomorphism
-
 
 open import Level
 open import Data.Sum.Effectful.Left String 0ℓ renaming (Sumₗ to Result)
 open import Data.Sum.Base renaming (inj₁ to error; inj₂ to success)
 open import Effect.Monad
-
 open RawMonad monad
 
-module _ (Σ : CheckContext) where
-  Γ : Context
-  Γ = convertΣtoΓ Σ
 
-  isTypedVariable : 𝐄.ElementType → VariableBinding → Bool
-  isTypedVariable τ v with τ 𝐄.≟ getElementType v
-  ... | yes p = true
-  ... | no _ = false
+Γ : Context
+Γ = convertΣtoΓ Σ
 
-  postulate validIndices : List 𝐁.Number → (s : 𝐓.TensorShape) → Result (𝐓.TensorIndices s) -- Data.Nat.Show readMaybe
+isTypedVariable : 𝐄.ElementType → VariableBinding → Bool
+isTypedVariable τ v with τ 𝐄.≟ getElementType v
+... | yes p = true
+... | no _ = false
 
-  mutual
+postulate validIndices : List 𝐁.Number → (s : 𝐓.TensorShape) → Result (𝐓.TensorIndices s) -- Data.Nat.Show readMaybe
+
+mutual
     inferArithExprType : 𝐁.ArithExpr → Maybe 𝐄.ElementType
     inferArithExprType (varExpr x xs) with variableNetworkIndex x Σ
     ... | error _ = nothing
@@ -67,17 +67,17 @@ module _ (Σ : CheckContext) where
     ... | just x₁ | nothing = just x₁
     ... | nothing | just x₁ = just x₁
     ... | nothing | nothing = nothing
-  
-  mutual
-    checkArithExpr : {τ : 𝐄.ElementType} → 𝐁.ArithExpr → Result (𝐕.ArithExpr Γ τ)
-    checkArithExpr {τ} (valExpr x) with parseNumber τ x
+
+mutual
+    checkArithExpr : (τ : 𝐄.ElementType) → 𝐁.ArithExpr → Result (𝐕.ArithExpr Γ τ)
+    checkArithExpr τ (valExpr x) with parseNumber τ x
     ... | just t = success (constant t)
     ... | nothing = error "Cannot parse number"
-    checkArithExpr {τ} (varExpr x xs) with variableNetworkIndex x Σ
+    checkArithExpr τ (varExpr x xs) with variableNetworkIndex x Σ
     ... | error _ = error ""
     ... | success n with variableIndexInNetworkᵢₙₚᵤₜ (proj₁ (List.lookup Σ n)) x
     ...   | success i = if isTypedVariable τ varBinding then success (varInput networkInd inputInd {!!}) else error "Variable type mis-match"
-      where
+        where
         varBinding : VariableBinding
         varBinding = List.lookup (toList (NetworkBinding.inputs (proj₁ (List.lookup Σ n)))) i
         
@@ -89,7 +89,7 @@ module _ (Σ : CheckContext) where
     ... | error _ with variableIndexInNetworkₒᵤₜₚᵤₜ (proj₁ (List.lookup Σ n)) x
     ... | error _ = error ""
     ... | success o = if isTypedVariable τ varBinding then success (varOutput networkInd outputInd {!!}) else error "Variable type mis-match"
-      where
+        where
         varBinding : VariableBinding
         varBinding = List.lookup (toList (NetworkBinding.outputs (proj₁ (List.lookup Σ n)))) o
         
@@ -98,47 +98,47 @@ module _ (Σ : CheckContext) where
         
         outputInd : Fin (List.length (NetworkType.outputShape (List.lookup Γ (subst Fin (length-CheckContext-Context Σ) n))))
         outputInd = subst Fin (length-outputs Σ n) o
-    checkArithExpr {τ} (negate a) with checkArithExpr {τ} a
+    checkArithExpr τ (negate a) with checkArithExpr τ a
     ... | error _ = error "Type error in negated expression"
     ... | success x = success (negate x)
-    checkArithExpr {τ} (plus as) = do
-      as' ← checkListArithExpr {τ} as
-      return (add as')
-    checkArithExpr {τ} (minus a as) = do
-      as' ← checkListArithExpr {τ} as
-      a' ← checkArithExpr {τ} a
-      return (minus (a' ∷ as'))
-    checkArithExpr {τ} (multiply as) = do
-      as' ← checkListArithExpr {τ} as
-      return (mult as')
+    checkArithExpr τ (plus as) = do
+        as' ← checkListArithExpr τ as
+        return (add as')
+    checkArithExpr τ (minus a as) = do
+        as' ← checkListArithExpr τ as
+        a' ← checkArithExpr τ a
+        return (minus (a' ∷ as'))
+    checkArithExpr τ (multiply as) = do
+        as' ← checkListArithExpr τ as
+        return (mult as')
 
-    checkListArithExpr : {τ : 𝐄.ElementType} → List 𝐁.ArithExpr → Result (List (𝐕.ArithExpr Γ τ))
-    checkListArithExpr [] = success [] 
-    checkListArithExpr {τ} (x ∷ xs) = do
-      x' ← checkArithExpr {τ} x
-      xs' ← checkListArithExpr {τ} xs
-      return (x' ∷ xs')
+    checkListArithExpr : (τ : 𝐄.ElementType) → List 𝐁.ArithExpr → Result (List (𝐕.ArithExpr Γ τ))
+    checkListArithExpr τ [] = success [] 
+    checkListArithExpr τ (x ∷ xs) = do
+        x' ← checkArithExpr τ x
+        xs' ← checkListArithExpr τ xs
+        return (x' ∷ xs')
 
-  -- check boolean expressions
-  checkCompExpr : ({τ : 𝐄.ElementType} → 𝐕.ArithExpr Γ τ → 𝐕.ArithExpr Γ τ → 𝐕.BoolExpr Γ) → 𝐁.ArithExpr → 𝐁.ArithExpr → Result(𝐕.BoolExpr Γ)
-  checkCompExpr f b₁ b₂ = do
+-- check boolean expressions
+checkCompExpr : ({τ : 𝐄.ElementType} → 𝐕.ArithExpr Γ τ → 𝐕.ArithExpr Γ τ → 𝐕.BoolExpr Γ) → 𝐁.ArithExpr → 𝐁.ArithExpr → Result(𝐕.BoolExpr Γ)
+checkCompExpr f b₁ b₂ = do
     let type = findType b₁ b₂
-    t₁ ← checkArithExpr {type} b₁
-    t₂ ← checkArithExpr {type} b₂
+    t₁ ← checkArithExpr type b₁
+    t₂ ← checkArithExpr type b₂
     return (f t₁ t₂)
     where
-    findType : 𝐁.ArithExpr → 𝐁.ArithExpr → 𝐄.ElementType
-    findType b₁ b₂ with inferArithExprType b₁ |  inferArithExprType b₂
-    ... | just x | just x₁ = x
-    ... | just x | nothing = x
-    ... | nothing | just x = x
-    ... | nothing | nothing = real
+        findType : 𝐁.ArithExpr → 𝐁.ArithExpr → 𝐄.ElementType
+        findType b₁ b₂ with inferArithExprType b₁ |  inferArithExprType b₂
+        ... | just x | just x₁ = x
+        ... | just x | nothing = x
+        ... | nothing | just x = x
+        ... | nothing | nothing = real
 
-  -- wrapper function for checkCompExpr
-  checkComparative : ({τ : 𝐄.ElementType} → 𝐕.ArithExpr Γ τ → 𝐕.ArithExpr Γ τ → 𝐕.CompExpr Γ τ) → 𝐁.ArithExpr → 𝐁.ArithExpr → Result(𝐕.BoolExpr Γ)
-  checkComparative f b₁ b₂ = checkCompExpr (λ x x₁ → compExpr (_ , f x x₁)) b₁ b₂
+-- wrapper function for checkCompExpr
+checkComparative : ({τ : 𝐄.ElementType} → 𝐕.ArithExpr Γ τ → 𝐕.ArithExpr Γ τ → 𝐕.CompExpr Γ τ) → 𝐁.ArithExpr → 𝐁.ArithExpr → Result(𝐕.BoolExpr Γ)
+checkComparative f b₁ b₂ = checkCompExpr (λ x x₁ → compExpr (_ , f x x₁)) b₁ b₂
 
-  mutual
+mutual
     checkBoolExpr : 𝐁.BoolExpr → Result (𝐕.BoolExpr Γ)
     checkBoolExpr (greaterThan a₁ a₂) = checkComparative greaterThan a₁ a₂
     checkBoolExpr (lessThan a₁ a₂) = checkComparative lessThan a₁ a₂
@@ -147,47 +147,15 @@ module _ (Σ : CheckContext) where
     checkBoolExpr (notEqual a₁ a₂) = checkComparative notEqual a₁ a₂
     checkBoolExpr (equal a₁ a₂) = checkComparative equal a₁ a₂
     checkBoolExpr (BoolExpr.and bs) = do
-      bs' ← checkListBoolExpr bs
-      return (andExpr bs')
+        bs' ← checkListBoolExpr bs
+        return (andExpr bs')
     checkBoolExpr (BoolExpr.or bs) = do
-      bs' ← checkListBoolExpr bs
-      return (orExpr bs')
+        bs' ← checkListBoolExpr bs
+        return (orExpr bs')
 
     checkListBoolExpr :  List 𝐁.BoolExpr →  Result (List (𝐕.BoolExpr Γ))
     checkListBoolExpr [] = success []
     checkListBoolExpr (x ∷ xs) = do
-      x' ← checkBoolExpr x
-      xs' ← checkListBoolExpr xs
-      return (x' ∷ xs')
-
-scopeCheckAssertions : (Σ : CheckContext) → List⁺ 𝐁.Assertion → Result (List (𝐕.Assertion (convertΣtoΓ Σ)))
-scopeCheckAssertions Σ asserts = List⁺.foldl checkAssertₙ checkAssert asserts
-  where
-    checkAssert : 𝐁.Assertion → Result (List (𝐕.Assertion (convertΣtoΓ Σ)))
-    checkAssert (assert b) with checkBoolExpr Σ b
-    ... | error _ = error ""
-    ... | success x = success (List.[ assert x ])
-    checkAssertₙ : Result (List (𝐕.Assertion (convertΣtoΓ Σ))) → 𝐁.Assertion → Result (List (𝐕.Assertion (convertΣtoΓ Σ)))
-    checkAssertₙ (error _) _ = error ""
-    checkAssertₙ (success props) a with checkAssert a
-    ... | error _ = error ""
-    ... | success x = success (x ++ props)
-
--- Check Assertions from the constructed Scope Context
-checkAssertions : List 𝐁.NetworkDefinition → List⁺ 𝐁.Assertion → Result 𝐕.Query
-checkAssertions defs asserts with mkCheckContext defs
-... | error _ = error ""
-... | success Σ with scopeCheckAssertions Σ asserts
-... | error _ = error ""
-... | success x = success (𝐕.mkQuery checkedNetworkDefs x) -- mkCheckContext should return the networkdefs
-  where
-    checkedNetworkDefs : List 𝐕.NetworkDefinition
-    checkedNetworkDefs = List.map proj₂ Σ
-
--- change to non-empty list
-scopeCheck : 𝐁.Query → Result 𝐕.Query
-scopeCheck (vNNLibQuery ver ns as) = asserts⁺ (convertListToList⁺ as)
-  where
-    asserts⁺ : Result (List⁺ 𝐁.Assertion) → Result 𝐕.Query
-    asserts⁺ (error _) = error "Cannot have no assertions"
-    asserts⁺ (success x₁) = checkAssertions ns x₁
+        x' ← checkBoolExpr x
+        xs' ← checkListBoolExpr xs
+        return (x' ∷ xs')

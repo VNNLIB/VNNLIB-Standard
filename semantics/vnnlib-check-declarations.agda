@@ -1,4 +1,4 @@
-module check where
+module vnnlib-check-declarations where
 
 open import Data.List as List
 open import Data.List.Properties using (length-map)

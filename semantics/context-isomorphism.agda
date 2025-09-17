@@ -11,7 +11,7 @@ open Eq.≡-Reasoning
 open import Data.List.Properties using (length-map)
 open import Data.Product as Product using (proj₂; proj₁)
 open import vnnlib-syntax as 𝐕
-open import check
+open import vnnlib-check-declarations
 
 open import utils
 
