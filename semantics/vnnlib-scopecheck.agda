@@ -45,19 +45,28 @@ module _ (Σ : CheckContext) where
 
   postulate validIndices : List 𝐁.Number → (s : 𝐓.TensorShape) → Result (𝐓.TensorIndices s) -- Data.Nat.Show readMaybe
 
-  inferArithExprType : 𝐁.ArithExpr → Maybe 𝐄.ElementType
-  inferArithExprType (varExpr x xs) with variableNetworkIndex x Σ
-  ... | error _ = nothing
-  ... | success n with variableIndexInNetworkᵢₙₚᵤₜ (proj₁ (List.lookup Σ n)) x
-  ... | success i = just (getElementType (List.lookup (toList (NetworkBinding.inputs (proj₁ (List.lookup Σ n)))) i))
-  ... | error _ with variableIndexInNetworkₒᵤₜₚᵤₜ (proj₁ (List.lookup Σ n)) x
-  ... | success j = just (getElementType (List.lookup (toList (NetworkBinding.outputs (proj₁ (List.lookup Σ n)))) j))
-  ... | error _ = nothing -- out-of-scope
-  inferArithExprType (valExpr x) = nothing
-  inferArithExprType (negate a) = inferArithExprType a
-  inferArithExprType (plus as) = {!!}
-  inferArithExprType (minus a as) = List.foldl {!!} (inferArithExprType a) as
-  inferArithExprType (multiply as) = List.foldl {!!} nothing as
+  mutual
+    inferArithExprType : 𝐁.ArithExpr → Maybe 𝐄.ElementType
+    inferArithExprType (varExpr x xs) with variableNetworkIndex x Σ
+    ... | error _ = nothing
+    ... | success n with variableIndexInNetworkᵢₙₚᵤₜ (proj₁ (List.lookup Σ n)) x
+    ... | success i = just (getElementType (List.lookup (toList (NetworkBinding.inputs (proj₁ (List.lookup Σ n)))) i))
+    ... | error _ with variableIndexInNetworkₒᵤₜₚᵤₜ (proj₁ (List.lookup Σ n)) x
+    ... | success j = just (getElementType (List.lookup (toList (NetworkBinding.outputs (proj₁ (List.lookup Σ n)))) j))
+    ... | error _ = nothing -- out-of-scope
+    inferArithExprType (valExpr x) = nothing
+    inferArithExprType (negate a) = inferArithExprType a
+    inferArithExprType (plus as) = inferListArithExprType as
+    inferArithExprType (minus a as) = inferListArithExprType (a ∷ as)
+    inferArithExprType (multiply as) = inferListArithExprType as
+
+    inferListArithExprType : List 𝐁.ArithExpr → Maybe 𝐄.ElementType
+    inferListArithExprType [] = nothing
+    inferListArithExprType (x ∷ xs) with inferArithExprType x | inferListArithExprType xs
+    ... | just x₁ | just x₂ = just x₁
+    ... | just x₁ | nothing = just x₁
+    ... | nothing | just x₁ = just x₁
+    ... | nothing | nothing = nothing
   
   mutual
     checkArithExpr : {τ : 𝐄.ElementType} → 𝐁.ArithExpr → Result (𝐕.ArithExpr Γ τ)
@@ -95,8 +104,13 @@ module _ (Σ : CheckContext) where
     checkArithExpr {τ} (plus as) = do
       as' ← checkListArithExpr {τ} as
       return (add as')
-    checkArithExpr (minus a as) = List.foldl (λ z z₁ → {!!}) (checkArithExpr a) as
-    checkArithExpr (multiply as) = List.foldl (λ z z₁ → {!!}) (error "") as
+    checkArithExpr {τ} (minus a as) = do
+      as' ← checkListArithExpr {τ} as
+      a' ← checkArithExpr {τ} a
+      return (minus (a' ∷ as'))
+    checkArithExpr {τ} (multiply as) = do
+      as' ← checkListArithExpr {τ} as
+      return (mult as')
 
     checkListArithExpr : {τ : 𝐄.ElementType} → List 𝐁.ArithExpr → Result (List (𝐕.ArithExpr Γ τ))
     checkListArithExpr [] = success [] 
@@ -123,16 +137,28 @@ module _ (Σ : CheckContext) where
   -- wrapper function for checkCompExpr
   checkComparative : ({τ : 𝐄.ElementType} → 𝐕.ArithExpr Γ τ → 𝐕.ArithExpr Γ τ → 𝐕.CompExpr Γ τ) → 𝐁.ArithExpr → 𝐁.ArithExpr → Result(𝐕.BoolExpr Γ)
   checkComparative f b₁ b₂ = checkCompExpr (λ x x₁ → compExpr (_ , f x x₁)) b₁ b₂
-  
-  checkBoolExpr : 𝐁.BoolExpr → Result (𝐕.BoolExpr Γ)
-  checkBoolExpr (greaterThan a₁ a₂) = checkComparative greaterThan a₁ a₂
-  checkBoolExpr (lessThan a₁ a₂) = checkComparative lessThan a₁ a₂
-  checkBoolExpr (greaterEqual a₁ a₂) = checkComparative greaterEqual a₁ a₂
-  checkBoolExpr (lessEqual a₁ a₂) = checkComparative lessEqual a₁ a₂
-  checkBoolExpr (notEqual a₁ a₂) = checkComparative notEqual a₁ a₂
-  checkBoolExpr (equal a₁ a₂) = checkComparative equal a₁ a₂
-  checkBoolExpr (BoolExpr.and bs) = {!!}
-  checkBoolExpr (BoolExpr.or bs) = {!!} 
+
+  mutual
+    checkBoolExpr : 𝐁.BoolExpr → Result (𝐕.BoolExpr Γ)
+    checkBoolExpr (greaterThan a₁ a₂) = checkComparative greaterThan a₁ a₂
+    checkBoolExpr (lessThan a₁ a₂) = checkComparative lessThan a₁ a₂
+    checkBoolExpr (greaterEqual a₁ a₂) = checkComparative greaterEqual a₁ a₂
+    checkBoolExpr (lessEqual a₁ a₂) = checkComparative lessEqual a₁ a₂
+    checkBoolExpr (notEqual a₁ a₂) = checkComparative notEqual a₁ a₂
+    checkBoolExpr (equal a₁ a₂) = checkComparative equal a₁ a₂
+    checkBoolExpr (BoolExpr.and bs) = do
+      bs' ← checkListBoolExpr bs
+      return (andExpr bs')
+    checkBoolExpr (BoolExpr.or bs) = do
+      bs' ← checkListBoolExpr bs
+      return (orExpr bs')
+
+    checkListBoolExpr :  List 𝐁.BoolExpr →  Result (List (𝐕.BoolExpr Γ))
+    checkListBoolExpr [] = success []
+    checkListBoolExpr (x ∷ xs) = do
+      x' ← checkBoolExpr x
+      xs' ← checkListBoolExpr xs
+      return (x' ∷ xs')
 
 scopeCheckAssertions : (Σ : CheckContext) → List⁺ 𝐁.Assertion → Result (List (𝐕.Assertion (convertΣtoΓ Σ)))
 scopeCheckAssertions Σ asserts = List⁺.foldl checkAssertₙ checkAssert asserts
