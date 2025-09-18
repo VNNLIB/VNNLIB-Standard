@@ -39,7 +39,7 @@ and the shape of the tensor. Similarly, an output variable uses the \texttt{decl
 
 
 It is important to clarify that a network declaration only declares an \emph{interface} and by default does not refer in any way to a particular ONNX network model. When passing a query and a network to the verifier, the name of the network does not need to match the name of the ONNX model file. Instead, as described in Section~\ref{sec:verify_command}, the user will explicitly associate a network declaration to the relevant model file via the command line.
-Neither do the declared names of the inputs and outputs need to match the names of the input and output nodes within the model file. This flexibility allows many different alternative ONNX models to be compatible with the same query. This also implies that the declared ONNX names of the inputs and outputs, and the network name is not referenced within the Assertions (discussed in Section 3.1.2) of a query.
+Neither do the declared names of the inputs and outputs need to match the names of the input and output nodes within the model file. This flexibility allows many different alternative ONNX models to be compatible with the same query. This also implies that the declared ONNX names of the inputs and outputs is not referenced within the Assertions (discussed in Section 3.1.2) of a query.
 
 All variable names follow the same syntax conventions: they are case-sensitive, must start with a letter, and may only contain letters, digits and underscores. All variable names must be unique within the query (see Section~\ref{sec:scoping_and_typing} for a more in-depth discussion). 
 
@@ -204,7 +204,7 @@ A \vnnlib{} query is said to be \textit{well-typed}, if it satisfies the followi
     \item Variables are \textit{strictly-typed}; so all variable references must match the expected element type in the context where it is substituted.
 \end{itemize}
 \myremark{
-    % Although some ONNX types can be soundly cast for operations in certain cases, for example, a \textit{float16} can be added safely to a \textit{float32} if the expected type of evaluated expression is a \textit{float32}.
+    Although some ONNX types can be soundly cast for operations in certain cases, for example, a \textit{float16} can be added safely to a \textit{float32} if the expected type of evaluated expression is a \textit{float32}, the \vnnlib{} standard does not permit such implicit casting.
     If a query is agnostic to the element type of variables, it should be declared with the \textit{Real} type.
 }
 
@@ -336,3 +336,17 @@ In a \vnnlib{} query, Network Declarations are used to construct the static cont
 \label{sec:semantics}
 
 \mnote{TODO: Ann Roy}
+The semantics of a \vnnlib{} query is defined in terms of the satisfiability problem it represents. A query is said to be \textit{satisfiable} if there exists an assignment of values to all/any of the the input tensors such that when the corresponding ONNX model(s) are evaluated, the set of assertions hold true. Conversely, a query is said to be \textit{unsatisfiable} if no such assignment exists.
+
+Given that the actual semantics of a \vnnlib{} query is dependent on the semantics of the neural network representation i.e. on the underlying ONNX model(s) it is associated with, we can describe the semantics of a query as a type of higher-order satisfiability problem. 
+
+The semantics are only well-defined if the query is well-scoped and well-typed, as described in Section~\ref{sec:scoping_and_typing}. Similarly, the semantics for the Declarations and Assertions can be described separately.
+
+\myremark{
+    The \vnnlib{} standard version 2.0 does not formalise the semantics of network congruence, or of hidden nodes.
+}
+
+\paragraph{Network Declarations}
+For semantics, the semantic context is constructed from the Declarations of a \vnnlib{} query, which represents each network as a function from a set of inputs to a set of outputs, and storing this \textit{network implementation} alongside the set of inputs.
+
+\paragraph{Assertions}
