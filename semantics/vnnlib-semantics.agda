@@ -13,6 +13,7 @@ open import Level
 open import Function.Nary.NonDependent as NFunc
 open import Function.Base
 open import Relation.Binary.PropositionalEquality as Eq using (_≡_; refl; subst)
+open import Data.Empty using (⊥)
 
 open import utils
 open import vnnlib-types
@@ -34,23 +35,32 @@ projₙ-stabulate (2+ n) f g (Fin.suc k) prod = projₙ-stabulate (ℕ.suc n) (f
     
 -- Network Implementation Representation
 ProductOfTensorsLevel : List TensorShape → Level
-ProductOfTensorsLevel shapes = NFunc.⨆ (List.length shapes ) (ltabulate (List.length shapes) (λ i → Level.zero))
+ProductOfTensorsLevel shapes = NFunc.⨆ (List.length shapes) (ltabulate (List.length shapes) (λ i → Level.zero))
 
-ProductOfTensors : (shapes : List TensorShape) → Set (ProductOfTensorsLevel shapes) 
-ProductOfTensors shapes = Nary.Product ni (stabulate ni (λ i → Level.zero) (λ i → Tensor ℚ (List.lookup shapes i)) )
-  where ni = List.length shapes
+ProductOfTensors : (shapes : List TensorShape) → Set -- (ProductOfTensorsLevel shapes) 
+ProductOfTensors shapes = 
+  (i : Fin (List.length shapes)) → Tensor ℚ (List.lookup shapes i)
+  -- Nary.Product ni (stabulate ni (λ i → Level.zero) (λ i → Tensor ℚ (List.lookup shapes i)) )
+  -- where ni = List.length shapes
 
-record NetworkImplementation (networkType : NetworkType) : Set
-       (ProductOfTensorsLevel (NetworkType.inputShape networkType) Level.⊔ ProductOfTensorsLevel (NetworkType.outputShape networkType)) where
+record NetworkImplementation (networkType : NetworkType) : Set where
   constructor
     network
   open NetworkType networkType
   field
     networkFunction : ProductOfTensors inputShape → ProductOfTensors outputShape
-    inputTensors : ProductOfTensors inputShape
+    inputTensors : ProductOfTensors inputShape -- remove
 
-Environment : Context → Setω
+Environment : Context → Set -- product Assignment & NI
 Environment Γ =
+  (i : Fin (List.length Γ)) → let networkType = List.lookup Γ i in NetworkImplementation networkType × ProductOfTensors (NetworkType.inputShape networkType)
+
+Assignment : Context → Set
+Assignment Γ = 
+  (i : Fin (List.length Γ)) → let networkType = List.lookup Γ i in ProductOfTensors (NetworkType.inputShape networkType)
+
+NetworkImplementations : Context → Set
+NetworkImplementations Γ = 
   (i : Fin (List.length Γ)) → let networkType = List.lookup Γ i in NetworkImplementation networkType
 
 
@@ -61,8 +71,8 @@ module _ (Γ : Context) (ε : Environment Γ) where
     ⟦_⟧ₐ : ArithExpr Γ τ → ElementTypeToSet τ
     ⟦ (constant a) ⟧ₐ         = a
     ⟦(negate a) ⟧ₐ            = 0ℚ ℚ.- ⟦ a ⟧ₐ 
-    ⟦ (varInput iₙₑₜ jᵢₙₚ indices ) ⟧ₐ    = tensorLookup indices (projₙ-stabulate _ _ _ jᵢₙₚ (inputTensors (ε iₙₑₜ)))
-    ⟦ (varOutput iₙₑₜ jₒᵤₜ indices ) ⟧ₐ   = tensorLookup indices (projₙ-stabulate _ _ _ jₒᵤₜ (networkFunction (ε iₙₑₜ) (inputTensors (ε iₙₑₜ))))
+    ⟦ (varInput iₙₑₜ jᵢₙₚ indices ) ⟧ₐ    = tensorLookup indices (inputTensors (proj₁ (ε iₙₑₜ)) jᵢₙₚ)
+    ⟦ (varOutput iₙₑₜ jₒᵤₜ indices ) ⟧ₐ   = tensorLookup indices ((networkFunction (proj₁ (ε iₙₑₜ)) (inputTensors (proj₁ (ε iₙₑₜ)))) jₒᵤₜ)
     -- Cannot simplify similar cases with fold as context is implicit
     ⟦ (add []) ⟧ₐ             = 0ℚ
     ⟦ (add (a₀ ∷ a)) ⟧ₐ       = ⟦ a₀ ⟧ₐ ℚ.+ ⟦ (add a) ⟧ₐ
@@ -89,5 +99,12 @@ module _ (Γ : Context) (ε : Environment Γ) where
 
   ⟦_⟧ₚ : Assertion Γ → Bool
   ⟦ (assert p) ⟧ₚ = ⟦ p ⟧ᵇ
+
+-- the semantics of a declaration is defined from the constructed context
+⟦_⟧q : Query → Set
+⟦ mkQuery networks assertions ⟧q = let Γ = mkContext networks in NetworkImplementations Γ → ∃ λ (x : Assignment Γ) → List.foldl (λ z z₁ → and (z ∷ ⟦ Γ ⟧ₚ {!!} z₁ ∷ [])) true assertions ≡ true
+
+-- Data.List.Action and fold
+
 
 
