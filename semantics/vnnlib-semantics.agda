@@ -2,17 +2,11 @@ module vnnlib-semantics where
 
 open import Data.List as List
 open import Data.String hiding (map)
-open import Data.Nat as ℕ hiding (_<ᵇ_)
-open import Data.Integer
 open import Data.Rational as ℚ
 open import Data.Bool
-open import Data.Product.Nary.NonDependent as Nary
 open import Data.Fin as Fin
 open import Data.Product as Product
-open import Level
-open import Function.Nary.NonDependent as NFunc
-open import Function.Base
-open import Relation.Binary.PropositionalEquality as Eq using (_≡_; refl; subst)
+open import Relation.Binary.PropositionalEquality as Eq using (_≡_)
 open import Data.Empty using (⊥)
 
 open import utils
