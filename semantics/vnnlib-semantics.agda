@@ -22,21 +22,20 @@ open import tensor using (Tensor; TensorShape; tensorLookup)
 
     
 -- Network Implementation Representation
-ProductOfTensors : (shapes : List TensorShape) → Set 
-ProductOfTensors shapes = 
+SetOfTensors : (shapes : List TensorShape) → Set 
+SetOfTensors shapes = 
   (i : Fin (List.length shapes)) → Tensor ℚ (List.lookup shapes i)
 
-record NetworkImplementation (networkType : NetworkType) : Set where
-  constructor
-    network
-  open NetworkType networkType
-  field
-    networkFunction : ProductOfTensors inputShape → ProductOfTensors outputShape
-    inputTensors : ProductOfTensors inputShape -- remove
+NetworkImplementation : NetworkType → Set
+NetworkImplementation networkτ = SetOfTensors inputShape → SetOfTensors outputShape
+  where
+    inputShape = NetworkType.inputShape networkτ
+    outputShape = NetworkType.outputShape networkτ
 
+-- Environment Representation
 Assignments : Context → Set
 Assignments Γ = 
-  (i : Fin (List.length Γ)) → let networkType = List.lookup Γ i in ProductOfTensors (NetworkType.inputShape networkType)
+  (i : Fin (List.length Γ)) → let networkType = List.lookup Γ i in SetOfTensors (NetworkType.inputShape networkType)
 
 NetworkImplementations : Context → Set
 NetworkImplementations Γ = 
@@ -45,22 +44,21 @@ NetworkImplementations Γ =
 Environment : Context → Set
 Environment Γ = NetworkImplementations Γ × Assignments Γ
 
+-- Semantics of Assertions
 module _ (Γ : Context) (ε : Environment Γ) where
-  open NetworkImplementation
 
   module _ (τ : ElementType) where
     ⟦_⟧ₐ : ArithExpr Γ τ → ElementTypeToSet τ
     ⟦ (constant a) ⟧ₐ         = a
-    ⟦(negate a) ⟧ₐ            = 0ℚ ℚ.- ⟦ a ⟧ₐ 
-    ⟦ (varInput iₙₑₜ jᵢₙₚ indices ) ⟧ₐ    = tensorLookup indices (inputTensors ((proj₁ ε) iₙₑₜ) jᵢₙₚ)
-    ⟦ (varOutput iₙₑₜ jₒᵤₜ indices ) ⟧ₐ   = tensorLookup indices ((networkFunction ((proj₁ ε) iₙₑₜ) (inputTensors ((proj₁ ε) iₙₑₜ))) jₒᵤₜ)
-    -- Cannot simplify similar cases with fold as context is implicit
+    ⟦ (negate a) ⟧ₐ           = 0ℚ ℚ.- ⟦ a ⟧ₐ 
+    ⟦ (varInput iₙₑₜ jᵢₙₚ indices ) ⟧ₐ    = tensorLookup indices (((proj₂ ε) iₙₑₜ) jᵢₙₚ)
+    ⟦ (varOutput iₙₑₜ jₒᵤₜ indices ) ⟧ₐ   = tensorLookup indices (((((proj₁ ε) iₙₑₜ) (((proj₂ ε) iₙₑₜ))) jₒᵤₜ))
     ⟦ (add []) ⟧ₐ             = 0ℚ
     ⟦ (add (a₀ ∷ a)) ⟧ₐ       = ⟦ a₀ ⟧ₐ ℚ.+ ⟦ (add a) ⟧ₐ
     ⟦ (mult []) ⟧ₐ            = 1ℚ
     ⟦ (mult (a₀ ∷ a)) ⟧ₐ      = ⟦ a₀ ⟧ₐ ℚ.* ⟦ (mult a) ⟧ₐ
     ⟦ (minus []) ⟧ₐ           = 0ℚ
-    ⟦ (minus (a₀ ∷ a)) ⟧ₐ     = ⟦ a₀ ⟧ₐ ℚ.- ⟦ (minus a) ⟧ₐ
+    ⟦ (minus (a₀ ∷ a)) ⟧ₐ     = ⟦ a₀ ⟧ₐ ℚ.- ⟦ (add a) ⟧ₐ
 
     ⟦_⟧ᶜ : CompExpr Γ τ → Bool
     ⟦ greaterThan x x₁ ⟧ᶜ = ⟦ x ⟧ₐ >ᵇ ⟦ x₁ ⟧ₐ
@@ -81,7 +79,7 @@ module _ (Γ : Context) (ε : Environment Γ) where
   ⟦_⟧ₚ : Assertion Γ → Bool
   ⟦ (assert p) ⟧ₚ = ⟦ p ⟧ᵇ
 
--- the semantics of a declaration is defined from the constructed context
+-- Semantics of a Query
 ⟦_⟧𝕢 : Query → Set
 ⟦ mkQuery networks assertions ⟧𝕢 =
   let Γ = mkContext networks in (n : NetworkImplementations Γ) → ∃ λ (x : Assignments Γ) → List.foldl (λ z z₁ → and (z ∷ ⟦ Γ ⟧ₚ (n , x) z₁ ∷ [])) true assertions ≡ true
