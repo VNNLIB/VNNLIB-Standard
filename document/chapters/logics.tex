@@ -51,6 +51,7 @@ The currently supported theory sets are:
 The following sections examine each of these theory sets in more detail.
 
 \subsection{Hidden nodes}
+\label{sec:hidden-nodes}
 
 \begin{figure}[h]
 \centering
@@ -68,8 +69,8 @@ Some neural network verifiers do not support reasoning about hidden nodes. The `
 
 \begin{code}[style=lbnf]
 (declare-network f
-    (declare-input  X Real [1])
-    (declare-output Y Real [1])
+    (declare-input  X float [1])
+    (declare-output Y float [1])
 )
 \end{code}
 
@@ -77,13 +78,14 @@ but the following query is only a member of \h{}:
 
 \begin{code}[style=lbnf]
 (declare-network f
-    (declare-input  X Real [1])
-    (declare-hidden H Real [1])
-    (declare-output Y Real [1])
+    (declare-input  X float [1])
+    (declare-hidden H float [1])
+    (declare-output Y float [1])
 )
 \end{code}
 
 \subsection{Multiple networks}
+\label{sec:multiple-networks}
 
 \begin{figure}[h]
 \centering
@@ -101,8 +103,8 @@ Many neural network verifiers only support reasoning about a single network. The
 
 \begin{code}[style=lbnf]
 (declare-network f
-    (declare-input  X Real [1])
-    (declare-output Y Real [1])
+    (declare-input  X float [1])
+    (declare-output Y float [1])
 )
 \end{code}
 
@@ -110,16 +112,17 @@ but the following query is only a member of \mnet{}:
 
 \begin{code}[style=lbnf]
 (declare-network f
-    (declare-input  X Real [1])
-    (declare-output Y Real [1])
+    (declare-input  X float [1])
+    (declare-output Y float [1])
 )
 (declare-network g
-    (declare-input  U Real [1])
-    (declare-output W Real [1])
+    (declare-input  U float [1])
+    (declare-output W float [1])
 )
 \end{code}
 
 \subsection{Multiple inputs/output}
+\label{sec:multiple-inputs-outputs}
 
 \begin{figure}[h]
 \centering
@@ -137,8 +140,8 @@ Many neural network verifiers only support reasoning about networks with a singl
 
 \begin{code}[style=lbnf]
 (declare-network f
-    (declare-input  X Real [1])
-    (declare-output Y Real [1])
+    (declare-input  X float [1])
+    (declare-output Y float [1])
 )
 \end{code}
 
@@ -146,13 +149,14 @@ but the following query is only a member of \mio{}:
 
 \begin{code}[style=lbnf]
 (declare-network f
-    (declare-input  X1 Real [1])
-    (declare-input  X2 Real [1])
-    (declare-output Y  Real [1])
+    (declare-input  X1 float [1])
+    (declare-input  X2 float [1])
+    (declare-output Y  float [1])
 )
 \end{code}
 
-\subsection{Multi-node comparisons}\label{sec:arch}
+\subsection{Multiple node comparisons}
+\label{sec:multi-node-comparisons}
 
 \begin{figure}[h]
 \centering
@@ -162,25 +166,25 @@ but the following query is only a member of \mio{}:
 
    \draw [arrow] (snc) -- (mnc);
 \end{tikzpicture}
-\caption{The ``Multi-node comparisons'' theory set}
+\caption{The ``Multiple node comparisons'' theory set}
 \label{fig:multi-node-comparisons-theory-set}
 \end{figure}
 
 Many verifiers are based on some variant of abstract interpretation or reachability analysis where an over-approximation of the set of reachable values is computed for each layer in turn.
 One consequence of this is that they cannot easily verify queries that contain a comparison involving variables from different nodes in the same network.
 
-The ``Multi-node comparisons'' theory set therefore contains two theories \snc{} and \mnc{}, representing queries that contain comparisons that do not reference variables from different nodes of the same network, and queries that may contain such comparisons respectively. Therefore \snc{} is a subset of \mnc{}. For example, consider queries that declare the following networks:
+The ``Multiple node comparisons'' theory set therefore contains two theories \snc{} and \mnc{}, representing queries that contain comparisons that do not reference variables from different nodes of the same network, and queries that may contain such comparisons respectively. Therefore \snc{} is a subset of \mnc{}. For example, consider queries that declare the following networks:
 
 \begin{code}[style=lbnf]
 (declare-network f
-    (declare-input  X Real [2])
-    (declare-output Y Real [1])
+    (declare-input  X float [2])
+    (declare-output Y float [1])
 )
 
 (declare-network g
-    (declare-input  A Real [2])
-    (declare-hidden H Real [1])
-    (declare-output B Real [1])
+    (declare-input  A float [2])
+    (declare-hidden H float [1])
+    (declare-output B float [1])
 )
 \end{code}
 
@@ -204,6 +208,7 @@ However, the following comparisons only belong to \mnc{}:
 \end{code}
 
 \subsection{Arithmetic complexity}
+\label{sec:arithmetic-complexity}
 
 \begin{figure}[h]
 \centering
@@ -248,9 +253,10 @@ For example, the following assertion belongs in \poly{} but not in \lin{}
 \end{enumerate}
 
 
+\subsection{Element types}
+\label{sec:element-types}
 
-\subsection{Datatypes}
-
+\subsubsection{ONNX element types}
 
 \begin{figure}[h]
 \centering
@@ -284,19 +290,23 @@ For example, the following assertion belongs in \poly{} but not in \lin{}
 
 As discussed in Section~\ref{sec:onnx_overview}, the ONNX format supports a range of different datatypes such \theory{FLOAT} (32-bit floats), \theory{FLOAT16} (16-bit floats), \theory{INT64} (64-bit integers), \theory{BOOL} among many others. Most verifiers will support a particular precision of floating point, or assume real number semantics. 
 
-Therefore every datatype in the ONNX \href{https://onnx.ai/onnx/intro/concepts.html#element-type}{specification} is associated with a \vnnlib{} theory of the same name. A solver supporting a particular datatype theory means that it supports variable declarations that use that datatype. For example, the following network declaration belongs to the \theory{FLOAT16} theory:
+Therefore every element type in the ONNX \href{https://onnx.ai/onnx/intro/concepts.html#element-type}{specification} is associated with a \vnnlib{} theory of the same name. A solver supporting a particular element type theory means that it supports variable declarations that use that type. For example, the following network declaration belongs to the \theory{float16} theory:
 
 \begin{code}[style=lbnf]
 (declare-network f
-    (declare-input  X FLOAT16 [2])
-    (declare-output Y FLOAT16 [1])
+    (declare-input  X float16 [2])
+    (declare-output Y float16 [1])
 )
 \end{code}
 
-In addition to the supported ONNX datatypes, many verifiers assume real number semantics while performing verification. Although assuming neural networks operate over real numbers is well known to compromise the soundness of verification, it is important for trust in the field that verifiers accurately report their assumptions. Therefore, the VNNLib standard also supports an additional datatype theory \theory{Real} to provide compatability in this case.  There is no inclusion relation between any datatype theories.
-\mnote{Double check?}
+The same network can contain inputs and outputs of different ONNX element types. In such a case, the query is only supported if the solver supports all the types and the operators used internally to convert between the types.
 
-\mnote{What about network declarations that mix datatypes?}
+
+\subsubsection{The `Real' element type}
+
+It is a well-known problem in the community that some solvers assume real semantics and therefore are not sound with respect to the semantics of the various floating point types. In order to support such solvers, the specification contains an additional element type `real` that is not in the ONNX specification.
+
+If a user uses the `real` type in their query then they are explicitly giving permission for the solver to use non-sound semantics when reasoning about the network. Conversely if the query uses ONNX element types then the user is explicitly requesting sound analysis. Therefore if the solver does not support the ONNX element types in question, then the solver must error. Likewise if the types used in the actual network provided to the solver do not match the types in the query, the solver must also error.
 
 \section{Logics}
 
