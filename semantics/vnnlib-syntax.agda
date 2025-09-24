@@ -8,7 +8,7 @@ open import Data.Rational as ℚ
 open import Data.Fin as Fin
 open import Data.Vec as Vec using (Vec; []; _∷_)
 open import Data.Bool
-open import Data.Product using (Σ)
+open import Data.Product using (Σ; _×_; _,_; proj₁)
 
 open import vnnlib-types using (ElementType; ElementTypeToSet)
 open import tensor using (TensorShape; TensorIndices)
@@ -24,8 +24,8 @@ record NetworkType : Set where
   constructor
     networkType
   field
-    inputShape : List TensorShape
-    outputShape : List TensorShape
+    inputShapes&Types : List (TensorShape × ElementType )
+    outputShapes&Types : List (TensorShape × ElementType )
 
 
 -- Node Definitions
@@ -46,11 +46,11 @@ data NetworkDefinition : Set where
 Context : Set
 Context = List (NetworkType)
 
-convertInputΓ : InputDefinition → TensorShape
-convertInputΓ (declareInput _ _ x₂) = x₂
+convertInputΓ : InputDefinition → TensorShape × ElementType
+convertInputΓ (declareInput _ e₂ x₂) = x₂ , e₂
 
-convertOutputΓ : OutputDefinition → TensorShape
-convertOutputΓ (declareOutput _ _ x₂) = x₂
+convertOutputΓ : OutputDefinition → TensorShape × ElementType
+convertOutputΓ (declareOutput _ e₂ x₂) = x₂ , e₂
 
 convertNetworkΓ : NetworkDefinition → NetworkType
 convertNetworkΓ (declareNetwork _ inputs₁ outputs₁) = networkType (List.map convertInputΓ inputs₁) (List.map convertOutputΓ outputs₁)
@@ -65,10 +65,10 @@ module _ (Γ : Context) where
   data ArithExpr (τ : ElementType) : Set where
     constant : ElementTypeToSet τ → ArithExpr τ
     negate : ArithExpr τ → ArithExpr τ 
-    varInput : (i : Fin (List.length Γ)) → (j : Fin ( List.length (NetworkType.inputShape (List.lookup Γ i)) ) ) →
-      TensorIndices (List.lookup (NetworkType.inputShape (List.lookup Γ i)) j ) → ArithExpr τ
-    varOutput : (i : Fin (List.length Γ)) →  (j : Fin ( List.length (NetworkType.outputShape (List.lookup Γ i)) ) ) →
-      TensorIndices (List.lookup (NetworkType.outputShape (List.lookup Γ i)) j)  → ArithExpr τ
+    varInput : (i : Fin (List.length Γ)) → (j : Fin ( List.length (NetworkType.inputShapes&Types (List.lookup Γ i)) ) ) →
+      TensorIndices (proj₁ (List.lookup (NetworkType.inputShapes&Types (List.lookup Γ i)) j )) → ArithExpr τ
+    varOutput : (i : Fin (List.length Γ)) →  (j : Fin ( List.length (NetworkType.outputShapes&Types (List.lookup Γ i)) ) ) →
+      TensorIndices (proj₁ (List.lookup (NetworkType.outputShapes&Types (List.lookup Γ i)) j))  → ArithExpr τ
     add : List (ArithExpr τ) → ArithExpr τ
     minus : List (ArithExpr τ) → ArithExpr τ
     mult  : List (ArithExpr τ) → ArithExpr τ
@@ -92,7 +92,6 @@ module _ (Γ : Context) where
   -- Assertions : evalute to true or false
   data Assertion : Set where
     assert : BoolExpr → Assertion
-
 
 -- Query
 data Query : Set where

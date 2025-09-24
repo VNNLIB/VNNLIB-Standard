@@ -16,20 +16,20 @@ open import tensor using (Tensor; TensorShape; tensorLookup)
 
     
 -- Network Implementation Representation
-SetOfTensors : (shapes : List TensorShape) → Set 
-SetOfTensors shapes = 
-  (i : Fin (List.length shapes)) → Tensor ℚ (List.lookup shapes i)
+SetOfTensors : List (TensorShape × ElementType) → Set 
+SetOfTensors tensorsInfo =
+  (i : Fin (List.length tensorsInfo)) → let shape&type = List.lookup tensorsInfo i in Tensor (ElementTypeToSet (proj₂ shape&type)) (proj₁ shape&type) 
 
 NetworkImplementation : NetworkType → Set
-NetworkImplementation networkτ = SetOfTensors inputShape → SetOfTensors outputShape
+NetworkImplementation networkτ = SetOfTensors inputs → SetOfTensors outputs
   where
-    inputShape = NetworkType.inputShape networkτ
-    outputShape = NetworkType.outputShape networkτ
+    inputs = NetworkType.inputShapes&Types networkτ
+    outputs = NetworkType.outputShapes&Types networkτ
 
 -- Environment Representation
 Assignments : Context → Set
 Assignments Γ = 
-  (i : Fin (List.length Γ)) → let networkType = List.lookup Γ i in SetOfTensors (NetworkType.inputShape networkType)
+  (i : Fin (List.length Γ)) → let networkType = List.lookup Γ i in SetOfTensors (NetworkType.inputShapes&Types networkType)
 
 NetworkImplementations : Context → Set
 NetworkImplementations Γ = 
