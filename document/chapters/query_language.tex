@@ -291,7 +291,7 @@ In a \vnnlib{} query, Network Declarations are used to construct the static cont
             }{
                 \Gamma \vdash (\texttt{declareNetwork}~v~c_?~(I_0~...~I_n)^+~(H_0~...~H_m)^*~(O_0~...~O_o)^+) : \Gamma_{n+m+o}
             }
-            \\ \\ \\
+            \\ \\
             \inferrule*[]{\;}{
                 \Gamma \Vdash d : \tau
             }
@@ -325,6 +325,24 @@ In a \vnnlib{} query, Network Declarations are used to construct the static cont
                 \Gamma \Vdash b_0 :  \mathbf{Bool} \quad ... \quad \Gamma \Vdash b_n : \mathbf{Bool}
             }{
                 \Gamma \Vdash (\Box~b_0~...~b_n) : \mathbf{Bool} \quad \Box \in \{\texttt{and}, \texttt{or}\}
+            }
+            \\
+            \inferrule*[Right=Assertion]{
+                \Gamma \Vdash b : \mathbf{Bool}
+            }{
+                \Gamma \Vdash (\texttt{assert}~b) : \mathbf{Bool}
+            }
+            \\ \\
+            \inferrule*[Right=Query]{
+                \ensuremath{
+                    \begin{array}{ccc}
+                    \Gamma_0 := \Gamma := \Gamma_0 \vdash D_0 & \Gamma_n \Vdash A_0 : \mathbf{Bool} \\
+                    \vdots & \vdots \\
+                    \Gamma_n := \Gamma_n := \Gamma_{n-1} \vdash D_n & \Gamma_n \Vdash A_m : \mathbf{Bool}
+                    \end{array}
+                }
+            }{
+                \Gamma \Vdash (V~(D_0~...~D_n)~(A_0,...,A_m)) : \mathbf{Bool}
             }
         \end{mathpar}
         }
