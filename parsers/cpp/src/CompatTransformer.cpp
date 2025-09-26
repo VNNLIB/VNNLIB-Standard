@@ -69,8 +69,18 @@ std::vector<SpecCase> CompatTransformer::transform() {
         }
     }
 
-    // Generate the reachability cases from the disjunctions
-    enumerateCases();
+    if (_disjunctions.empty()) {
+        SpecCase baseCase;
+        baseCase.inputBox = _commonInputBounds;
+        baseCase.outputConstraints.push_back(_commonOutputConstraints);
+
+        if (!boxIsUnsat(baseCase.inputBox)) {
+            _cases.push_back(std::move(baseCase));
+        }
+    }
+    else {
+        enumerateCases();
+    }
     return _cases;
 }
 
@@ -126,6 +136,8 @@ void CompatTransformer::parseLiteral(const TCompare* node, Box& inputBounds, Pol
     bool isInputConstraint = false;
 
     if (terms.empty()) {
+        if (linearExpr.getConstant() > 0)  // If expr is c <= 0 for c > 0, it's unsat
+            throw VNNLibException("CompatTransformer: Unsatisfiable constraint encountered: " + std::string(node->toString()));
         return; // Ignore trivial constraints
     }
 
