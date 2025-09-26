@@ -4,11 +4,12 @@
 // --- Forward declarations ---
 
 static LinearArithExpr combineExprs(const TCompare* node);
-static void refineBounds(const Box& box, int index, double coeff, double rhs);
+static void refineBounds(Box& box, int index, double coeff, double rhs);
 static void refineConstraints(Polytope& polytope, int outputSize, const LinearArithExpr& expr);
 static std::string boxSignature(const Box& box);
 static bool boxIsUnsat(const Box& box);
 static int64_t flattenIndex(const std::vector<int64_t>& shape);
+static int64_t computeFlattenedIndex(const std::vector<int64_t>& indices, const std::vector<int64_t>& shape);
 
 // --- Constructor ---
 
@@ -142,11 +143,11 @@ void CompatTransformer::parseLiteral(const TCompare* node, Box& inputBounds, Pol
             throw VNNLibException("CompatTransformer: Input constraints must be simple bounds on individual variables");
         }
         const auto& var = terms[0].var;
-        int index = flattenIndex(var->symbol->shape);
-        refineBounds(_commonInputBounds, index, terms[0].coeff, -constant);
+        int index = computeFlattenedIndex(var->indices, var->symbol->shape);
+        refineBounds(inputBounds, index, terms[0].coeff, -constant);
     }
     else {
-        refineConstraints(_commonOutputConstraints, _outputSize, linearExpr);
+        refineConstraints(outputConstraints, _outputSize, linearExpr);
     }
 }
 
@@ -205,29 +206,29 @@ static LinearArithExpr combineExprs(const TCompare* node) {
     return *linearLHS;
 }
 
-static void refineBounds(const Box& box, int index, double coeff, double rhs) {
+static void refineBounds(Box& box, int index, double coeff, double rhs) {
     auto &[lower, upper] = box[index];
     if (coeff > 0) {
-        double upper = rhs / coeff;
-        upper = std::min(upper, upper);
+        double newUpper = rhs / coeff;
+        upper = std::min(upper, newUpper);
     } else if (coeff < 0) {
-        double lower = rhs / coeff;
-        lower = std::max(lower, lower);
+        double newLower = rhs / coeff;
+        lower = std::max(lower, newLower);
     } else {
         throw VNNLibException("CompatTransformer: Zero coefficient in constraint");
     }
 }
 
-static void refineConstraints(Polytope& polytope, int outputSize, LinearArithExpr& expr) {
+static void refineConstraints(Polytope& polytope, int outputSize, const LinearArithExpr& expr) {
     double rhs = -expr.getConstant();
-    auto& terms = expr.getTerms();
+    auto terms = expr.getTerms();
 
     std::vector<double> coeffs(outputSize, 0.0);
     for (auto& term : terms) {
         if (term.var->symbol->kind != SymbolKind::Output) {
             throw VNNLibException("CompatTransformer: Input-output mixed constraints are not supported");
         }
-        int64_t index = flattenIndex(term.var->symbol->shape);
+        int64_t index = computeFlattenedIndex(term.var->indices, term.var->symbol->shape);
         if (index < 0 || index >= outputSize) {
             throw VNNLibException("CompatTransformer: Output variable index out of bounds");
         }
@@ -244,6 +245,26 @@ static int64_t flattenIndex(const std::vector<int64_t>& shape) {
         index *= dim;
     }
     return index;
+}
+
+static int64_t computeFlattenedIndex(const std::vector<int64_t>& indices, const std::vector<int64_t>& shape) {
+    if (indices.size() != shape.size()) {
+        throw VNNLibException("CompatTransformer: Indices and shape dimension mismatch");
+    }
+    
+    int64_t flatIndex = 0;
+    int64_t multiplier = 1;
+    
+    // Compute flattened index in row-major order
+    for (int i = indices.size() - 1; i >= 0; --i) {
+        if (indices[i] < 0 || indices[i] >= shape[i]) {
+            throw VNNLibException("CompatTransformer: Index out of bounds for dimension");
+        }
+        flatIndex += indices[i] * multiplier;
+        multiplier *= shape[i];
+    }
+    
+    return flatIndex;
 }
 
 static bool boxIsUnsat(const Box& box) {
