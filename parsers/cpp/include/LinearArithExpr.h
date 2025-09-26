@@ -5,6 +5,7 @@
 #include <memory>
 #include <iostream>
 #include <iomanip>
+#include <unordered_map>
 #include "TypedAbsyn.h"
 #include "Error.hpp"
 
@@ -17,14 +18,16 @@ class LinearArithExpr {
 public:
     struct Term {
         double coeff;           // Coefficient of the variable
-        std::string varName;    // Variable name as string
-        
-        Term(double c, const std::string& name) : coeff(c), varName(name) {}
+        std::string varName;    // Variable name (e.g., "X[0]")
+        const TVarExpr* var;     // Pointer to the variable expression
+
+        Term() : coeff(0.0), var(nullptr) {}
+        Term(double c, const std::string& name, const TVarExpr* v) : coeff(c), varName(name), var(v) {}
     };
 
 private:
-    std::vector<Term> terms_;   // Linear terms (coefficient, variable pairs)
-    double constant_;           // Constant term
+    std::unordered_map<std::string, Term> termMap_;     // Map from variable name to Term
+    double constant_;                                   // Constant term
 
 public:
     // Constructors
@@ -37,13 +40,20 @@ public:
     virtual ~LinearArithExpr();
 
     // Accessors
-    const std::vector<Term>& getTerms() const { return terms_; }
+    std::vector<Term> getTerms() const { 
+        std::vector<Term> terms;
+        terms.reserve(getNumTerms());
+        for (const auto& pair : termMap_) {
+            terms.push_back(pair.second);
+        }
+        return terms;
+    }
     double getConstant() const { return constant_; }
-    size_t getNumTerms() const { return terms_.size(); }
+    size_t getNumTerms() const { return termMap_.size(); }
 
     // Mutators
     void setConstant(double constant) { constant_ = constant; }
-    void addTerm(double coeff, const std::string& varName);
+    void addTerm(double coeff, const TVarExpr* var);
     void addConstant(double value) { constant_ += value; }
     
     // Operations
@@ -62,10 +72,6 @@ public:
     
     // Remove terms with zero coefficients
     void simplify();
-
-private:
-    // Helper function to find term index by variable name
-    int findTermIndex(const std::string& varName) const;
 };
 
 /**
