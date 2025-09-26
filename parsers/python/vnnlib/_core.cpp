@@ -10,7 +10,8 @@
 #include "TypedAbsyn.h"     
 #include "TypedBuilder.h"
 #include "LinearArithExpr.h"
-#include "DNFConverter.hpp"
+#include "DNFConverter.h"
+#include "CompatTransformer.h"
 #include "Error.hpp"
 
 namespace py = pybind11;
@@ -59,6 +60,7 @@ PYBIND11_MODULE(_core, m) {
 	// --- LinearArithExpr ---
 	py::class_<LinearArithExpr::Term>(m, "Term")
 		.def_property_readonly("coeff",    [](const LinearArithExpr::Term& t){ return t.coeff; })
+		.def_property_readonly("var", [](const LinearArithExpr::Term& t){ return t.var; }, py::return_value_policy::reference_internal)
 		.def_property_readonly("var_name", [](const LinearArithExpr::Term& t){ return t.varName; });
 
 	py::class_<LinearArithExpr>(m, "LinearArithExpr")
@@ -245,6 +247,16 @@ PYBIND11_MODULE(_core, m) {
 		return assertion_tuple;
 	});
 
+	// --- CompatTransformer ---
+	py::class_<Polytope>(m, "Polytope")
+		.def_property_readonly("coeff_matrix", [](const Polytope& p){ return p.coeffMatrix; })
+		.def_property_readonly("rhs", [](const Polytope& p){ return p.rhs; });
+	
+	py::class_<SpecCase>(m, "SpecCase")
+		.def_property_readonly("input_box", [](const SpecCase& c){ return c.inputBox; })
+		.def_property_readonly("output_constraints", [](const SpecCase& c){ return c.outputConstraints; },
+								py::return_value_policy::reference_internal);
+
 	// --- API ---
 	m.def("parse_vnnlib", [](const std::string& path) {
 		return parse_query(path);
@@ -292,6 +304,40 @@ PYBIND11_MODULE(_core, m) {
 		------
 		VNNLibException
 			If there is an error during parsing, or if the specification is not well-formed.
+	)pbdoc");
+
+	m.def("transform_to_compat", [](const TQuery& query) {
+		CompatTransformer transformer(&query);
+		const auto& cases = transformer.transform();
+
+		py::list py_cases;
+		for (const auto& c : cases) {
+			py_cases.append(py::cast(c, py::return_value_policy::move));
+		}
+		return py_cases;
+	},
+	py::arg("query"),
+	R"pbdoc(
+		Process in a vnnlib Query object to extract a list of reachability cases.
+		Each case consists of:
+			1. A box defining the input bounds as lower and upper bounds for each input dimension.
+			2. A list of polytopes that are in the form Ay <= b, where y is the output variable. Each polytope represents a disjunction.
+		Method by @dlsriver
+
+		Parameters
+		----------
+		query : Query
+			The VNNLib Query object to be processed.
+		
+		Returns
+		-------
+		List[SpecCase]
+			A list of SpecCase objects, each representing a reachability case with input bounds and output constraints.
+		
+		Raises
+		------
+		VNNLibException
+			If the specification is not suitable for transformation into a reachability problem.
 	)pbdoc");
 
 	m.attr("__version__") = "0.2.0";

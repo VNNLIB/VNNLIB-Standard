@@ -11,7 +11,7 @@ BIN_DIR = $(CPP_DIR)/bin
 INCLUDE_DIR = $(CPP_DIR)/include
 
 # Source files
-MAIN_SRCS = $(SRC_DIR)/VNNLib.cpp $(SRC_DIR)/TypeChecker.cpp $(SRC_DIR)/TypedAbsyn.cpp $(SRC_DIR)/TypedBuilder.cpp $(SRC_DIR)/LinearArithExpr.cpp
+MAIN_SRCS = $(SRC_DIR)/VNNLib.cpp $(SRC_DIR)/TypeChecker.cpp $(SRC_DIR)/TypedAbsyn.cpp $(SRC_DIR)/TypedBuilder.cpp $(SRC_DIR)/LinearArithExpr.cpp $(SRC_DIR)/CompatTransformer.cpp $(SRC_DIR)/DNFConverter.cpp
 PARSER_MAIN = $(SRC_DIR)/VNNLibParser.cpp
 
 # Generated source files (need to be created first)
