@@ -6,11 +6,11 @@ LinearArithExpr::LinearArithExpr() : constant_(0.0) {}
 LinearArithExpr::LinearArithExpr(double constant) : constant_(constant) {}
 
 LinearArithExpr::LinearArithExpr(const LinearArithExpr& other) 
-    : terms_(other.terms_), constant_(other.constant_) {}
+    : termMap_(other.termMap_), constant_(other.constant_) {}
 
 LinearArithExpr& LinearArithExpr::operator=(const LinearArithExpr& other) {
     if (this != &other) {
-        terms_ = other.terms_;
+        termMap_ = other.termMap_;
         constant_ = other.constant_;
     }
     return *this;
@@ -19,48 +19,60 @@ LinearArithExpr& LinearArithExpr::operator=(const LinearArithExpr& other) {
 LinearArithExpr::~LinearArithExpr() {}
 
 // Member functions
-void LinearArithExpr::addTerm(double coeff, const std::string& varName) {
+void LinearArithExpr::addTerm(double coeff, const TVarExpr* var) {
     if (std::abs(coeff) < 1e-9) {
         return; 
     }
     
-    int index = findTermIndex(varName);
-    if (index >= 0) {   // Variable already exists, add to its coefficient
-        terms_[index].coeff += coeff;
-        if (std::abs(terms_[index].coeff) < 1e-9) {
+    // Create unique variable identifier including name and indices
+    std::string varName = var->symbol->name;
+    if (!var->indices.empty()) {
+        varName += "[";
+        for (size_t i = 0; i < var->indices.size(); ++i) {
+            if (i > 0) varName += ",";
+            varName += std::to_string(var->indices[i]);
+        }
+        varName += "]";
+    }
+    
+    auto it = termMap_.find(varName);
+    if (it != termMap_.end()) {
+        // Update existing term coefficient
+        it->second.coeff += coeff;
+        if (std::abs(it->second.coeff) < 1e-9) {
             // Remove term if coefficient becomes zero
-            terms_.erase(terms_.begin() + index);
+            termMap_.erase(it);
         }
     } else {            // New variable, add new term
-        terms_.emplace_back(coeff, varName);
+        termMap_[varName] = Term(coeff, varName, var);
     }
 }
 
 void LinearArithExpr::negate() {
     constant_ = -constant_;
-    for (auto& term : terms_) {
-        term.coeff = -term.coeff;
+    for (auto& pair : termMap_) {
+        pair.second.coeff = -pair.second.coeff;
     }
 }
 
 void LinearArithExpr::multiply(double scalar) {
     constant_ *= scalar;
-    for (auto& term : terms_) {
-        term.coeff *= scalar;
+    for (auto& pair : termMap_) {
+        pair.second.coeff *= scalar;
     }
 }
 
 void LinearArithExpr::addLinearExpr(const LinearArithExpr& other) {
     constant_ += other.constant_;
-    for (const auto& term : other.terms_) {
-        addTerm(term.coeff, term.varName);
+    for (const auto& pair : other.termMap_) {
+        addTerm(pair.second.coeff, pair.second.var);
     }
 }
 
 void LinearArithExpr::subtractLinearExpr(const LinearArithExpr& other) {
     constant_ -= other.constant_;
-    for (const auto& term : other.terms_) {
-        addTerm(-term.coeff, term.varName);
+    for (const auto& pair : other.termMap_) {
+        addTerm(-pair.second.coeff, pair.second.var);
     }
 }
 
@@ -69,31 +81,31 @@ std::string LinearArithExpr::toString() const {
     bool firstTerm = true;
 
     // Handle constant term first if it's non-zero or if there are no variable terms
-    if (std::abs(constant_) > 1e-9 || terms_.empty()) {
+    if (std::abs(constant_) > 1e-9 || termMap_.empty()) {
         oss << std::fixed << std::setprecision(4) << constant_;
         firstTerm = false;
     }
     // Handle variable terms
-    for (const auto& term : terms_) {
-        if (std::abs(term.coeff) < 1e-9) {
+    for (const auto& pair : termMap_) {
+        if (std::abs(pair.second.coeff) < 1e-9) {
             continue; // Skip small coefficients
         }
         // Determine sign and operator
         if (firstTerm) {
-            if (term.coeff < 0) oss << "-";
+            if (pair.second.coeff < 0) oss << "-";
         } else {
-            if (term.coeff < 0) {
+            if (pair.second.coeff < 0) {
                 oss << " - ";
             } else {
                 oss << " + ";
             }
         }
-        double absCoeff = std::abs(term.coeff);
+        double absCoeff = std::abs(pair.second.coeff);
         // Print coefficient only if it's not 1.0
         if (std::abs(absCoeff - 1.0) > 1e-9) {
             oss << std::fixed << std::setprecision(4) << absCoeff << " * ";
         }
-        oss << term.varName;
+        oss << pair.second.var->toString();
         if (firstTerm) firstTerm = false;   
     }
     // If nothing was printed, represent as "0"
@@ -104,58 +116,28 @@ std::string LinearArithExpr::toString() const {
 }
 
 void LinearArithExpr::clear() {
-    terms_.clear();
+    termMap_.clear();
     constant_ = 0.0;
 }
 
 bool LinearArithExpr::isEmpty() const {
-    return terms_.empty() && std::abs(constant_) < 1e-9;
+    return termMap_.empty() && std::abs(constant_) < 1e-9;
 }
 
 double LinearArithExpr::getCoefficient(const std::string& varName) const {
-    int index = findTermIndex(varName);
-    return (index >= 0) ? terms_[index].coeff : 0.0;
+    auto it = termMap_.find(varName);
+    return (it != termMap_.end()) ? it->second.coeff : 0.0;
 }
 
 void LinearArithExpr::simplify() {
     // Remove terms with zero coefficients
-    terms_.erase(
-        std::remove_if(terms_.begin(), terms_.end(),
-                      [](const Term& term) { return std::abs(term.coeff) < 1e-9; }),
-        terms_.end()
-    );
-}
-
-int LinearArithExpr::findTermIndex(const std::string& varName) const {
-    for (size_t i = 0; i < terms_.size(); ++i) {
-        if (terms_[i].varName == varName) {
-            return static_cast<int>(i);
+    for (auto it = termMap_.begin(); it != termMap_.end();) {
+        if (std::abs(it->second.coeff) < 1e-9) {
+            it = termMap_.erase(it);
+        } else {
+            ++it;
         }
     }
-    return -1;
-}
-
-// Helper function to extract variable name from TVarExpr
-std::string extractVariableName(const TVarExpr* varExpr) {
-    if (!varExpr || !varExpr->symbol) {
-        throw std::runtime_error("Invalid TVarExpr or missing symbol");
-    }
-    
-    std::string name = varExpr->symbol->name;
-    
-    // Handle indexed variables (e.g., x[0], y[1,2])
-    if (!varExpr->indices.empty()) {
-        name += "[";
-        bool first = true;
-        for (const auto& index : varExpr->indices) {
-            if (!first) name += ",";
-            name += std::to_string(index);
-            first = false;
-        }
-        name += "]";
-    }
-    
-    return name;
 }
 
 // Helper function to extract numeric value from TLiteral
@@ -178,8 +160,7 @@ std::unique_ptr<LinearArithExpr> linearize(const TArithExpr* arithExpr) {
 
     if (const auto* varExpr = dynamic_cast<const TVarExpr*>(arithExpr)) {
         // Single variable with coefficient 1.0
-        std::string varName = extractVariableName(varExpr);
-        result->addTerm(1.0, varName);
+        result->addTerm(1.0, varExpr);
         
     } else if (const auto* literal = dynamic_cast<const TLiteral*>(arithExpr)) {
         // Constant value
