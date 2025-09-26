@@ -4,6 +4,7 @@ Unit tests for CompatTransformer (reachability format conversion) functionality.
 
 import pytest
 import vnnlib
+import vnnlib.compat
 from typing import List, Tuple
 import math
 
@@ -11,10 +12,10 @@ import math
 class TestCompatTransformer:
     """Test class for CompatTransformer reachability format conversion."""
 
-    def _parse_and_transform(self, vnnlib_content: str) -> List[vnnlib.SpecCase]:
+    def _parse_and_transform(self, vnnlib_content: str) -> List[vnnlib.compat.SpecCase]:
         """Helper method to parse VNNLIB content and transform to reachability format."""
         query = vnnlib.parse_vnnlib_str(vnnlib_content)
-        return vnnlib.transform_to_compat(query)
+        return vnnlib.compat.transform(query)
 
     def _assert_box_bounds(self, input_box: List[Tuple[float, float]], expected_bounds: List[Tuple[float, float]]):
         """Assert that input box matches expected bounds (with inf handling)."""
@@ -32,7 +33,7 @@ class TestCompatTransformer:
             else:
                 assert abs(actual_upper - expected_upper) < 1e-9, f"Upper bound mismatch for dimension {i}: expected {expected_upper}, got {actual_upper}"
 
-    def _assert_polytope_constraints(self, polytope: vnnlib.Polytope, expected_constraints: List[Tuple[List[float], float]]):
+    def _assert_polytope_constraints(self, polytope: vnnlib.compat.Polytope, expected_constraints: List[Tuple[List[float], float]]):
         """Assert that polytope constraints match expected format."""
         assert len(polytope.coeff_matrix) == len(expected_constraints), f"Expected {len(expected_constraints)} constraints, got {len(polytope.coeff_matrix)}"
         assert len(polytope.rhs) == len(expected_constraints), f"RHS size mismatch"

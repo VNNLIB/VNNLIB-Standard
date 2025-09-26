@@ -262,49 +262,13 @@ PYBIND11_MODULE(_core, m) {
 		return parse_query(path);
 	},
 	py::return_value_policy::move,
-	py::arg("path"),
-	R"pbdoc(
-		Parse a VNNLib file and return a typed Query object.
-
-		Parameters
-		----------
-		path : str
-			Path to the VNNLib file to be parsed.
-
-		Returns
-		-------
-		Query
-			The parsed Query object representing the contents of the VNNLib file.
-
-		Raises
-		------
-		VNNLibException
-			If the file cannot be read, if there is an error during parsing, or if the specification is not well-formed.
-	)pbdoc");
+	py::arg("path"));
 	
 	m.def("parse_vnnlib_str", [](const std::string& content) {
 		return parse_query_str(content);
 	},
 	py::return_value_policy::move,
-	py::arg("content"),
-	R"pbdoc(
-		Parse a VNNLib string and return a typed Query object.
-
-		Parameters
-		----------
-		content : str
-			The VNNLib string to be parsed.
-
-		Returns
-		-------
-		Query
-			The parsed Query object representing the contents of the VNNLib string.
-
-		Raises
-		------
-		VNNLibException
-			If there is an error during parsing, or if the specification is not well-formed.
-	)pbdoc");
+	py::arg("content"));
 
 	m.def("transform_to_compat", [](const TQuery& query) {
 		CompatTransformer transformer(&query);
@@ -316,29 +280,7 @@ PYBIND11_MODULE(_core, m) {
 		}
 		return py_cases;
 	},
-	py::arg("query"),
-	R"pbdoc(
-		Process in a vnnlib Query object to extract a list of reachability cases.
-		Each case consists of:
-			1. A box defining the input bounds as lower and upper bounds for each input dimension.
-			2. A list of polytopes that are in the form Ay <= b, where y is the output variable. Each polytope represents a disjunction.
-		Method by @dlsriver
-
-		Parameters
-		----------
-		query : Query
-			The VNNLib Query object to be processed.
-		
-		Returns
-		-------
-		List[SpecCase]
-			A list of SpecCase objects, each representing a reachability case with input bounds and output constraints.
-		
-		Raises
-		------
-		VNNLibException
-			If the specification is not suitable for transformation into a reachability problem.
-	)pbdoc");
+	py::arg("query"));
 
 	m.attr("__version__") = "0.2.0";
 }
