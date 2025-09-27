@@ -2,9 +2,16 @@
 
 \bibitem{forsberg2005labelled}
 Markus Forsberg and Aarne Ranta.
-\newblock The labelled bnf grammar formalism.
+\newblock The labelled {BNF} grammar formalism.
 \newblock {\em Department of Computing Science, Chalmers University of
   Technology and the University of Gothenburg}, 2005.
+
+\bibitem{jia2021exploiting}
+Kai Jia and Martin Rinard.
+\newblock Exploiting verified neural networks via floating point numerical
+  error.
+\newblock In {\em International Static Analysis Symposium}, pages 191--205.
+  Springer, 2021.
 
 \bibitem{szegedy2013intriguing}
 Christian Szegedy, Wojciech Zaremba, Ilya Sutskever, Joan Bruna, Dumitru Erhan,

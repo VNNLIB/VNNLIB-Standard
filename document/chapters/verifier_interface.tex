@@ -104,14 +104,14 @@ sat
 The variables should be reported in the order that they are declared in the query file. For example, the result for a \vnnlib{} query that started with the following network declarations:
 \begin{lstlisting}[style=bash]
 (declare-network f
-    (declare-input A Real [2,2])
-    (declare-input B Real [1])
-    (declare-hidden H Real [1,2])
-    (declare-output Y Real [1])
+    (declare-input  A float32 [2,2])
+    (declare-input  B float32 [1])
+    (declare-hidden H float32 [1,2])
+    (declare-output Y float32 [1])
 )
 (declare-network g
-    (declare-input C Real [2,2])
-    (declare-output Z Real [1])
+    (declare-input  C float32 [2,2])
+    (declare-output Z float32 [1])
 )
 ...
 \end{lstlisting}
@@ -173,16 +173,17 @@ and the verifier should be able to report the following capabilities:
 \end{lstlisting}
 
 \clOutputOption
-{--onnx-types}
+{--onnx-element-types}
 {Prints a newline-separated list of the element types that the verifier supports. See Section~\ref{sec:element-types} for details.}
 {List of ONNX types}
 \begin{lstlisting}[style=bash]
-%*\exampleVerifier* supports --onnx-types
-real
-float
+%*\exampleVerifier* supports --onnx-element-types
+float64
+float32
 float16
+real
 \end{lstlisting}
-\textbf{Note}: as discussed in Section~\ref{sec:element-types}, if a solver reports that it supports an ONNX element type then there must be a strong reason to believe that the solver's analysis is sound with respect to that type. If it is not sound, or its soundness is unknown then the solver should report that it supports the `real' type.
+\textbf{Note}: as discussed in Section~\ref{sec:element-types}, in order for a solver to report that it supports an ONNX element type, then there must be a strong reason to believe that its analysis is sound with respect to that element type. If unsound, or the soundness is unknown then the solver should only report that it supports the `real' type.
 
 \clOutputOption
 {--onnx-operators}

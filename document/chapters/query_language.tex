@@ -18,22 +18,22 @@ Firstly, all \vnnlib{} queries are split into two parts: a list of network decla
  At its simplest, a network is introduced by the keyword \texttt{declare-network}, followed by a user-defined name for the network, and then declarations for its associated input and output. An input is declared using the \texttt{declare-input} keyword, followed by a variable name, its element type (e.g., \texttt{Real}, \texttt{float64}), 
 and the shape of the tensor. Similarly, an output variable uses the \texttt{declare-output} keyword. In the case of Figure~\ref{fig:simple-query}, the network is named \texttt{myNetwork}, and it has one input called \texttt{X} consisting of a $1 \times 10$ tensor of the ONNX ``float'' type (32-bit floats) and one output called \texttt{Y} consisting of a $1 \times 2$ tensor of floats. 
 \begin{figure}[t]
-    \begin{minipage}[c]{0.6\textwidth}
+    \begin{minipage}[c]{0.62\textwidth}
         \begin{lstlisting}[style=lbnf]
 (declare-network myNetwork
-    (declare-input  X float [1,10])
-    (declare-output Y float [1,2])
+    (declare-input  X float32 [1,10])
+    (declare-output Y float32 [1,2])
 )
 
 (assert (>= X[0,2] 0.0))
 (assert (<= X[0,2] 1.0))
 (assert (<= Y[0,1] 0.5))\end{lstlisting}
     \end{minipage}%
-    \begin{minipage}[c]{0.45\textwidth}
+    \begin{minipage}[c]{0.35\textwidth}
         \centering
         \includegraphics[height=5cm]{imgs/simple_net.onnx.png}
     \end{minipage}
-    \caption{A simple \vnnlib{} specification which declares a network with a single input and output. An example of one of the many possible ONNX models compatible with this declaration is shown on the right. Note that the variable names in the declared inputs and outputs do not have to match the node names in the ONNX file.}
+    \caption{A simple \vnnlib{} specification which declares a network with a single input and output tensor. An example of one of the many possible ONNX models compatible with this declaration is shown on the right. Note that the variable names in the declared inputs and outputs do not have to match the node names in the ONNX file.}
     \label{fig:simple-query}
 \end{figure}
 
@@ -103,18 +103,18 @@ The query language supports such networks by allowing a network declaration to d
     \centering
     \begin{lstlisting}[style=lbnf]
 (declare-network multi_io_net
-    (declare-input  image    float [1,3,224,224])
-    (declare-input  metadata float [1,10])
-    (declare-output bbox     int16 [1 4])
-    (declare-output logits   float [1,1000])
+    (declare-input  image    float32 [1,3,224,224])
+    (declare-input  metadata float32 [1,10])
+    (declare-output bbox     int16   [1 4])
+    (declare-output logits   float32 [1,1000])
 )\end{lstlisting}
 
     \begin{lstlisting}[style=lbnf]
 (declare-network multi_io_net
-    (declare-input  metadata float [1,10]        "metadata")
-    (declare-input  image    float [1,3,224,224] "image")
-    (declare-output logits   float [1,1000]      "logits")
-    (declare-output bbox     int16 [1,4,2]       "bbox")
+    (declare-input  metadata float32 [1,10]        "metadata")
+    (declare-input  image    float32 [1,3,224,224] "image")
+    (declare-output logits   float32 [1,1000]      "logits")
+    (declare-output bbox     int16   [1,4,2]       "bbox")
 )\end{lstlisting}
 
     \vspace{0.5cm}
@@ -135,9 +135,9 @@ The hidden node declaration crucially refers to the uniquely identified outputs 
     \begin{minipage}[c]{0.76\textwidth}
         \begin{lstlisting}[style=lbnf]   
 (declare-network encoder
-    (declare-input  X double [1,28,28])
-    (declare-hidden Z double [1,128] "hidden")
-    (declare-output Y double [1,10])
+    (declare-input  X float64 [1,28,28])
+    (declare-hidden Z float64 [1,128] "hidden")
+    (declare-output Y float64 [1,10])
 )\end{lstlisting}
     \end{minipage}%
     \begin{minipage}[c]{0.21\textwidth}
@@ -159,8 +159,8 @@ shows an example which declares two networks representing a teacher and a studen
     \begin{minipage}[c]{0.64\textwidth}
         \begin{lstlisting}[style=lbnf]
 (declare-network teacher
-    (declare-input  tX float [1,32])
-    (declare-output tY float [1,2])
+    (declare-input  tX float32 [1,32])
+    (declare-output tY float32 [1,2])
 )
 
 (declare-network student
