@@ -104,14 +104,14 @@ sat
 The variables should be reported in the order that they are declared in the query file. For example, the result for a \vnnlib{} query that started with the following network declarations:
 \begin{lstlisting}[style=bash]
 (declare-network f
-    (declare-input A Real [2,2])
-    (declare-input B Real [1])
-    (declare-hidden H Real [1,2])
-    (declare-output Y Real [1])
+    (declare-input  A float32 [2,2])
+    (declare-input  B float32 [1])
+    (declare-hidden H float32 [1,2])
+    (declare-output Y float32 [1])
 )
 (declare-network g
-    (declare-input C Real [2,2])
-    (declare-output Z Real [1])
+    (declare-input  C float32 [2,2])
+    (declare-output Z float32 [1])
 )
 ...
 \end{lstlisting}
@@ -173,14 +173,17 @@ and the verifier should be able to report the following capabilities:
 \end{lstlisting}
 
 \clOutputOption
-{--onnx-types}
-{Prints a newline-separated list of the ONNX data types that the verifier supports.}
+{--onnx-element-types}
+{Prints a newline-separated list of the element types that the verifier supports. See Section~\ref{sec:element-types} for details.}
 {List of ONNX types}
 \begin{lstlisting}[style=bash]
-%*\exampleVerifier* supports --onnx-types
-REAL
-FLOAT32
+%*\exampleVerifier* supports --onnx-element-types
+float64
+float32
+float16
+real
 \end{lstlisting}
+\textbf{Note}: as discussed in Section~\ref{sec:element-types}, in order for a solver to report that it supports an ONNX element type, then there must be a strong reason to believe that its analysis is sound with respect to that element type. If unsound, or the soundness is unknown then the solver should only report that it supports the `real' type.
 
 \clOutputOption
 {--onnx-operators}
@@ -199,7 +202,7 @@ Flatten
 
 \clOutputOption
 {--multiple-input-outputs}
-{Does the verifier support ONNX networks with multiple input or output nodes? See Section~\ref{sec:complex-networks-decls} for details.}
+{Does the verifier support ONNX networks with multiple input or output nodes? See Section~\ref{sec:multiple-inputs-outputs} for details.}
 {A boolean (\texttt{true} or \texttt{false})}
 \begin{lstlisting}[style=bash]
 %*\exampleVerifier* supports --multiple-inputs-outputs
@@ -209,17 +212,8 @@ true
 \subsection{Query capabilities}
 
 \clOutputOption
-{--multiple-networks}
-{Does the verifier support queries with multiple networks? See Section~\ref{sec:complex-networks-decls} for how to declare multiple networks in a query.}
-{A boolean (\texttt{true} or \texttt{false})}
-\begin{lstlisting}[style=bash]
-%*\exampleVerifier* supports --multiple-networks
-false
-\end{lstlisting}
-
-\clOutputOption
 {--hidden-nodes}
-{Does the verifier support queries which refer to hidden nodes in the network? See Section~\ref{sec:complex-networks-decls} for how to declare hidden nodes in a query.}
+{Does the verifier support queries which refer to hidden nodes in the network? See Section~\ref{sec:hidden-nodes} for details.}
 {A boolean (\texttt{true} or \texttt{false})}
 \begin{lstlisting}[style=bash]
 %*\exampleVerifier* supports --hidden-nodes
@@ -227,9 +221,26 @@ true
 \end{lstlisting}
 
 \clOutputOption
+{--multiple-networks}
+{Does the verifier support queries with multiple networks? See Section~\ref{sec:multiple-networks} for details.}
+{A boolean (\texttt{true} or \texttt{false})}
+\begin{lstlisting}[style=bash]
+%*\exampleVerifier* supports --multiple-networks
+false
+\end{lstlisting}
+
+\clOutputOption
+{--multiple-node-comparisons}
+{Does the verifier support comparisons between variables representing different nodes in the same network? See Section~\ref{sec:multi-node-comparisons} for details.}
+{A boolean (\texttt{true} or \texttt{false})}
+\begin{lstlisting}[style=bash]
+%*\exampleVerifier* supports --multiple-node-comparisons
+true
+\end{lstlisting}
+
+\clOutputOption
 {--arithmetic-complexity}
-{Prints a list of supported \vnnlib{} logics, indicating the scope of theoretical support. See Section~\ref{sec:query_categories} for 
-    details on each of the logics (e.g., NRA for non-linear real arithmetic support) that may be represented in \vnnlib{}.
+{Prints a list of supported \vnnlib{} logics, indicating the scope of theoretical support. See Section~\ref{sec:arithmetic-complexity} for details.
 }
 {A newline-seperated list of logics.}
 \begin{lstlisting}[style=bash]
