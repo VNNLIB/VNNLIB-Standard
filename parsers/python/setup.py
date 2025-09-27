@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 
 from pybind11.setup_helpers import Pybind11Extension, build_ext
-from setuptools import setup, Extension
+from setuptools import setup
 import pybind11
-import os
 import glob
 
 ext_modules = [
@@ -48,7 +47,7 @@ setup(
         "pybind11>=2.6.0",
     ],
     package_data={
-        "vnnlib": ["*.so", "*.pyi", "py.typed"],
+        "vnnlib": ["*.pyi", "py.typed"],
     },
-    platforms=["linux"]
+    platforms=["any"]
 )
