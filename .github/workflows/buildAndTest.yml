@@ -55,11 +55,20 @@ jobs:
           cabal install alex happy BNFC
           echo "$HOME/.cabal/bin" >> $GITHUB_PATH
 
-      - name: Build C++ parser with Python bindings
+      - name: Build C++ parser
         run: |
           echo "Building the C++ VNNLib parser..."
-          chmod +x build_parser.sh
-          ./build_parser.sh
+          cd parsers/cpp
+          mkdir -p build
+          cd build
+          cmake ..
+          make -j$(nproc)
+          echo "C++ VNNLib parser built successfully."
+      
+      - name: Build Python bindings
+        run: |
+          cd parsers/python
+          python setup.py build_ext --inplace
 
       - name: Test Python bindings
         run: |
