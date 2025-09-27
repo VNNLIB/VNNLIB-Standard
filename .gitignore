@@ -14,6 +14,12 @@ parsers/python/*.egg-info/
 parsers/python/vnnlib/*.so
 parsers/python/vnnlib/__pycache__/
 
+# CMake build files
+parsers/cpp/CMakeFiles/
+parsers/cpp/CMakeCache.txt
+parsers/cpp/cmake_install.cmake
+parsers/cpp/Makefile
+
 # Test artifacts
 parsers/.pytest_cache/
 parsers/test/__pycache__/

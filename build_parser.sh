@@ -45,6 +45,12 @@ clean_build() {
         log_info "Removed C++ bin directory"
     fi
     
+    # Clean CMake cache files from source directory
+    rm -f parsers/cpp/CMakeCache.txt
+    rm -rf parsers/cpp/CMakeFiles
+    rm -f parsers/cpp/cmake_install.cmake
+    rm -f parsers/cpp/Makefile
+    
     # Clean generated parser files
     if [ -d "parsers/cpp/src/generated" ]; then
         cd parsers/cpp/src/generated
@@ -67,32 +73,15 @@ clean_build() {
     log_success "Build cleanup completed"
 }
 
-# Generate BNFC files
-generate_bnfc_files() {
-    log_info "Generating BNFC files..."
-    
-    # Check if BNFC is installed
-    if ! command -v bnfc >/dev/null 2>&1; then
-        log_error "BNFC is not installed. Please install it first."
-        exit 1
-    fi
-    
-    # Generate C++ files from the grammar
-    bnfc --cpp -o parsers/cpp/src/generated syntax.cf || {
-        log_error "BNFC generation failed"
-        exit 1
-    }
-    
-    log_success "BNFC files generated successfully"
-}
+# Note: BNFC generation is now handled by CMakeLists.txt
 
 # Build C++ library
 build_cpp() {
     log_info "Building C++ parser library..."
     
-    # Check C++ dependencies
+    # Check C++ dependencies (BNFC is checked by CMake)
     local missing_deps=()
-    command -v bnfc >/dev/null 2>&1 || missing_deps+=("bnfc")
+    command -v cmake >/dev/null 2>&1 || missing_deps+=("cmake")
     command -v make >/dev/null 2>&1 || missing_deps+=("make")
     command -v g++ >/dev/null 2>&1 || missing_deps+=("g++")
     
@@ -102,16 +91,24 @@ build_cpp() {
         exit 1
     fi
     
-    cd parsers
+    cd parsers/cpp
     
-    # Build using Makefile
-    make clean >/dev/null 2>&1 || true  # Don't fail if already clean
-    make || {
+    # Create build directory if it doesn't exist
+    mkdir -p build
+    cd build
+    
+    # Build using CMake
+    cmake .. || {
+        log_error "CMake configuration failed"
+        exit 1
+    }
+    
+    make -j$(nproc) || {
         log_error "C++ build failed"
         exit 1
     }
     
-    cd ..
+    cd ../../..
     log_success "C++ parser library built successfully"
 }
 
@@ -179,9 +176,6 @@ main() {
     clean_build
     echo
     
-    generate_bnfc_files
-    echo
-    
     build_cpp
     echo
     
@@ -206,7 +200,6 @@ case "${1:-}" in
         clean_build
         ;;
     "cpp")
-        generate_bnfc_files
         build_cpp
         ;;
     "python")
