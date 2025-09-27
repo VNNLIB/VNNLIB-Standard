@@ -37,9 +37,8 @@ An ONNX model is serialised as a single binary file with the `.onnx' file extens
 \paragraph{Tensors}
 All tensors processed by ONNX models are strongly typed. The basic properties of an ONNX tensor include:
 \begin{itemize}
-	\item \textbf{Element Type}: ONNX defines a \href{https://onnx.ai/onnx/intro/concepts.html#element-type}{standard set of types}. 
-	The most commonly used types for neural network verification are: 32-bit floating point (FLOAT), and 16-bit floating point (FLOAT16). Signed and unsigned integers (e.g., INT32, UINT8) are also supported, 
-	but less common in neural networks.
+	\item \textbf{Element Type}: ONNX defines a \href{https://onnx.ai/onnx/repo-docs/IR.html#tensor-element-types}{standard set of types}. 
+	The most commonly used types for neural network verification are: 32-bit floating point (float32), and 16-bit floating point (float16). Signed and unsigned integers (e.g., int32, uint8) are also supported, but are less commonly used.
 	\item \textbf{Shape}: The shape of a tensor is defined as a list of integers, where each integer represents the size of the corresponding dimension. For example, a tensor with shape [3, 224, 224] 
 	represents an image with 3 color channels (RGB) and dimensions 224x224 pixels.
 	\item \textbf{Values}: A contiguous block of memory containing the actual data.

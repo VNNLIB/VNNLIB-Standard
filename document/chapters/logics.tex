@@ -280,11 +280,11 @@ For example, the following assertion belongs in \poly{} but not in \lin{}
    
    \node (real)        [theory, below=of other] {REAL};
 \end{tikzpicture}
-\caption{The ``Tensor element types'' theory set. Not all ONNX defined datatypes are shown.}
+\caption{The ``Tensor element types'' theory set. Not all ONNX element types are shown.}
 \label{fig:element-type-theories}
 \end{figure}
 
-As discussed in Section~\ref{sec:onnx_overview} and as seen in Figure~\ref{fig:element-type-theories}, the ONNX format supports a range of different tensor element types such ``float32''. Every tensor element type in the ONNX \href{https://onnx.ai/onnx/repo-docs/IR.html#tensor-element-types}{specification} is associated with a \vnnlib{} theory of the same name. A solver supporting a particular element type theory means that it supports variable declarations that use that type. For example, the following network declaration belongs to the \theory{float16} theory:
+As discussed in Section~\ref{sec:onnx_overview} and as seen in Figure~\ref{fig:element-type-theories}, the ONNX format supports a range of different \href{https://onnx.ai/onnx/repo-docs/IR.html#tensor-element-types}{tensor element types} such ``float32''. Every tensor element type in the ONNX specification is associated with a \vnnlib{} theory of the same name. A solver supporting a particular element type theory means that it supports variable declarations that use that type. For example, the following network declaration belongs to the \theory{float16} theory:
 
 \begin{code}[style=lbnf]
 (declare-network f
