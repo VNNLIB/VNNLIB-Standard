@@ -366,7 +366,7 @@ In a \vnnlib{} query, Network Declarations are used to construct the static cont
                     \begin{array}{ccc}
                     \{\ \}\ \vdash D_1 : \Gamma_1 & \Gamma_n \vdash A_1 \\
                     \vdots & \vdots \\
-                    \Gamma_{n-1} \vdash D_n : \Gamma_n &  \vdash A_m
+                    \Gamma_{n-1} \vdash D_n : \Gamma_n & \Gamma_n \vdash A_m
                     \end{array}
                 }
             }{
@@ -381,10 +381,9 @@ In a \vnnlib{} query, Network Declarations are used to construct the static cont
 \section{Semantics}
 \label{sec:semantics}
 
-\mnote{TODO: Ann Roy}
 The semantics of a \vnnlib{} query is defined in terms of the satisfiability problem it represents. A query is said to be \textit{satisfiable} if there exists an assignment of values to all/any of the the input tensors such that when the corresponding ONNX model(s) are evaluated, the set of assertions hold true. Conversely, a query is said to be \textit{unsatisfiable} if no such assignment exists.
 
-Given that the actual semantics of a \vnnlib{} query is dependent on the semantics of the neural network representation i.e. on the underlying ONNX model(s) it is associated with, we can describe the semantics of a query as a type of higher-order satisfiability problem. 
+Given that the actual semantics of a \vnnlib{} query is dependent on the semantics of the neural network representation i.e. on the underlying ONNX model(s) it is associated with, we can describe the semantics of a query as a as higher order function from functions representing the declared ONNX networks to a satisfiability problem over the input assignments. 
 
 The semantics are only well-defined if the query is well-scoped and well-typed, as described in Section~\ref{sec:scoping_and_typing}. Similarly, the semantics for the Declarations and Assertions can be described separately.
 
@@ -393,6 +392,31 @@ The semantics are only well-defined if the query is well-scoped and well-typed, 
 }
 
 \paragraph{Network Declarations}
-For semantics, the semantic context is constructed from the Declarations of a \vnnlib{} query, which represents each network as a function from a set of inputs to a set of outputs, and storing this \textit{network implementation} alongside the set of inputs.
+The semantic context for a \vnnlib query is constructed from the Declarations of a \vnnlib{} query, which represents each network as a function from a set of inputs to a set of outputs, and storing this \textit{network implementation} alongside the set of inputs.
+The Environment ($\triangle$) is the provided implementations of the neural networks and input assignments for each network.
 
 \paragraph{Assertions}
+
+\begin{align}
+    \llbracket a \rrbracket_{\tau}^{\triangle} &= \llbracket a_1 \rrbracket^{\triangle}~\tau.\geq~\llbracket a_2 \rrbracket^{\triangle}\\
+\end{align}
+
+\begin{align}
+    \llbracket \text{\texttt{>=}}~a_1~a_2 \rrbracket_{\tau}^{\triangle} &= \llbracket a_1 \rrbracket^{\triangle}~\tau.\geq~\llbracket a_2 \rrbracket^{\triangle}\\
+    \llbracket \text{\texttt{> }}~a_1~a_2 \rrbracket_{\tau}^{\triangle} &= \llbracket a_1 \rrbracket^{\triangle}~\tau.>~\llbracket a_2 \rrbracket^{\triangle}\\
+    \llbracket \text{\texttt{<=}}~a_1~a_2 \rrbracket_{\tau}^{\triangle} &= \llbracket a_1 \rrbracket^{\triangle}~\tau.\leq~\llbracket a_2 \rrbracket^{\triangle}\\
+    \llbracket \text{\texttt{< }}~a_1~a_2 \rrbracket_{\tau}^{\triangle} &= \llbracket a_1 \rrbracket^{\triangle}~\tau.<~\llbracket a_2 \rrbracket^{\triangle}\\
+    \llbracket \text{\texttt{==}}~a_1~a_2 \rrbracket_{\tau}^{\triangle} &= \llbracket a_1 \rrbracket^{\triangle}~\tau.=~\llbracket a_2 \rrbracket^{\triangle}\\
+    \llbracket \text{\texttt{!=}}~a_1~a_2 \rrbracket_{\tau}^{\triangle} &= \llbracket a_1 \rrbracket^{\triangle}~\tau.\neq~\llbracket a_2 \rrbracket^{\triangle}
+\end{align}
+
+\begin{align}
+    \llbracket \text{\texttt{and}}~[~]\rrbracket_{\tau}^{\triangle} &= \top \\
+    \llbracket \text{\texttt{and}}~(b_1~\mathbin{::}~b_n)\rrbracket_{\tau}^{\triangle} &= \llbracket b_1 \rrbracket_{\tau}^{\triangle}~\land~\llbracket \text{\texttt{and}}~b_n \rrbracket_{\tau}^{\triangle}\\
+    \llbracket \text{\texttt{or}}~[~]\rrbracket_{\tau}^{\triangle} &= \bot \\
+    \llbracket \text{\texttt{or}}~(b_1~\mathbin{::}~b_n)\rrbracket_{\tau}^{\triangle} &= \llbracket b_1 \rrbracket_{\tau}^{\triangle}~\lor~\llbracket \text{\texttt{or}}~b_n \rrbracket_{\tau}^{\triangle}
+\end{align}
+
+\begin{align}
+    \llbracket \text{\texttt{assert}}~b\rrbracket^{\triangle} &= \llbracket b \rrbracket^{\triangle} \\
+\end{align}
