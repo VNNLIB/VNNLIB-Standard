@@ -194,6 +194,7 @@ A \vnnlib{} query is said to be \textit{well-scoped}, if it satisfies the follow
     \item All variables are \textit{globally scoped}. All variables are scoped to the entire body of the query.
     \item All variable declarations are \textit{ordered} within network declarations such that inputs before hidden outputs, and hidden outputs before outputs.
     \item All variables have unique names within the query. No variable name is reused within the same query.
+    \item A congruence statement in a network declaration must point to another network declaration that does not have a congruence statement.
 \end{enumerate}
 
 \subsection{Typing}
@@ -203,14 +204,13 @@ A \vnnlib{} query is said to be \textit{well-typed}, if it satisfies the followi
     \item All variables have a valid ONNX element type.
     \item Variables are \textit{strictly-typed}; so all variable references must match the expected element type in the context where it is substituted.
 \end{itemize}
-\myremark{
-    Although some ONNX types can be soundly cast for operations in certain cases, for example, a \textit{float16} can be added safely to a \textit{float32} if the expected type of evaluated expression is a \textit{float32}, the \vnnlib{} standard does not permit such implicit casting.
-    If a query is agnostic to the element type of variables, it should be declared with the \textit{Real} type.
-}
+
+Although some ONNX types can be soundly cast for operations in certain cases, for example, a \textit{float16} can be added safely to a \textit{float32} if the expected type of evaluated expression is a \textit{float32}, the \vnnlib{} standard does not permit such implicit casting.
+If a query is agnostic to the element type of variables, it should be declared with the \textit{Real} type.
 
 \subsubsection*{Typing Rules}
 
-The typing syntax and judgements of a vnnlib{} query is given in  Figure ?. \\
+The typing syntax and judgements of a \vnnlib{} query is given in  Figure ?. \\
 In a \vnnlib{} query, Network Declarations are used to construct the static context ($\Gamma$) which is used to type the variables and literals used in the Assertions of a query.
 
 
@@ -221,21 +221,21 @@ In a \vnnlib{} query, Network Declarations are used to construct the static cont
             \begin{tabular}{@{}lcl@{}}
             $\langle$ElementType$\rangle$ & $\ni$ & 
             \begin{tabular}[t]{@{}l@{}}
-                $\tau ::= \left\{\text{int4, int8, int16, int32, int64,}\right.$ \\
+                $\tau ::= \left\{\text{Real,int4, int8, int16, int32, int64,}\right.$ \\
                 $\quad\quad\quad\text{uint4, uint8, uint16, uint32, uint64,}$ \\
                 $\quad\quad\quad\text{float16, float32, float64, bfloat16,} $\\
                 $\quad\quad\quad\text{float8e4m3fn, float8e5m2, float4e2m1,}$\\
                 $\quad\quad\quad\left.\text{float8e4m3fnuz, float8e5m2fnuz}\right\} $\\
                 \end{tabular} \\
-            $\langle$TensorShape$\rangle$ & $\ni$ & $s ::= [i_0, ..., i_n] \quad i \in \mathbb{N}$ \\
-            $\langle$VariableName$\rangle$ & $\ni$ & $v ::= \verb|^[A-Za-z][A-Za-z0-9\_]*$| \quad \text{(regex)}$ \\
+            $\langle$TensorShape$\rangle$ & $\ni$ & $s ::= [j_1, ..., j_n] \quad j \in \mathbb{N}$ \\
+            $\langle$VariableName$\rangle$ & $\ni$ & $v ::= \verb|[A-Za-z][A-Za-z0-9_]*| \quad \text{(regex)}$ \\
             $\langle$InputDeclaration$\rangle$ & $\ni$ & $I::= (\texttt{declareInput}~v~\tau~s$) \\
             $\langle$HiddenDeclaration$\rangle$ & $\ni$ & $H ::= (\texttt{declareHidden}~v~\tau~s$) \\
             $\langle$OutputDeclaration$\rangle$ & $\ni$ & $O ::= (\texttt{declareOutput}~v~\tau~s$) \\
-            $\langle$CongruenceStatements$\rangle$ & $\ni$ & $c ::= (\texttt{isomorphic-to}~v) \;|\ (\texttt{equal-to}~v)$ \\
-            $\langle$NetworkDeclaration$\rangle$ & $\ni$ & $D ::= (\texttt{declareNetwork}~v~c_?~I^+~H^*~O^+$) \\ \\
-            $\langle$Double$\rangle$ & $\ni$ & $d ::= \mathbf{Double}$ \\
-            $\langle$TensorIndex$\rangle$ & $\ni$ & $j ::= [i_0,...,i_n]^+ \quad i \in \mathbb{N}$ \\
+            $\langle$CongruenceStatements$\rangle$ & $\ni$ & $C ::= (\texttt{isomorphic-to}~v) \;|\ (\texttt{equal-to}~v)$ \\
+            $\langle$NetworkDeclaration$\rangle$ & $\ni$ & $D ::= (\texttt{declareNetwork}~v~C_?~I^+~H^*~O^+$) \\ \\
+            $\langle$Double$\rangle$ & $\ni$ & $d ::= \verb|-?[0-9]+(.[0-9]*)|$ \\
+            $\langle$TensorIndex$\rangle$ & $\ni$ & $i ::= [j_1,...,j_n]^+ \quad j \in \mathbb{N}$ \\
             $\langle$ArithExpr$\rangle$ & $\ni$ & 
                 \begin{tabular}[t]{@{}l@{}}
                 $a ::= d$ \\
@@ -257,7 +257,7 @@ In a \vnnlib{} query, Network Declarations are used to construct the static cont
                 $\quad\;|\; (\texttt{or}~b^*$)
                 \end{tabular} \\
             $\langle$Assertion$\rangle$ & $\ni$ & $A ::= (\texttt{assert}~b$) \\ \\
-            $\langle$Version$\rangle$ & $\ni$ & $V ::= \verb|^\(vnnlib-version\s+<[0-9]+\.[0-9]+>)$| \quad \text{(regex)}$ \\
+            $\langle$Version$\rangle$ & $\ni$ & $V ::= \verb|(vnnlib-version <[0-9]+.[0-9]+>)| \quad \text{(regex)}$ \\
             $\langle$Query$\rangle$ & $\ni$ & $Q ::= V~D^*~A^+$ \\
             \end{tabular}
     \caption{\vnnlib{} format typing syntax}
@@ -269,84 +269,112 @@ In a \vnnlib{} query, Network Declarations are used to construct the static cont
         \resizebox{\textwidth}{!}{
         \begin{mathpar}
             \inferrule*[Right=InputDeclaration]{\;}{
-                \Gamma \vdash (\texttt{declareInput}~v~\tau~s) : \Gamma := \Gamma, v :(\tau,s) 
+                \Gamma \vdash (\texttt{declareInput}~v~\tau~s) : \Gamma, v \rightarrow (\tau,s) 
             }
             \\
             \inferrule*[Right=HiddenDeclaration]{\;}{
-                \Gamma \vdash (\texttt{declareHidden}~v~\tau~s) : \Gamma := \Gamma, v :(\tau,s)
+                \Gamma \vdash (\texttt{declareHidden}~v~\tau~s) : \Gamma, v \rightarrow (\tau,s)
             }
             \\
             \inferrule*[Right=OutputDeclaration]{\;}{
-                \Gamma \vdash (\texttt{declareOutput}~v~\tau~s) : \Gamma := \Gamma, v :(\tau,s)
+                \Gamma \vdash (\texttt{declareOutput}~v~\tau~s) : \Gamma, v \rightarrow (\tau,s)
             }
             \\ \\
             \inferrule*[Right=NetworkDeclaration]{
                 \ensuremath{
                     \begin{array}{ccc}
-                    \Gamma_0 := \Gamma \vdash I_0 & \Gamma_{n+1} := \Gamma_n \vdash H_0 & \Gamma_{m+n+1} := \Gamma_{m+n} \vdash O_o \\
+                    \Gamma_0 \vdash I_1 : \Gamma_1 & \Gamma_n \vdash H_1 : \Gamma_{n+1} & \Gamma_{m+n} \vdash O_1 : \Gamma_{m+n+1} \\
                     \vdots & \vdots & \vdots \\
-                    \Gamma_n := \Gamma_{n-1} \vdash I_n & \Gamma_{m+n} := \Gamma_{m+n-1} \vdash H_m & \Gamma_{n+m+o} := \Gamma_{m+n+o-1} \vdash O_o
+                    \Gamma_{n-1} \vdash I_n : \Gamma_n & \Gamma_{m+n-1} \vdash H_m : \Gamma_{m+n} & \Gamma_{m+n+o-1} \vdash O_o : \Gamma_{n+m+o}
                     \end{array}
                 }
             }{
-                \Gamma \vdash (\texttt{declareNetwork}~v~c_?~(I_0~...~I_n)^+~(H_0~...~H_m)^*~(O_0~...~O_o)^+) : \Gamma_{n+m+o}
+                \Gamma_0 \vdash (\texttt{declareNetwork}~v~C_?~(I_1~...~I_n)^+~(H_1~...~H_m)^*~(O_1~...~O_o)^+) : \Gamma_{n+m+o}
             }
-            \\ \\
-            \inferrule*[]{\;}{
-                \Gamma \Vdash d : \tau
-            }
-            \hspace{1cm}
-            \inferrule*[]{
-                \Gamma [v] : (\tau,s) \quad \text{validIndices} (j, s)
+            \end{mathpar}
+        }
+    \caption{Typing judgement of a Network Declaration}
+    \end{minipage}
+\end{figure}
+
+\begin{figure}
+    \begin{minipage}[t]{1\textwidth}
+        \resizebox{\textwidth}{!}{
+        \begin{mathpar}
+            \inferrule*[Right=ArithExpr Double Real]{
+                d \in \mathbb{Q} %using rational instead of real
             }{
-                \Gamma \Vdash v~j : \tau
-            }
-            \hspace{1cm}
-            \inferrule*[Right=ArithExpr]{
-                \Gamma \Vdash a : \tau
-            }{
-                \Gamma \Vdash (\texttt{-}~a) : \tau
+                \Gamma \vdash d : \text{Real}
             }
             \\
-            \inferrule*[Right=ArithExpr N-ary]{
-                \Gamma \Vdash a_0 : \tau \quad ... \quad \Gamma \Vdash a_n : \tau
+            \inferrule*[Right=ArithExpr Double Float32]{
+                d \in \text{Float32}
             }{
-                \Gamma \Vdash (\circledast~a_0~...~a_n) : \tau \quad \circledast \in \{\texttt{+}, \texttt{-}, \texttt{×}\}
+                \Gamma \vdash d : \text{float32}
             }
             \\
+            \vdots
+            \\
+            \inferrule*[Right=ArithExpr Variable]{
+                \Gamma [v] : (\tau,s) \quad \text{validIndices} (i, s)
+            }{
+                \Gamma \vdash v~i : \tau
+            }
+            \\
+            \inferrule*[Right=ArithExpr Negation]{
+                \Gamma \vdash a : \tau
+            }{
+                \Gamma \vdash (\texttt{-}~a) : \tau
+            }
+            \\
+            \inferrule*[Right=ArithExpr N-ary Operations]{
+                \Gamma \vdash a_1 : \tau \quad ... \quad \Gamma \vdash a_n : \tau
+            }{
+                \Gamma \vdash (\circledast~a_1~...~a_n) : \tau \quad \circledast \in \{\texttt{+}, \texttt{-}, \texttt{×}\}
+            }
+        \end{mathpar}
+        }
+    \caption{Typing judgments of Arithmetic Expressions}
+    \end{minipage}
+\end{figure}
+
+\begin{figure}
+    \begin{minipage}[t]{1\textwidth}
+        \resizebox{\textwidth}{!}{
+        \begin{mathpar}
             \inferrule*[Right=BoolExpr Comparisons]{
-                \Gamma \Vdash a_1 : \tau \quad \Gamma \Vdash a_2 : \tau
+                \Gamma \vdash a_1 : \tau \quad \Gamma \vdash a_2 : \tau
             }{
-                \Gamma \Vdash (\lozenge~a_1~a_2) : \mathbf{Bool} \quad \lozenge \in \{\texttt{>=}, \texttt{>}, \texttt{<}, \texttt{<=}, \texttt{==}, \texttt{!=}\}
+                \Gamma \vdash (\lozenge~a_1~a_2) \quad \lozenge \in \{\texttt{>=}, \texttt{>}, \texttt{<}, \texttt{<=}, \texttt{==}, \texttt{!=}\}
             }
             \\
             \hspace{1cm}
-            \inferrule*[Right=BoolExpr]{
-                \Gamma \Vdash b_0 :  \mathbf{Bool} \quad ... \quad \Gamma \Vdash b_n : \mathbf{Bool}
+            \inferrule*[Right=BoolExpr Connectives]{
+                \Gamma \vdash b_1 \quad ... \quad \Gamma \vdash b_n
             }{
-                \Gamma \Vdash (\Box~b_0~...~b_n) : \mathbf{Bool} \quad \Box \in \{\texttt{and}, \texttt{or}\}
+                \Gamma \vdash (\Box~b_1~...~b_n) \quad \Box \in \{\texttt{and}, \texttt{or}\}
             }
             \\
             \inferrule*[Right=Assertion]{
-                \Gamma \Vdash b : \mathbf{Bool}
+                \Gamma \vdash b
             }{
-                \Gamma \Vdash (\texttt{assert}~b) : \mathbf{Bool}
+                \Gamma \vdash (\texttt{assert}~b)
             }
             \\ \\
             \inferrule*[Right=Query]{
                 \ensuremath{
                     \begin{array}{ccc}
-                    \Gamma_0 := \Gamma := \Gamma_0 \vdash D_0 & \Gamma_n \Vdash A_0 : \mathbf{Bool} \\
+                    \{\ \}\ \vdash D_1 : \Gamma_1 & \Gamma_n \vdash A_1 \\
                     \vdots & \vdots \\
-                    \Gamma_n := \Gamma_n := \Gamma_{n-1} \vdash D_n & \Gamma_n \Vdash A_m : \mathbf{Bool}
+                    \Gamma_{n-1} \vdash D_n : \Gamma_n &  \vdash A_m
                     \end{array}
                 }
             }{
-                \Gamma \Vdash (V~(D_0~...~D_n)~(A_0,...,A_m)) : \mathbf{Bool}
+                (V~(D_0~...~D_n)~(A_0,...,A_m))
             }
         \end{mathpar}
         }
-    \caption{Typing judgements}
+    \caption{Typing judgments of Boolean Expressions and a \vnnlib{} Query}
     \end{minipage}
 \end{figure}
 
