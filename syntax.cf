@@ -90,11 +90,10 @@ separator nonempty OutputDefinition "" ;
 IsomorphicTo. CompStm ::= "(isomorphic-to" VariableName ")" ;
 -- This statement declares that two networks have identical architecture weights
 EqualTo. CompStm ::= "(equal-to" VariableName ")" ;
--- A network should have only one of these statements, but this is not enforced here for brevity
-separator CompStm "" ;
 
 -- A network definition declares a neural network with an associated name, optional congruence statement/s, and input, hidden and output tensor definitions
-NetworkDef. NetworkDefinition ::= "(declare-network" VariableName [CompStm] [InputDefinition] [HiddenDefinition] [OutputDefinition] ")" ;
+NetworkDef. NetworkDefinition ::= "(declare-network" VariableName [InputDefinition] [HiddenDefinition] [OutputDefinition] ")" ;
+NetworkDefCompStm. NetworkDefinition ::= "(declare-network" VariableName CompStm [InputDefinition] [HiddenDefinition] [OutputDefinition] ")" ;
 separator NetworkDefinition "" ;
 
 -- The version of the VNN-LIB query being used that follows <breaking>.<non-breaking> version numbering
