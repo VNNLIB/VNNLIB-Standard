@@ -186,6 +186,9 @@ Comments in \vnnlib{} are denoted by a semicolon (\texttt{;}) and extend to the 
 
 \section{Scoping and Typing}
 \label{sec:scoping_and_typing}
+The scoping and judgments of a \vnnlib{} query is given in  Figure ?. \\
+In a \vnnlib{} query, Network Declarations are used to construct the static context ($\Gamma$) which is then used to type the variables and literals used in the Assertions of a query.
+
 
 \subsection{Scoping}
 A \vnnlib{} query is said to be \textit{well-scoped}, if it satisfies the following criteria.
@@ -207,11 +210,6 @@ A \vnnlib{} query is said to be \textit{well-typed}, if it satisfies the followi
 
 Although some ONNX types can be soundly cast for operations in certain cases, for example, a \textit{float16} can be added safely to a \textit{float32} if the expected type of evaluated expression is a \textit{float32}, the \vnnlib{} standard does not permit such implicit casting.
 If a query is agnostic to the element type of variables, it should be declared with the \textit{Real} type.
-
-\subsubsection*{Typing Rules}
-
-The typing syntax and judgements of a \vnnlib{} query is given in  Figure ?. \\
-In a \vnnlib{} query, Network Declarations are used to construct the static context ($\Gamma$) which is used to type the variables and literals used in the Assertions of a query.
 
 
 \begin{figure}
@@ -293,7 +291,7 @@ In a \vnnlib{} query, Network Declarations are used to construct the static cont
             }
             \end{mathpar}
         }
-    \caption{Typing judgement of a Network Declaration}
+    \caption{Scope construction judgments of Network Declaration}
     \end{minipage}
 \end{figure}
 
@@ -301,40 +299,46 @@ In a \vnnlib{} query, Network Declarations are used to construct the static cont
     \begin{minipage}[t]{1\textwidth}
         \resizebox{\textwidth}{!}{
         \begin{mathpar}
-            \inferrule*[Right=ArithExpr Double Real]{
+            \inferrule*[Right=Real Literal]{
                 d \in \mathbb{Q} %using rational instead of real
             }{
                 \Gamma \vdash d : \text{Real}
             }
             \\
-            \inferrule*[Right=ArithExpr Double Float32]{
-                d \in \text{Float32}
+            \inferrule*[Right=Float64 Literal]{
+                d \in \text{Float64}
             }{
                 \Gamma \vdash d : \text{float32}
             }
             \\
             \vdots
             \\
-            \inferrule*[Right=ArithExpr Variable]{
+            \inferrule*[Right=<ElementType> Literal]{
+                d~\in~$T$ \quad \text{where}~$T$~\leftrightarrow\tau
+            }{
+                \Gamma \vdash d : \tau
+            }
+            \\
+            \inferrule*[Right=Variable]{
                 \Gamma [v] : (\tau,s) \quad \text{validIndices} (i, s)
             }{
                 \Gamma \vdash v~i : \tau
             }
             \\
-            \inferrule*[Right=ArithExpr Negation]{
+            \inferrule*[Right=Negation]{
                 \Gamma \vdash a : \tau
             }{
                 \Gamma \vdash (\texttt{-}~a) : \tau
             }
             \\
-            \inferrule*[Right=ArithExpr N-ary Operations]{
-                \Gamma \vdash a_1 : \tau \quad ... \quad \Gamma \vdash a_n : \tau
+            \inferrule*[Right=N-ary Operations]{
+                \Gamma \vdash a_1 : \tau \quad ... \quad \Gamma \vdash a_n : \tau \quad \circledast \in \{\texttt{+}, \texttt{-}, \texttt{×}\}
             }{
-                \Gamma \vdash (\circledast~a_1~...~a_n) : \tau \quad \circledast \in \{\texttt{+}, \texttt{-}, \texttt{×}\}
+                \Gamma \vdash (\circledast~a_1~...~a_n) : \tau
             }
         \end{mathpar}
         }
-    \caption{Typing judgments of Arithmetic Expressions}
+    \caption{Scope construction judgments of Arithmetic Expressions}
     \end{minipage}
 \end{figure}
 
@@ -343,16 +347,16 @@ In a \vnnlib{} query, Network Declarations are used to construct the static cont
         \resizebox{\textwidth}{!}{
         \begin{mathpar}
             \inferrule*[Right=BoolExpr Comparisons]{
-                \Gamma \vdash a_1 : \tau \quad \Gamma \vdash a_2 : \tau
+                \Gamma \vdash a_1 : \tau \quad \Gamma \vdash a_2 : \tau \quad \lozenge \in \{\texttt{>=}, \texttt{>}, \texttt{<}, \texttt{<=}, \texttt{==}, \texttt{!=}\}
             }{
-                \Gamma \vdash (\lozenge~a_1~a_2) \quad \lozenge \in \{\texttt{>=}, \texttt{>}, \texttt{<}, \texttt{<=}, \texttt{==}, \texttt{!=}\}
+                \Gamma \vdash (\lozenge~a_1~a_2) 
             }
             \\
             \hspace{1cm}
             \inferrule*[Right=BoolExpr Connectives]{
-                \Gamma \vdash b_1 \quad ... \quad \Gamma \vdash b_n
+                \Gamma \vdash b_1 \quad ... \quad \Gamma \vdash b_n \quad \Box \in \{\texttt{and}, \texttt{or}\}
             }{
-                \Gamma \vdash (\Box~b_1~...~b_n) \quad \Box \in \{\texttt{and}, \texttt{or}\}
+                \Gamma \vdash (\Box~b_1~...~b_n)
             }
             \\
             \inferrule*[Right=Assertion]{
@@ -364,7 +368,8 @@ In a \vnnlib{} query, Network Declarations are used to construct the static cont
             \inferrule*[Right=Query]{
                 \ensuremath{
                     \begin{array}{ccc}
-                    \{\ \}\ \vdash D_1 : \Gamma_1 & \Gamma_n \vdash A_1 \\
+                    \{\}~\vdash D_1 : \Gamma_1 & \Gamma_n \vdash A_1 \\
+                    \Gamma_1~\vdash D_2 : \Gamma_2 & \Gamma_n \vdash A_2 \\
                     \vdots & \vdots \\
                     \Gamma_{n-1} \vdash D_n : \Gamma_n & \Gamma_n \vdash A_m
                     \end{array}
