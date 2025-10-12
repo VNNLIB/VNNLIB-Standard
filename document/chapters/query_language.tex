@@ -397,31 +397,35 @@ The semantics are only well-defined if the query is well-scoped and well-typed, 
 }
 
 \paragraph{Network Declarations}
-The semantic context for a \vnnlib query is constructed from the Declarations of a \vnnlib{} query, which represents each network as a function from a set of inputs to a set of outputs, and storing this \textit{network implementation} alongside the set of inputs.
-The Environment ($\triangle$) is the provided implementations of the neural networks and input assignments for each network.
+The partial semantic context ($\Gamma$) for a \vnnlib{} query is constructed from the Declarations of a \vnnlib{} query, which represents each network as a function from a list of inputs to a list of outputs, where each input and output is represented by the tensor shape and ONNX ElementType (\autoref{eq:declInput} and \autoref{eq:declOutput}).
+
+\begin{align}
+    \llbracket~\texttt{declare-input}~v~\tau~s~\rrbracket &= (s, \tau) \label{eq:declInput}\\
+    \llbracket~\texttt{declare-output}~v~\tau~s~\rrbracket &= (s, \tau) \label{eq:declOutput}
+\end{align}
+
+\mytodo{lambda notation to construct context}
 
 \paragraph{Assertions}
+The Environment ($\triangle$) is parameterised by the constructed (partial) semantic context ($\Gamma$), and represents the implementations of the neural networks ($\Sigma_N$) and input assignments ($\Sigma_A$) for each network representation in $\Gamma$ (\autoref{eq:Environment}).
 
-\begin{align}
-    \llbracket a \rrbracket_{\tau}^{\triangle} &= \llbracket a_1 \rrbracket^{\triangle}~\tau.\geq~\llbracket a_2 \rrbracket^{\triangle}\\
+\begin{align} \label{eq:Environment}
+    \triangle (\Gamma) = \Sigma_N(\Gamma)~\boxtimes~\Sigma_A(\Gamma) &= \{(n, a)~|~n \in \Sigma_N(\Gamma)~\land~a \in \Sigma_A(\Gamma)\}
 \end{align}
 
-\begin{align}
-    \llbracket \text{\texttt{>=}}~a_1~a_2 \rrbracket_{\tau}^{\triangle} &= \llbracket a_1 \rrbracket^{\triangle}~\tau.\geq~\llbracket a_2 \rrbracket^{\triangle}\\
-    \llbracket \text{\texttt{> }}~a_1~a_2 \rrbracket_{\tau}^{\triangle} &= \llbracket a_1 \rrbracket^{\triangle}~\tau.>~\llbracket a_2 \rrbracket^{\triangle}\\
-    \llbracket \text{\texttt{<=}}~a_1~a_2 \rrbracket_{\tau}^{\triangle} &= \llbracket a_1 \rrbracket^{\triangle}~\tau.\leq~\llbracket a_2 \rrbracket^{\triangle}\\
-    \llbracket \text{\texttt{< }}~a_1~a_2 \rrbracket_{\tau}^{\triangle} &= \llbracket a_1 \rrbracket^{\triangle}~\tau.<~\llbracket a_2 \rrbracket^{\triangle}\\
-    \llbracket \text{\texttt{==}}~a_1~a_2 \rrbracket_{\tau}^{\triangle} &= \llbracket a_1 \rrbracket^{\triangle}~\tau.=~\llbracket a_2 \rrbracket^{\triangle}\\
-    \llbracket \text{\texttt{!=}}~a_1~a_2 \rrbracket_{\tau}^{\triangle} &= \llbracket a_1 \rrbracket^{\triangle}~\tau.\neq~\llbracket a_2 \rrbracket^{\triangle}
-\end{align}
+\mytodo{Semantics for ArithExpr}
 
 \begin{align}
-    \llbracket \text{\texttt{and}}~[~]\rrbracket_{\tau}^{\triangle} &= \top \\
-    \llbracket \text{\texttt{and}}~(b_1~\mathbin{::}~b_n)\rrbracket_{\tau}^{\triangle} &= \llbracket b_1 \rrbracket_{\tau}^{\triangle}~\land~\llbracket \text{\texttt{and}}~b_n \rrbracket_{\tau}^{\triangle}\\
-    \llbracket \text{\texttt{or}}~[~]\rrbracket_{\tau}^{\triangle} &= \bot \\
-    \llbracket \text{\texttt{or}}~(b_1~\mathbin{::}~b_n)\rrbracket_{\tau}^{\triangle} &= \llbracket b_1 \rrbracket_{\tau}^{\triangle}~\lor~\llbracket \text{\texttt{or}}~b_n \rrbracket_{\tau}^{\triangle}
+    \llbracket \text{\texttt{>=}}~(\Gamma\vdash{a_1})~(\Gamma\vdash{a_2}) \rrbracket^{\triangle(\Gamma)} &= \llbracket (\Gamma\vdash{a_1}) \rrbracket^{\triangle(\Gamma)}~\geq_\tau~\llbracket (\Gamma\vdash{a_2}) \rrbracket^{\triangle(\Gamma)}\\
+    \llbracket \text{\texttt{> }}~(\Gamma\vdash{a_1})~(\Gamma\vdash{a_2}) \rrbracket^{\triangle(\Gamma)} &= \llbracket (\Gamma\vdash{a_1}) \rrbracket^{\triangle(\Gamma)}~>_\tau~\llbracket (\Gamma\vdash{a_2}) \rrbracket^{\triangle(\Gamma)}\\
+    \llbracket \text{\texttt{<=}}~(\Gamma\vdash{a_1})~(\Gamma\vdash{a_2}) \rrbracket^{\triangle(\Gamma)} &= \llbracket (\Gamma\vdash{a_1}) \rrbracket^{\triangle(\Gamma)}~\leq_\tau~\llbracket (\Gamma\vdash{a_2}) \rrbracket^{\triangle(\Gamma)}\\
+    \llbracket \text{\texttt{< }}~(\Gamma\vdash{a_1})~(\Gamma\vdash{a_2}) \rrbracket^{\triangle(\Gamma)} &= \llbracket (\Gamma\vdash{a_1}) \rrbracket^{\triangle(\Gamma)}~<_\tau~\llbracket (\Gamma\vdash{a_2}) \rrbracket^{\triangle(\Gamma)}\\
+    \llbracket \text{\texttt{==}}~(\Gamma\vdash{a_1})~(\Gamma\vdash{a_2}) \rrbracket^{\triangle(\Gamma)} &= \llbracket (\Gamma\vdash{a_1}) \rrbracket^{\triangle(\Gamma)}~=_\tau~\llbracket (\Gamma\vdash{a_2}) \rrbracket^{\triangle(\Gamma)}\\
+    \llbracket \text{\texttt{!=}}~(\Gamma\vdash{a_1})~(\Gamma\vdash{a_2}) \rrbracket^{\triangle(\Gamma)} &= \llbracket (\Gamma\vdash{a_1}) \rrbracket^{\triangle(\Gamma)}~\neq_\tau~\llbracket (\Gamma\vdash{a_2}) \rrbracket^{\triangle(\Gamma)} \\
+    \llbracket \text{\texttt{and}}~b_1~...~b_n\rrbracket^{\triangle(\Gamma)} &= \llbracket b_1 \rrbracket^{\triangle(\Gamma)}~\land~...~\land\llbracket~b_n~\rrbracket^{\triangle(\Gamma)}\\
+    \llbracket \text{\texttt{or}}~b_1~...~b_n\rrbracket^{\triangle(\Gamma)} &= \llbracket b_1 \rrbracket^{\triangle(\Gamma)}~\lor~...~\lor\llbracket~b_n~\rrbracket^{\triangle(\Gamma)}\\
+    \llbracket \text{\texttt{assert}}~b\rrbracket^{\triangle(\Gamma)} &= \llbracket b \rrbracket^{\triangle(\Gamma)} \tag{Assertion}
 \end{align}
 
-\begin{align}
-    \llbracket \text{\texttt{assert}}~b\rrbracket^{\triangle} &= \llbracket b \rrbracket^{\triangle} \\
-\end{align}
+\paragraph{Query}
+\mytodo{Semantics of Query}
