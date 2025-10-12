@@ -401,7 +401,8 @@ The partial semantic context ($\Gamma$) for a \vnnlib{} query is constructed fro
 
 \begin{align}
     \llbracket~\texttt{declare-input}~v~\tau~s~\rrbracket &= (s, \tau) \label{eq:declInput}\\
-    \llbracket~\texttt{declare-output}~v~\tau~s~\rrbracket &= (s, \tau) \label{eq:declOutput}
+    \llbracket~\texttt{declare-output}~v~\tau~s~\rrbracket &= (s, \tau) \label{eq:declOutput} \\
+    ... \text{which is}~\Gamma 
 \end{align}
 
 \mytodo{lambda notation to construct context}
@@ -428,4 +429,10 @@ The Environment ($\triangle$) is parameterised by the constructed (partial) sema
 \end{align}
 
 \paragraph{Query}
-\mytodo{Semantics of Query}
+\mytodo{Add description of equation}
+\begin{align*}
+\llbracket V~C_?~D^*~A^+ \rrbracket &= \Sigma_N(\Gamma)\rightarrow~\exists~\Sigma_A(\Gamma)\rightarrow~\llbracket A^+ \rrbracket^{\triangle(\Gamma)}~\equiv~\top\\
+     &\text{where}~\Gamma =\llbracket D^* \rrbracket \\
+     &\text{where}~\triangle(\Gamma) = \Sigma_N(\Gamma)~\boxtimes~\Sigma_A(\Gamma) \\
+     &\text{where}~\llbracket A^+ \rrbracket^{\triangle(\Gamma)} = \llbracket A_1 \rrbracket^{\triangle(\Gamma)}~\land~...~\land\llbracket A_n \rrbracket^{\triangle(\Gamma)} \tag{Query}
+\end{align*}
