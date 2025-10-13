@@ -264,38 +264,55 @@ If a query is agnostic to the element type of variables, it should be declared w
 \end{figure}
 
 \begin{figure}
-    \begin{minipage}[t]{1\textwidth}
-        \resizebox{\textwidth}{!}{
+    \begin{minipage}[t]{\linewidth}
+    \resizebox{0.9\linewidth}{!}{
         \begin{mathpar}
             \inferrule*[Right=InputDeclaration]{
-                \mu = \texttt{input} \quad \mu \in \{\texttt{input}, \texttt{hidden}, \texttt{output}\}
+                \mu = \texttt{input}
             }{
                 \Gamma \vdash (\texttt{declare-input}~v~\tau~s) : \Gamma, v \rightarrow (\tau,s,\mu) 
             }
             \\
             \inferrule*[Right=HiddenDeclaration]{
-                \mu = \texttt{hidden} \quad \mu \in \{\texttt{input}, \texttt{hidden}, \texttt{output}\}
+                \mu = \texttt{hidden}
             }{
                 \Gamma \vdash (\texttt{declare-hidden}~v~\tau~s) : \Gamma, v \rightarrow (\tau,s,\mu)
             }
             \\
             \inferrule*[Right=OutputDeclaration]{
-                \mu = \texttt{output} \quad \mu \in \{\texttt{input}, \texttt{hidden}, \texttt{output}\}
+                \mu = \texttt{output}
             }{
                 \Gamma \vdash (\texttt{declare-output}~v~\tau~s) : \Gamma, v \rightarrow (\tau,s,\mu)
             }
             \\ \\
-            \inferrule*[Right=NetworkDeclaration]{
+            \hspace*{5em}
+            \inferrule*[]{
                 \ensuremath{
-                    \begin{array}{ccc}
-                    \Gamma_0 \vdash I_1 : \Gamma_1 & \Gamma_n \vdash H_1 : \Gamma_{n+1} & \Gamma_{m+n} \vdash O_1 : \Gamma_{m+n+1} \\
-                    \vdots & \vdots & \vdots \\
-                    \Gamma_{n-1} \vdash I_n : \Gamma_n & \Gamma_{m+n-1} \vdash H_m : \Gamma_{m+n} & \Gamma_{m+n+o-1} \vdash O_o : \Gamma_{n+m+o}
+                    \begin{array}{cccc}
+                    \Gamma_0 \vdash I_1 : \Gamma_1 & \Gamma_n \vdash H_1 : \Gamma_{n+1} & \Gamma_{m+n} \vdash O_1 : \Gamma_{m+n+1} &\\
+                    \vdots & \vdots & \vdots & \\
+                    \Gamma_{n-1} \vdash I_n : \Gamma_n & \Gamma_{m+n-1} \vdash H_m : \Gamma_{m+n} & \Gamma_{m+n+o-1} \vdash O_o : \Gamma_{n+m+o} & N_0 \vdash v : N_1
                     \end{array}
                 }
             }{
-                \Gamma_0 \vdash (\texttt{declare-network}~v~C_?~(I_1~...~I_n)~(H_1~...~H_m)~(O_1~...~O_o)) : \Gamma_{n+m+o}
+                (\Gamma_0 , N_0) \vdash (\texttt{declare-network}~(I_1~...~I_n)~(H_1~...~H_m)~(O_1~...~O_o)) : (\Gamma_{n+m+o}, N_1)
             }
+            \\
+            \scalebox{0.9}{\textsf{\textsc{NetworkDeclaration}}}
+            \\ \\
+            \inferrule*[]{
+                \ensuremath{
+                    \begin{array}{cccc}
+                    \Gamma_0 \vdash I_1 : \Gamma_1 & \Gamma_n \vdash H_1 : \Gamma_{n+1} & \Gamma_{m+n} \vdash O_1 : \Gamma_{m+n+1} & \triangle \in \{\texttt{isomorphic-to},\texttt{equal-to}\}\\
+                    \vdots & \vdots & \vdots & v_2 \in N_0\\
+                    \Gamma_{n-1} \vdash I_n : \Gamma_n & \Gamma_{m+n-1} \vdash H_m : \Gamma_{m+n} & \Gamma_{m+n+o-1} \vdash O_o : \Gamma_{n+m+o} & N_0 \vdash v_1 : N_1
+                    \end{array}
+                }
+            }{
+                (\Gamma_0 , N_0) \vdash (\texttt{declare-network}~v_1~(\triangle~v_2)~(I_1~...~I_n)~(H_1~...~H_m)~(O_1~...~O_o)) : (\Gamma_{n+m+o}, N_1)
+            }
+            \\
+            \scalebox{0.9}{\textsf{\textsc{NetworkDeclaration CongruenceStatement}}} \\
             \end{mathpar}
         }
     \caption{Scope construction judgments for network declarations}
@@ -328,7 +345,7 @@ If a query is agnostic to the element type of variables, it should be declared w
             }
             \\
             \inferrule*[Right=Variable]{
-                \Gamma [v] : (\tau,s,\mu) \quad \text{validIndices}~(i, s)\quad\text{where}~\mu~\in~\{\texttt{input}, \texttt{hidden}, \texttt{output}\}
+                \Gamma [v] = (\tau,s,\mu) \quad \text{validIndices}~(i, s)\quad\text{where}~\mu~\in~\{\texttt{input}, \texttt{hidden}, \texttt{output}\}
             }{
                 \Gamma \vdash v~i : \tau
             }
@@ -432,7 +449,7 @@ The semantics of an assertion uses a typing context $\Gamma$, that is constructe
     \semenv{\Gamma\vdash{v~i}} &= 
     \begin{cases}
         \Delta_{A_i}^k\quad\text{if}~g~\equiv (\tau,s,\texttt{input})\\
-        \Delta_{N_k} (\Delta_{A_i}^k)\quad\text{if}~g~\equiv (\tau,s,\texttt{output})\\
+        \Delta_{N}^k (\Delta_{A_i}^k)\quad\text{if}~g~\equiv (\tau,s,\texttt{output})\\
     \end{cases} \\
     &\text{where}~g = \Gamma[v]~\text{and}~k = \text{indexOf}~(g)\notag\\
     \semenv{\Gamma\vdash(\text{\texttt{-}}~a_1)} &= -~\semenv{\Gamma\vdash{a_1}} \\
