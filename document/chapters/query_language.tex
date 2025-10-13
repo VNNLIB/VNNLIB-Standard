@@ -267,16 +267,22 @@ If a query is agnostic to the element type of variables, it should be declared w
     \begin{minipage}[t]{1\textwidth}
         \resizebox{\textwidth}{!}{
         \begin{mathpar}
-            \inferrule*[Right=InputDeclaration]{\;}{
-                \Gamma \vdash (\texttt{declare-input}~v~\tau~s) : \Gamma, v \rightarrow (\tau,s) 
+            \inferrule*[Right=InputDeclaration]{
+                \mu = \texttt{input} \quad \mu \in \{\texttt{input}, \texttt{hidden}, \texttt{output}\}
+            }{
+                \Gamma \vdash (\texttt{declare-input}~v~\tau~s) : \Gamma, v \rightarrow (\tau,s,\mu) 
             }
             \\
-            \inferrule*[Right=HiddenDeclaration]{\;}{
-                \Gamma \vdash (\texttt{declare-hidden}~v~\tau~s) : \Gamma, v \rightarrow (\tau,s)
+            \inferrule*[Right=HiddenDeclaration]{
+                \mu = \texttt{hidden} \quad \mu \in \{\texttt{input}, \texttt{hidden}, \texttt{output}\}
+            }{
+                \Gamma \vdash (\texttt{declare-hidden}~v~\tau~s) : \Gamma, v \rightarrow (\tau,s,\mu)
             }
             \\
-            \inferrule*[Right=OutputDeclaration]{\;}{
-                \Gamma \vdash (\texttt{declare-output}~v~\tau~s) : \Gamma, v \rightarrow (\tau,s)
+            \inferrule*[Right=OutputDeclaration]{
+                \mu = \texttt{output} \quad \mu \in \{\texttt{input}, \texttt{hidden}, \texttt{output}\}
+            }{
+                \Gamma \vdash (\texttt{declare-output}~v~\tau~s) : \Gamma, v \rightarrow (\tau,s,\mu)
             }
             \\ \\
             \inferrule*[Right=NetworkDeclaration]{
@@ -322,7 +328,7 @@ If a query is agnostic to the element type of variables, it should be declared w
             }
             \\
             \inferrule*[Right=Variable]{
-                \Gamma [v] : (\tau,s) \quad \text{validIndices} (i, s)
+                \Gamma [v] : (\tau,s,\mu) \quad \text{validIndices}~(i, s)\quad\text{where}~\mu~\in~\{\texttt{input}, \texttt{hidden}, \texttt{output}\}
             }{
                 \Gamma \vdash v~i : \tau
             }
@@ -414,20 +420,21 @@ The semantic context for a \vnnlib{} query is constructed from the Declarations 
 \begin{align}
     \sem{\texttt{declare-input}~v~\tau~s} &= \tau^s \label{eq:declInput}\\
     \sem{\texttt{declare-output}~v~\tau~s} &= \tau^s \label{eq:declOutput}\\
-    \sem{\texttt{declare-network}~v~(I_1,...,I_n)~(O_1,...,O_m)}_N &= \Pi^{n}_{i=1}~\sem{I_i} \rightarrow \Pi^{m}_{i=1}~\sem{O_i} \label{eq:networkImplementations} \\
-    \sem{\texttt{declare-network}~v~(I_1,...,I_n)~(O_1,...,O_m)}_A &= \Pi^{n}_{i=1}~\sem{I_i} \label{eq:inputAssignments}
+    \sem{\texttt{declare-network}~v~(I_1,...,I_n)~(O_1,...,O_m)}_N &= \prod^{n}_{i=1}~\sem{I_i} \rightarrow \prod^{m}_{i=1}~\sem{O_i} \label{eq:networkImplementations} \\
+    \sem{\texttt{declare-network}~v~(I_1,...,I_n)~(O_1,...,O_m)}_A &= \prod^{n}_{i=1}~\sem{I_i} \label{eq:inputAssignments}
 \end{align}
 
 \paragraph{Assertions}
 The semantics of an assertion uses a typing context $\Gamma$, that is constructed iteratively for the network declarations (\autoref{fig:scoping-network-decls}).
 
 \begin{align}
-    \semenv{\Gamma\vdash{d}} &= d_\tau \\
+    \semenv{\Gamma\vdash{d}} &= d \\
     \semenv{\Gamma\vdash{v~i}} &= 
     \begin{cases}
-        \Delta_{A_i}^k \\
-        \Delta_{N_k} (\Delta_{A_i}^k) 
+        \Delta_{A_i}^k\quad\text{if}~g~\equiv (\tau,s,\texttt{input})\\
+        \Delta_{N_k} (\Delta_{A_i}^k)\quad\text{if}~g~\equiv (\tau,s,\texttt{output})\\
     \end{cases} \\
+    &\text{where}~g = \Gamma[v]~\text{and}~k = \text{indexOf}~(g)\notag\\
     \semenv{\Gamma\vdash(\text{\texttt{-}}~a_1)} &= -~\semenv{\Gamma\vdash{a_1}} \\
     \semenv{\Gamma\vdash(\text{\texttt{+}}~a_1~...~a_n)} &= \sum^{n}_{i=1}\semenv{\Gamma\vdash{a_i}} \\
     \semenv{\Gamma\vdash(\text{\texttt{×}}~a_1~...~a_n)} &= \prod^{n}_{i=1}\semenv{\Gamma\vdash{a_i}} \\
