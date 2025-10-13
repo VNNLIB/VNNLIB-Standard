@@ -186,8 +186,8 @@ Comments in \vnnlib{} are denoted by a semicolon (\texttt{;}) and extend to the 
 
 \section{Scoping and Typing}
 \label{sec:scoping_and_typing}
-The scoping and judgments of a \vnnlib{} query is given in  Figure ?. \\
-In a \vnnlib{} query, Network Declarations are used to construct the static context ($\Gamma$) which is then used to type the variables and literals used in the Assertions of a query.
+The scoping and judgments of a \vnnlib{} query is given for network Declarations, arithmetic expressions, boolean Expressions and for a query in \autoref{fig:scoping-network-decls}, \autoref{fig:typing-arithExpr}, and \autoref{fig:typing-boolExpr-query} respectively. \\
+In a \vnnlib{} query, network declarations are used to construct the static context ($\Gamma$) which is then used to type the variables and literals used in the assertions of a query.
 
 
 \subsection{Scoping}
@@ -227,11 +227,11 @@ If a query is agnostic to the element type of variables, it should be declared w
                 \end{tabular} \\
             $\langle$TensorShape$\rangle$ & $\ni$ & $s ::= [j_1, ..., j_n] \quad j \in \mathbb{N}$ \\
             $\langle$VariableName$\rangle$ & $\ni$ & $v ::= \verb|[A-Za-z][A-Za-z0-9_]*| \quad \text{(regex)}$ \\
-            $\langle$InputDeclaration$\rangle$ & $\ni$ & $I::= (\texttt{declareInput}~v~\tau~s$) \\
-            $\langle$HiddenDeclaration$\rangle$ & $\ni$ & $H ::= (\texttt{declareHidden}~v~\tau~s$) \\
-            $\langle$OutputDeclaration$\rangle$ & $\ni$ & $O ::= (\texttt{declareOutput}~v~\tau~s$) \\
+            $\langle$InputDeclaration$\rangle$ & $\ni$ & $I::= (\texttt{declare-input}~v~\tau~s$) \\
+            $\langle$HiddenDeclaration$\rangle$ & $\ni$ & $H ::= (\texttt{declare-hidden}~v~\tau~s$) \\
+            $\langle$OutputDeclaration$\rangle$ & $\ni$ & $O ::= (\texttt{declare-output}~v~\tau~s$) \\
             $\langle$CongruenceStatements$\rangle$ & $\ni$ & $C ::= (\texttt{isomorphic-to}~v) \;|\ (\texttt{equal-to}~v)$ \\
-            $\langle$NetworkDeclaration$\rangle$ & $\ni$ & $D ::= (\texttt{declareNetwork}~v~C_?~I^+~H^*~O^+$) \\ \\
+            $\langle$NetworkDeclaration$\rangle$ & $\ni$ & $D ::= (\texttt{declare-network}~v~C_?~I^+~H^*~O^+$) \\ \\
             $\langle$Double$\rangle$ & $\ni$ & $d ::= \verb|-?[0-9]+(.[0-9]*)|$ \\
             $\langle$TensorIndex$\rangle$ & $\ni$ & $i ::= [j_1,...,j_n]^+ \quad j \in \mathbb{N}$ \\
             $\langle$ArithExpr$\rangle$ & $\ni$ & 
@@ -258,7 +258,8 @@ If a query is agnostic to the element type of variables, it should be declared w
             $\langle$Version$\rangle$ & $\ni$ & $V ::= \verb|(vnnlib-version <[0-9]+.[0-9]+>)| \quad \text{(regex)}$ \\
             $\langle$Query$\rangle$ & $\ni$ & $Q ::= V~D^*~A^+$ \\
             \end{tabular}
-    \caption{\vnnlib{} format typing syntax}
+    \caption{\vnnlib{} format syntax}
+    \label{fig:vnnlib-syntax}
     \end{minipage}
 \end{figure}
 
@@ -267,15 +268,15 @@ If a query is agnostic to the element type of variables, it should be declared w
         \resizebox{\textwidth}{!}{
         \begin{mathpar}
             \inferrule*[Right=InputDeclaration]{\;}{
-                \Gamma \vdash (\texttt{declareInput}~v~\tau~s) : \Gamma, v \rightarrow (\tau,s) 
+                \Gamma \vdash (\texttt{declare-input}~v~\tau~s) : \Gamma, v \rightarrow (\tau,s) 
             }
             \\
             \inferrule*[Right=HiddenDeclaration]{\;}{
-                \Gamma \vdash (\texttt{declareHidden}~v~\tau~s) : \Gamma, v \rightarrow (\tau,s)
+                \Gamma \vdash (\texttt{declare-hidden}~v~\tau~s) : \Gamma, v \rightarrow (\tau,s)
             }
             \\
             \inferrule*[Right=OutputDeclaration]{\;}{
-                \Gamma \vdash (\texttt{declareOutput}~v~\tau~s) : \Gamma, v \rightarrow (\tau,s)
+                \Gamma \vdash (\texttt{declare-output}~v~\tau~s) : \Gamma, v \rightarrow (\tau,s)
             }
             \\ \\
             \inferrule*[Right=NetworkDeclaration]{
@@ -287,11 +288,12 @@ If a query is agnostic to the element type of variables, it should be declared w
                     \end{array}
                 }
             }{
-                \Gamma_0 \vdash (\texttt{declareNetwork}~v~C_?~(I_1~...~I_n)^+~(H_1~...~H_m)^*~(O_1~...~O_o)^+) : \Gamma_{n+m+o}
+                \Gamma_0 \vdash (\texttt{declare-network}~v~C_?~(I_1~...~I_n)~(H_1~...~H_m)~(O_1~...~O_o)) : \Gamma_{n+m+o}
             }
             \end{mathpar}
         }
-    \caption{Scope construction judgments of Network Declaration}
+    \caption{Scope construction judgments for network declarations}
+    \label{fig:scoping-network-decls}
     \end{minipage}
 \end{figure}
 
@@ -300,7 +302,7 @@ If a query is agnostic to the element type of variables, it should be declared w
         \resizebox{\textwidth}{!}{
         \begin{mathpar}
             \inferrule*[Right=Real Literal]{
-                d \in \mathbb{Q} %using rational instead of real
+                d \in \mathbb{R}
             }{
                 \Gamma \vdash d : \text{Real}
             }
@@ -338,7 +340,8 @@ If a query is agnostic to the element type of variables, it should be declared w
             }
         \end{mathpar}
         }
-    \caption{Scope construction judgments of Arithmetic Expressions}
+    \caption{Typing judgments of arithmetic expressions}
+    \label{fig:typing-arithExpr}
     \end{minipage}
 \end{figure}
 
@@ -379,7 +382,8 @@ If a query is agnostic to the element type of variables, it should be declared w
             }
         \end{mathpar}
         }
-    \caption{Typing judgments of Boolean Expressions and a \vnnlib{} Query}
+    \caption{Typing judgments of boolean expressions and a \vnnlib{} query}
+    \label{fig:typing-boolExpr-query}
     \end{minipage}
 \end{figure}
 
@@ -388,7 +392,7 @@ If a query is agnostic to the element type of variables, it should be declared w
 
 The semantics of a \vnnlib{} query is defined in terms of the satisfiability problem it represents. A query is said to be \textit{satisfiable} if there exists an assignment of values to all/any of the the input tensors such that when the corresponding ONNX model(s) are evaluated, the set of assertions hold true. Conversely, a query is said to be \textit{unsatisfiable} if no such assignment exists.
 
-Given that the actual semantics of a \vnnlib{} query is dependent on the semantics of the neural network representation i.e. on the underlying ONNX model(s) it is associated with, we can describe the semantics of a query as a as higher order function from functions representing the declared ONNX networks to a satisfiability problem over the input assignments. 
+Given that the actual semantics of a \vnnlib{} query is dependent on the semantics of the neural network representation i.e. on the underlying ONNX model(s) it is associated with, we can describe the semantics of a query as a higher order function from functions representing the declared ONNX networks to a satisfiability problem over the input assignments. 
 
 The semantics are only well-defined if the query is well-scoped and well-typed, as described in Section~\ref{sec:scoping_and_typing}. Similarly, the semantics for the Declarations and Assertions can be described separately.
 
@@ -396,43 +400,45 @@ The semantics are only well-defined if the query is well-scoped and well-typed, 
     The \vnnlib{} standard version 2.0 does not formalise the semantics of network congruence, or of hidden nodes.
 }
 
-\paragraph{Network Declarations}
-The partial semantic context ($\Gamma$) for a \vnnlib{} query is constructed from the Declarations of a \vnnlib{} query, which represents each network as a function from a list of inputs to a list of outputs, where each input and output is represented by the tensor shape and ONNX ElementType (\autoref{eq:declInput} and \autoref{eq:declOutput}).
-
-\begin{align}
-    \llbracket~\texttt{declare-input}~v~\tau~s~\rrbracket &= (s, \tau) \label{eq:declInput}\\
-    \llbracket~\texttt{declare-output}~v~\tau~s~\rrbracket &= (s, \tau) \label{eq:declOutput} \\
-    ... \text{which is}~\Gamma 
-\end{align}
-
-\mytodo{lambda notation to construct context}
-
-\paragraph{Assertions}
-The Environment ($\triangle$) is parameterised by the constructed (partial) semantic context ($\Gamma$), and represents the implementations of the neural networks ($\Sigma_N$) and input assignments ($\Sigma_A$) for each network representation in $\Gamma$ (\autoref{eq:Environment}).
-
-\begin{align} \label{eq:Environment}
-    \triangle (\Gamma) = \Sigma_N(\Gamma)~\boxtimes~\Sigma_A(\Gamma) &= \{(n, a)~|~n \in \Sigma_N(\Gamma)~\land~a \in \Sigma_A(\Gamma)\}
-\end{align}
-
-\mytodo{Semantics for ArithExpr}
-
-\begin{align}
-    \llbracket \text{\texttt{>=}}~(\Gamma\vdash{a_1})~(\Gamma\vdash{a_2}) \rrbracket^{\triangle(\Gamma)} &= \llbracket (\Gamma\vdash{a_1}) \rrbracket^{\triangle(\Gamma)}~\geq_\tau~\llbracket (\Gamma\vdash{a_2}) \rrbracket^{\triangle(\Gamma)}\\
-    \llbracket \text{\texttt{> }}~(\Gamma\vdash{a_1})~(\Gamma\vdash{a_2}) \rrbracket^{\triangle(\Gamma)} &= \llbracket (\Gamma\vdash{a_1}) \rrbracket^{\triangle(\Gamma)}~>_\tau~\llbracket (\Gamma\vdash{a_2}) \rrbracket^{\triangle(\Gamma)}\\
-    \llbracket \text{\texttt{<=}}~(\Gamma\vdash{a_1})~(\Gamma\vdash{a_2}) \rrbracket^{\triangle(\Gamma)} &= \llbracket (\Gamma\vdash{a_1}) \rrbracket^{\triangle(\Gamma)}~\leq_\tau~\llbracket (\Gamma\vdash{a_2}) \rrbracket^{\triangle(\Gamma)}\\
-    \llbracket \text{\texttt{< }}~(\Gamma\vdash{a_1})~(\Gamma\vdash{a_2}) \rrbracket^{\triangle(\Gamma)} &= \llbracket (\Gamma\vdash{a_1}) \rrbracket^{\triangle(\Gamma)}~<_\tau~\llbracket (\Gamma\vdash{a_2}) \rrbracket^{\triangle(\Gamma)}\\
-    \llbracket \text{\texttt{==}}~(\Gamma\vdash{a_1})~(\Gamma\vdash{a_2}) \rrbracket^{\triangle(\Gamma)} &= \llbracket (\Gamma\vdash{a_1}) \rrbracket^{\triangle(\Gamma)}~=_\tau~\llbracket (\Gamma\vdash{a_2}) \rrbracket^{\triangle(\Gamma)}\\
-    \llbracket \text{\texttt{!=}}~(\Gamma\vdash{a_1})~(\Gamma\vdash{a_2}) \rrbracket^{\triangle(\Gamma)} &= \llbracket (\Gamma\vdash{a_1}) \rrbracket^{\triangle(\Gamma)}~\neq_\tau~\llbracket (\Gamma\vdash{a_2}) \rrbracket^{\triangle(\Gamma)} \\
-    \llbracket \text{\texttt{and}}~b_1~...~b_n\rrbracket^{\triangle(\Gamma)} &= \llbracket b_1 \rrbracket^{\triangle(\Gamma)}~\land~...~\land\llbracket~b_n~\rrbracket^{\triangle(\Gamma)}\\
-    \llbracket \text{\texttt{or}}~b_1~...~b_n\rrbracket^{\triangle(\Gamma)} &= \llbracket b_1 \rrbracket^{\triangle(\Gamma)}~\lor~...~\lor\llbracket~b_n~\rrbracket^{\triangle(\Gamma)}\\
-    \llbracket \text{\texttt{assert}}~b\rrbracket^{\triangle(\Gamma)} &= \llbracket b \rrbracket^{\triangle(\Gamma)} \tag{Assertion}
-\end{align}
 
 \paragraph{Query}
 \mytodo{Add description of equation}
-\begin{align*}
-\llbracket V~C_?~D^*~A^+ \rrbracket &= \Sigma_N(\Gamma)\rightarrow~\exists~\Sigma_A(\Gamma)\rightarrow~\llbracket A^+ \rrbracket^{\triangle(\Gamma)}~\equiv~\top\\
-     &\text{where}~\Gamma =\llbracket D^* \rrbracket \\
-     &\text{where}~\triangle(\Gamma) = \Sigma_N(\Gamma)~\boxtimes~\Sigma_A(\Gamma) \\
-     &\text{where}~\llbracket A^+ \rrbracket^{\triangle(\Gamma)} = \llbracket A_1 \rrbracket^{\triangle(\Gamma)}~\land~...~\land\llbracket A_n \rrbracket^{\triangle(\Gamma)} \tag{Query}
-\end{align*}
+\begin{multline}
+\sem{V~(D_1,...,D_n)~(A_1,...,A_m)} = \\
+    (\Delta_N : \prod^{n}_{i=1}~\sem{D_i}_N) \rightarrow~\exists~(\Delta_A : \prod^{n}_{i=1}~\sem{D_i}_A).\bigwedge^{m}_{i=1}~\semenv{A_i} \\
+\end{multline}
+
+\paragraph{Network Declarations}
+The semantic context for a \vnnlib{} query is constructed from the Declarations of a \vnnlib{} query is a pair, which represents networks as a function from a product of input tensors to a product of output tensors (\autoref{eq:networkImplementations}), and the input assignments as the product of input tensors (\autoref{eq:inputAssignments}).
+
+\begin{align}
+    \sem{\texttt{declare-input}~v~\tau~s} &= \tau^s \label{eq:declInput}\\
+    \sem{\texttt{declare-output}~v~\tau~s} &= \tau^s \label{eq:declOutput}\\
+    \sem{\texttt{declare-network}~v~(I_1,...,I_n)~(O_1,...,O_m)}_N &= \Pi^{n}_{i=1}~\sem{I_i} \rightarrow \Pi^{m}_{i=1}~\sem{O_i} \label{eq:networkImplementations} \\
+    \sem{\texttt{declare-network}~v~(I_1,...,I_n)~(O_1,...,O_m)}_A &= \Pi^{n}_{i=1}~\sem{I_i} \label{eq:inputAssignments}
+\end{align}
+
+\paragraph{Assertions}
+The semantics of an assertion uses a typing context $\Gamma$, that is constructed iteratively for the network declarations (\autoref{fig:scoping-network-decls}).
+
+\begin{align}
+    \semenv{\Gamma\vdash{d}} &= d_\tau \\
+    \semenv{\Gamma\vdash{v~i}} &= 
+    \begin{cases}
+        \Delta_{A_i}^k \\
+        \Delta_{N_k} (\Delta_{A_i}^k) 
+    \end{cases} \\
+    \semenv{\Gamma\vdash(\text{\texttt{-}}~a_1)} &= -~\semenv{\Gamma\vdash{a_1}} \\
+    \semenv{\Gamma\vdash(\text{\texttt{+}}~a_1~...~a_n)} &= \sum^{n}_{i=1}\semenv{\Gamma\vdash{a_i}} \\
+    \semenv{\Gamma\vdash(\text{\texttt{×}}~a_1~...~a_n)} &= \prod^{n}_{i=1}\semenv{\Gamma\vdash{a_i}} \\
+    \semenv{\Gamma\vdash(\text{\texttt{-}}~a_1~...~a_n)} &= \semenv{\Gamma\vdash{a_1}}~-~\sum^{n}_{i=2}\semenv{\Gamma\vdash{a_i}} \\
+    \semenv{\Gamma\vdash(\text{\texttt{>=}}~a_1~a_2)} &= \semenv{\Gamma\vdash{a_1}}~\geq_\tau~\semenv{\Gamma\vdash{a_2}} \\
+    \semenv{\Gamma\vdash(\text{\texttt{> }}~a_1~a_2)} &= \semenv{\Gamma\vdash{a_1}}~>_\tau~\semenv{\Gamma\vdash{a_2}} \\
+    \semenv{\Gamma\vdash(\text{\texttt{<=}}~a_1~a_2)} &= \semenv{\Gamma\vdash{a_1}}~\leq_\tau~\semenv{\Gamma\vdash{a_2}} \\
+    \semenv{\Gamma\vdash(\text{\texttt{< }}~a_1~a_2)} &= \semenv{\Gamma\vdash{a_1}}~<_\tau~\semenv{\Gamma\vdash{a_2}} \\
+    \semenv{\Gamma\vdash(\text{\texttt{==}}~a_1~a_2)} &= \semenv{\Gamma\vdash{a_1}}~=_\tau~\semenv{\Gamma\vdash{a_2}} \\
+    \semenv{\Gamma\vdash(\text{\texttt{!=}}~a_1~a_2)} &= \semenv{\Gamma\vdash{a_1}}~\neq_\tau~\semenv{\Gamma\vdash{a_2}} \\
+    \semenv{\text{\texttt{and}}~b_1~...~b_n} &=\bigwedge^{n}_{i=1}\semenv{b_i}\\
+    \semenv{\text{\texttt{or}}~b_1~...~b_n} &=\bigvee^{n}_{i=1}\semenv{b_i}\\
+    \semenv{\text{\texttt{assert}}~b} &= \semenv{b}
+\end{align}
