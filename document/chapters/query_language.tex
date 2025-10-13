@@ -445,17 +445,17 @@ The semantic context for a \vnnlib{} query is constructed from the Declarations 
 The semantics of an assertion uses a typing context $\Gamma$, that is constructed iteratively for the network declarations (\autoref{fig:scoping-network-decls}).
 
 \begin{align}
-    \semenv{\Gamma\vdash{d}} &= d \\
+    \semenv{\Gamma\vdash{d}} &= d : \tau \\
     \semenv{\Gamma\vdash{v~i}} &= 
     \begin{cases}
-        \Delta_{A_i}^k\quad\text{if}~g~\equiv (\tau,s,\texttt{input})\\
-        \Delta_{N}^k (\Delta_{A_i}^k)\quad\text{if}~g~\equiv (\tau,s,\texttt{output})\\
+        \Delta_{A_i}^k~:~\tau\quad\text{if}~g~\equiv (\tau,s,\texttt{input})\\
+        \Delta_{N}^k(\Delta_{A_i}^k)~:~\tau\quad\text{if}~g~\equiv (\tau,s,\texttt{output})\\
     \end{cases} \\
     &\text{where}~g = \Gamma[v]~\text{and}~k = \text{indexOf}~(g)\notag\\
-    \semenv{\Gamma\vdash(\text{\texttt{-}}~a_1)} &= -~\semenv{\Gamma\vdash{a_1}} \\
-    \semenv{\Gamma\vdash(\text{\texttt{+}}~a_1~...~a_n)} &= \sum^{n}_{i=1}\semenv{\Gamma\vdash{a_i}} \\
-    \semenv{\Gamma\vdash(\text{\texttt{×}}~a_1~...~a_n)} &= \prod^{n}_{i=1}\semenv{\Gamma\vdash{a_i}} \\
-    \semenv{\Gamma\vdash(\text{\texttt{-}}~a_1~...~a_n)} &= \semenv{\Gamma\vdash{a_1}}~-~\sum^{n}_{i=2}\semenv{\Gamma\vdash{a_i}} \\
+    \semenv{\Gamma\vdash(\text{\texttt{-}}~a_1)} &= -_\tau~\semenv{\Gamma\vdash{a_1}} \\
+    \semenv{\Gamma\vdash(\text{\texttt{+}}~a_1~...~a_n)} &= \tau.\sum^{n}_{i=1}\semenv{\Gamma\vdash{a_i}} \\
+    \semenv{\Gamma\vdash(\text{\texttt{×}}~a_1~...~a_n)} &= \tau.\prod^{n}_{i=1}\semenv{\Gamma\vdash{a_i}} \\
+    \semenv{\Gamma\vdash(\text{\texttt{-}}~a_1~...~a_n)} &= \semenv{\Gamma\vdash{a_1}}~-_\tau~\tau.\sum^{n}_{i=2}\semenv{\Gamma\vdash{a_i}} \\
     \semenv{\Gamma\vdash(\text{\texttt{>=}}~a_1~a_2)} &= \semenv{\Gamma\vdash{a_1}}~\geq_\tau~\semenv{\Gamma\vdash{a_2}} \\
     \semenv{\Gamma\vdash(\text{\texttt{> }}~a_1~a_2)} &= \semenv{\Gamma\vdash{a_1}}~>_\tau~\semenv{\Gamma\vdash{a_2}} \\
     \semenv{\Gamma\vdash(\text{\texttt{<=}}~a_1~a_2)} &= \semenv{\Gamma\vdash{a_1}}~\leq_\tau~\semenv{\Gamma\vdash{a_2}} \\
