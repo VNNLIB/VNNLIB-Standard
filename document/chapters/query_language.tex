@@ -443,25 +443,56 @@ The semantic context for a \vnnlib{} query is constructed from the Declarations 
 
 \paragraph{Assertions}
 The semantics of an assertion uses a typing context $\Gamma$, that is constructed iteratively for the network declarations (\autoref{fig:scoping-network-decls}).
+The semantics of arithmetic expressions (\autoref{eq:double} to \autoref{eq:minus}), and boolean comparative expressions (\autoref{eq:greaterEqual} to \autoref{eq:notEqual}) use typed ($\tau$) operators. The mapping of the equivalent ONNX operators \cite{onnxOperators} are given in \autoref{tab:onnx-operators}.\
+
+\begin{table}[h]
+  \centering
+  \begin{threeparttable}
+    \begin{tabular}{|l|l|}
+        \hline
+        \textbf{Semantics Operator} & \textbf{ONNX operator} \\
+        \hline
+        $\geq_\tau$   & GreaterOrEqual  \\
+        $>_\tau$      & Greater  \\
+        $\leq_\tau$   & LessOrEqual  \\
+        $<_\tau$      & Less  \\
+        $=_\tau$      & Equal  \\
+        $\neq_\tau$   & Equal $\circ$ Not \\
+        $-_\tau$      & Neg \\
+        $+_\tau$      & Add \\
+        $\tau.\sum$   & Add* \\
+        $\tau.\prod$  & Mul* \\
+        \hline
+    \end{tabular}
+    \begin{tablenotes}
+        \scriptsize
+        \item $\tau$ for the specific ONNX element type
+        \item $\circ$ the currying of the operators 
+        \item \textbf{*} Both the Add and Mul operators are binary. These are associative operations, so these can be arbitrarily implemented and expressed as n-ary operators, as the list of arguments can be is recursively aggregated.
+    \end{tablenotes}
+    \end{threeparttable}
+    \caption{The equivalent ONNX operators for the semantic operators}
+    \label{tab:onnx-operators}
+\end{table}
 
 \begin{align}
-    \semenv{\Gamma\vdash{d}} &= d : \tau \\
-    \semenv{\Gamma\vdash{v~i}} &= 
+    \semenv{\Gamma\vdash{d}:\tau} &= d \label{eq:double}\\
+    \semenv{\Gamma\vdash{v~i}:\tau} &= 
     \begin{cases}
-        \Delta_{A_i}^k~:~\tau\quad\text{if}~g~\equiv (\tau,s,\texttt{input})\\
-        \Delta_{N}^k(\Delta_{A_i}^k)~:~\tau\quad\text{if}~g~\equiv (\tau,s,\texttt{output})\\
+        \Delta_{A_i}^k\quad\text{if}~g~\equiv (\tau,s,\texttt{input})\\
+        \Delta_{N}^k(\Delta_{A_i}^k)\quad\text{if}~g~\equiv (\tau,s,\texttt{output})\\
     \end{cases} \\
     &\text{where}~g = \Gamma[v]~\text{and}~k = \text{indexOf}~(g)\notag\\
-    \semenv{\Gamma\vdash(\text{\texttt{-}}~a_1)} &= -_\tau~\semenv{\Gamma\vdash{a_1}} \\
-    \semenv{\Gamma\vdash(\text{\texttt{+}}~a_1~...~a_n)} &= \tau.\sum^{n}_{i=1}\semenv{\Gamma\vdash{a_i}} \\
-    \semenv{\Gamma\vdash(\text{\texttt{×}}~a_1~...~a_n)} &= \tau.\prod^{n}_{i=1}\semenv{\Gamma\vdash{a_i}} \\
-    \semenv{\Gamma\vdash(\text{\texttt{-}}~a_1~...~a_n)} &= \semenv{\Gamma\vdash{a_1}}~-_\tau~\tau.\sum^{n}_{i=2}\semenv{\Gamma\vdash{a_i}} \\
-    \semenv{\Gamma\vdash(\text{\texttt{>=}}~a_1~a_2)} &= \semenv{\Gamma\vdash{a_1}}~\geq_\tau~\semenv{\Gamma\vdash{a_2}} \\
+    \semenv{\Gamma\vdash(\text{\texttt{-}}~a_1):\tau} &= -_\tau~\semenv{\Gamma\vdash{a_1}~:~\tau} \label{eq:negation}\\
+    \semenv{\Gamma\vdash(\text{\texttt{+}}~a_1~...~a_n):\tau} &= \tau.\sum^{n}_{i=1}\semenv{\Gamma\vdash{a_i}:\tau} \\
+    \semenv{\Gamma\vdash(\text{\texttt{×}}~a_1~...~a_n):\tau} &= \tau.\prod^{n}_{i=1}\semenv{\Gamma\vdash{a_i}:\tau} \\
+    \semenv{\Gamma\vdash(\text{\texttt{-}}~a_1~...~a_n):\tau} &= \semenv{\Gamma\vdash{a_1}:\tau}~+_\tau~(-_\tau~\tau.\sum^{n}_{i=2}\semenv{\Gamma\vdash{a_i}:\tau}) \label{eq:minus}\\
+    \semenv{\Gamma\vdash(\text{\texttt{>=}}~a_1~a_2)} &= \semenv{\Gamma\vdash{a_1}}~\geq_\tau~\semenv{\Gamma\vdash{a_2}} \label{eq:greaterEqual}\\
     \semenv{\Gamma\vdash(\text{\texttt{> }}~a_1~a_2)} &= \semenv{\Gamma\vdash{a_1}}~>_\tau~\semenv{\Gamma\vdash{a_2}} \\
     \semenv{\Gamma\vdash(\text{\texttt{<=}}~a_1~a_2)} &= \semenv{\Gamma\vdash{a_1}}~\leq_\tau~\semenv{\Gamma\vdash{a_2}} \\
     \semenv{\Gamma\vdash(\text{\texttt{< }}~a_1~a_2)} &= \semenv{\Gamma\vdash{a_1}}~<_\tau~\semenv{\Gamma\vdash{a_2}} \\
     \semenv{\Gamma\vdash(\text{\texttt{==}}~a_1~a_2)} &= \semenv{\Gamma\vdash{a_1}}~=_\tau~\semenv{\Gamma\vdash{a_2}} \\
-    \semenv{\Gamma\vdash(\text{\texttt{!=}}~a_1~a_2)} &= \semenv{\Gamma\vdash{a_1}}~\neq_\tau~\semenv{\Gamma\vdash{a_2}} \\
+    \semenv{\Gamma\vdash(\text{\texttt{!=}}~a_1~a_2)} &= \semenv{\Gamma\vdash{a_1}}~\neq_\tau~\semenv{\Gamma\vdash{a_2}} \label{eq:notEqual}\\
     \semenv{\text{\texttt{and}}~b_1~...~b_n} &=\bigwedge^{n}_{i=1}\semenv{b_i}\\
     \semenv{\text{\texttt{or}}~b_1~...~b_n} &=\bigvee^{n}_{i=1}\semenv{b_i}\\
     \semenv{\text{\texttt{assert}}~b} &= \semenv{b}
