@@ -22,4 +22,32 @@ This document assumes some basic familiarity with neural networks, first-order l
 \section{Document versioning}
 
 New versions of the document are identified by semantic versioning. In general patch versions will fix bugs in the document, minor versions will include conservative extensions to the specification, while changes to the major version number will result from major backwards-incompatible changes.
-A high-level summary of the changes introduced to the document by each new version may be found in Appendix~\ref{sec:changelog}.
+
+\subsection*{Changelog for v2.0}
+
+\paragraph{Authors:} Allen Antony, Ann Roy, Matthew Daggitt with regular input from Stefano Demarchi, Andrea Gimelli.
+
+\noindent \paragraph{Acknowledgements:} This version of the standard was developed with the help of many others in the neural network verification community.
+Particular thanks must given to the following people, who provided many helpful suggestions, constructive criticism and encouragement: Taylor Johnson, Samuel Teuber, Wen Kokke, Julien Girard, Guilhem Ardouin, Augustin Lemesle, Michele Alberti, Julien Lehmann, Thomas Flinkow, Edoardo Manino, Omri Isac, Guy Katz, Idan Refaeli, David Shriver and Christopher Brix.
+
+\noindent \paragraph{Changes from previous version:}
+\begin{itemize}
+\item Formal grammar for query language
+\item Added explicit network declarations to the query language.
+\item Add support for networks with multiple inputs/outputs and hidden layers.
+\item Added support for multiple networks
+\item Added a formal type system and semantics.
+\item Added theories and logics.
+\item Introduction of the command-line interface: \texttt{verify} and \texttt{supports}.
+\end{itemize}
+
+\subsection*{Changelog for v1.0}
+
+\paragraph{Authors:} Stefano Demarchi, Dario Guidotti, Luca Pulina, Armando Tacchella
+
+\paragraph{Contents:}
+\begin{itemize}
+\item Initial release.
+\item Outline of goal
+\item Proposal of initial syntax of the query language.
+\end{itemize}

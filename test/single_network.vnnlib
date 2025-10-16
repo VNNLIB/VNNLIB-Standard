@@ -1,3 +1,4 @@
+(vnnlib-version <2.0>)
 (declare-network acc 
 	(declare-input X Real [3])
 	(declare-output Y Real [4])
@@ -18,5 +19,5 @@
 (assert (and
     (or (<= Y[2] Y[0]) (<= Y[2] Y[1]))
     (or (<= Y[3] Y[0]) (<= Y[3] Y[1]))
-    (or (<= Y[4] Y[0]) (<= Y[4] Y[1]))
+    (or (<= Y[3] Y[0]) (<= Y[3] Y[1]))
 ))

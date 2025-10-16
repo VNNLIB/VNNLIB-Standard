@@ -1,11 +1,19 @@
+(vnnlib-version <2.0>)
 (declare-network AcasXu
 	(declare-input A Real [5])
 	(declare-output B Real [5])
 )
 
 (declare-network AcasYu
+	(equal-to AcasXu)
 	(declare-input C Real [5])
 	(declare-output D Real [5])
+)
+
+(declare-network AcasZu
+	(isomorphic-to AcasYu)
+	(declare-input C Real [5])
+	(declare-output D Real [6])
 )
 
 ; Unscaled Input 0: (55947.691, 60760)
@@ -33,7 +41,7 @@
 
 ; weak left is minimal or COC is minimal
 (assert (or
-    (and (<= Y[2] Y[0]) (<= Y[2] Y[1]))
-    (and (<= Y[3] Y[0]) (<= Y[3] Y[1]))
-    (and (<= Y[4] Y[0]) (<= Y[4] Y[1]))
+    (and (<= B[2] B[0]) (<= B[2] B[1]))
+    (and (<= B[3] B[0]) (<= B[3] B[1]))
+    (and (<= B[4] B[0]) (<= B[4] B[1]))
 ))

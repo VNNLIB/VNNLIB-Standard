@@ -1,0 +1,94 @@
+(vnnlib-version <2.0>)
+
+;  VNN-Lib Test Specification for the `linearise` function
+; This file covers various edge cases to ensure correctness and robustness.
+
+(declare-network test
+    (declare-input X Real [3])
+    (declare-output Y Real [])
+)
+
+; --- GROUP 1: Basic Operations & Constants ---
+
+; Expected LHS: 1.0 * X[0] + 5.0
+(assert (<= (+ X[0] 5.0) 10.0))
+
+; Expected LHS: -1.0 * X[0]
+(assert (<= (- X[0]) 0.0))
+
+; Expected LHS: 1.0 * X[0] - 5.0
+(assert (<= (- X[0] 5.0) 0.0))
+
+; Expected LHS: -1.0 * X[0] + 5.0
+(assert (<= (- 5.0 X[0]) 0.0))
+
+; Expected LHS: 3.5 * X[0]
+(assert (<= (* X[0] 3.5) 7.0))
+
+; Expected LHS: -2.0 * X[0]
+(assert (<= (* -2.0 X[0]) 0.0))
+
+; --- GROUP 2: Multiple Variables ---
+
+; Expected LHS: 2.0 * X[0] + 1.0 * X[0] = 3.0 * X[0]
+(assert (<= (+ X[0] 5.0 X[0]) 10.0))
+
+; Expected LHS: 1.0 * X[0] - 1.0 * X[0] = 0.0
+(assert (<= (- X[0] X[0]) 0.0))
+
+; Expected LHS: 1.0 * X[0] - 1.0 * X[1] + 3.0
+(assert (<= (+ (- X[0] X[1]) 3.0) 0.0))
+
+; Expected LHS: 1.0 * X[0] - 1.0 * X[1] - 1.0 * X[2]
+(assert (<= (- X[0] X[1] X[2]) 0.0))
+
+; --- GROUP 3: Complex Expressions ---
+
+; Expected LHS: 5.0 + -1.0 * X[0] + -1.0 * X[1]
+(assert (<= (+ 5.0 (* -1.0 X[0]) (- X[1])) 0.0))
+
+; --- GROUP 4: Zero Coefficient Elimination ---
+
+; Expected LHS: 0.0 * X[0] = 0.0
+(assert (<= (* X[0] 0.0) 0.0))
+
+; Expected LHS: 1.0 * X[0]
+(assert (<= (* X[0] 1.0) 5.0))
+
+; Expected LHS: 1.0 * X[0] + 0.0 = 1.0 * X[0]
+(assert (<= (+ X[0] 0.0) 5.0))
+
+; --- GROUP 5: Pure Constants ---
+
+; Expected LHS: 2.0 * 3.0 * 2.5 = 15.0
+(assert (<= (* 2.0 3.0 2.5) 20.0))
+
+; Expected LHS: 1.0 + 2.0 + 5.0 = 8.0
+(assert (<= (+ 1.0 2.0 5.0) 10.0))
+
+; --- GROUP 6: Mixed Operations ---
+
+; Expected LHS: 1.0 * X[1] + 5.0 - 1.0 * X[0] - 2.0 = 1.0 * X[1] - 1.0 * X[0] + 3.0
+(assert (<= (- (+ X[1] 5.0) (+ X[0] 2.0)) 0.0))
+
+; Expected LHS: 2.0 * (1.0 * X[0] * 3.0) + 2.0 = 6.0 * X[0] + 2.0
+(assert (<= (+ (* 2.0 (* X[0] 3.0)) 2.0) 20.0))
+
+; Expected LHS: 10.0 - 1.0 * X[1] + (1.0 * X[2] - 1.0 * X[0])
+(assert (>= (+ (- 10.0 X[1]) (- X[2] X[0])) 0.0))
+
+; --- GROUP 7: Boolean Operations ---
+
+; Expected: Two separate linear constraints
+(assert (and (>= X[0] 0.0) (<= X[1] 100.0)))
+
+; Expected: Two separate linear constraints in disjunction
+(assert (or (<= Y[0] -5.0) (>= Y[0] 5.0)))
+
+; --- GROUP 8: Non-Linear (Should Fail) ---
+
+; This should cause an error: Non-linear (variable * variable)
+; (assert (<= (* X[0] X[1]) 10.0))
+
+; This should cause an error: Non-linear (variable in nested multiplication)
+; (assert (<= (* X[0] (+ X[1] 2.0)) 25.0))

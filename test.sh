@@ -2,10 +2,10 @@
 for f in test/*.vnnlib ;
 do 
   output=$(Syntax/Test "$f" 2>&1)
-  if (( $? )); then
-    echo >&2 "error $?: \"$output\""
-    echo "$f" >> test/error-files.txt
-    # break
+  exit_code=$?
+  if (( exit_code != 0 )); then
+    echo >&2 "error $exit_code: \"$output\""
+    exit $exit_code # break
   else
     echo "parse success: $f"
   fi

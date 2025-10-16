@@ -1,28 +1,27 @@
 -- This is the LBNF grammar for the VNNLib language
 
--- The regular expression for a signed double or integer
-token SDouble '-'? digit+ '.' digit+ ('e' '-'? digit+)? ;
-token SInt '-' digit+ ;
-token Int digit+ ;
+-- Defines the version number of VNNLIB. 
+-- The '<' and '>' characters are used so it doesn't clash with the Number token
+position token VersionToken '<' digit+ '.' digit+ '>' ;
+-- Defines a numeric literal
+position token Number '-'? digit+ ('.' digit+)? ;
+-- The regular expression for allowed Variable names - tensors, or networks
+position token VariableName letter (letter|digit|'_')* ;
 
--- The regular expression for allowed Variable Names - tensors, or networks
-token VariableName letter (letter|digit|'_')* ;
-
--- Sequence of integers to represent Tensor shape/indicies
-separator nonempty Int "," ;
+-- Sequence of integers to represent Tensor shape/indices
+separator nonempty Number "," ;
 
 -- Production of Tensor Shape (empty shape is allowed for scalar tensors)
 ScalarDims. TensorShape ::= "[" "]" ;
-TensorDims. TensorShape ::= "[" [Int] "]" ;
+TensorDims. TensorShape ::= "[" [Number] "]" ;
 
--- ArithExpr is a numeric value that may be a parameter, a tensor element, or an arithmetic operation
--- -- A variable refers to a tensor element, constructed with the associated variable name and tensor indices
-VarExpr. ArithExpr ::= VariableName "[" [Int] "]" ;
-DoubleExpr. ArithExpr ::= SDouble ;
-SIntExpr. ArithExpr ::= SInt ;
-IntExpr. ArithExpr ::= Int ;
+-- The base case of ArithExpr is a numeric value or a tensor element
+-- A variable refers to a tensor element, constructed with the associated variable name and tensor indices
+VarExpr. ArithExpr ::= VariableName "[" [Number] "]" ;
+ValExpr. ArithExpr ::= Number ;
 
--- An arithmetic operator is an n-ary operator that performs an arithmetic operation on n inputs
+-- An arithmetic operator is a unary or binary operator that performs an arithmetic operation
+-- Operations can be defined with an arbitrary number of inputs which are left associative.
 Negate. ArithExpr ::= "(" "-" ArithExpr  ")" ;
 Plus. ArithExpr ::= "(" "+" [ArithExpr] ")";
 Minus. ArithExpr ::= "(" "-" ArithExpr [ArithExpr] ")" ;
@@ -37,7 +36,7 @@ LessEqual. BoolExpr ::= "(" "<=" ArithExpr ArithExpr ")" ;
 NotEqual. BoolExpr ::= "(" "!=" ArithExpr ArithExpr ")" ;
 Equal. BoolExpr ::= "(" "==" ArithExpr ArithExpr ")";
 
--- A connective operator is an n-ary operator that combines at least two boolean formulas
+-- A connective (or logical) operator is an n-ary operator that combines multiple Boolean formulas
 And. BoolExpr ::= "(" "and" [BoolExpr] ")" ;
 Or. BoolExpr ::= "(" "or" [BoolExpr] ")";
 separator nonempty BoolExpr "" ;
@@ -73,9 +72,11 @@ ElementTypeBool. ElementType ::= "bool" ;
 ElementTypeString. ElementType ::= "string" ;
 
 -- A tensor definition is a declaration of a tensor variable with a shape and an element type
+-- Input and output definitions have an optional ONNX name string (using double quotes)
 InputDef. InputDefinition ::= "(declare-input" VariableName ElementType TensorShape ")" ;
 InputOnnxDef. InputDefinition ::= "(declare-input" VariableName ElementType TensorShape String ")" ;
 
+-- Hidden definitions have a mandatory ONNX name string
 HiddenDef. HiddenDefinition ::= "(declare-hidden" VariableName ElementType TensorShape String ")" ;
 
 OutputDef. OutputDefinition ::= "(declare-output" VariableName ElementType TensorShape ")" ;
@@ -85,13 +86,24 @@ separator nonempty InputDefinition "" ;
 separator HiddenDefinition "" ;
 separator nonempty OutputDefinition "" ;
 
-NetworkDef. NetworkDefinition ::= "(declare-network" VariableName [InputDefinition] [HiddenDefinition] [OutputDefinition] ")" ;
-separator nonempty NetworkDefinition "" ;
+-- This statement declares that a network has the same architecture as another.
+IsomorphicTo. CompStm ::= "(isomorphic-to" VariableName ")" ;
+-- This statement declares that two networks have identical architecture weights
+EqualTo. CompStm ::= "(equal-to" VariableName ")" ;
+-- A network should have only one of these statements, but this is not enforced here for brevity
+separator CompStm "" ;
 
--- A query is a series of network definitions followed by a series of properties
-VNNLibQuery. Query ::= [NetworkDefinition] [Assertion] ;
+-- A network definition declares a neural network with an associated name, optional congruence statement/s, and input, hidden and output tensor definitions
+NetworkDef. NetworkDefinition ::= "(declare-network" VariableName [CompStm] [InputDefinition] [HiddenDefinition] [OutputDefinition] ")" ;
+separator NetworkDefinition "" ;
 
--- A line may be commented out by starting with a semicolon
+-- The version of the VNN-LIB query being used that follows <breaking>.<non-breaking> version numbering
+VNNLibVersion. Version ::= "(vnnlib-version" VersionToken ")" ;
+
+-- A query is a series of network definitions followed by a series of assertions
+VNNLibQuery. Query ::= Version [NetworkDefinition] [Assertion] ;
+
+-- A comment starts with a semicolon
 comment ";" ;
 
 entrypoints Query ;
