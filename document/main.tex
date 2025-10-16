@@ -26,6 +26,8 @@
 \usepackage[font={small,it}]{caption}
 \usepackage{nameref}
 \usepackage{mathpartir}
+\usepackage{stmaryrd}
+\usepackage{threeparttable} 
 
 \renewcommand{\lstlistingname}{Example}
 \newcommand{\ie}{\textit{i.e.}}
@@ -132,6 +134,9 @@
 \newcommand{\logic}[1]{\texttt{#1}}
 
 \newcommand{\inlinevnn}[1]{\lstinline[style=lbnf]{#1}}
+
+\newcommand{\sem}[1]{\llbracket #1 \rrbracket}
+\newcommand{\semenv}[1]{\llbracket #1 \rrbracket^{\Delta_N,\Delta_A}}
 
 \title{
 	The \vnnlib{} Standard \\ 

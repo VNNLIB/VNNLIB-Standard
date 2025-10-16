@@ -79,7 +79,7 @@ but the following query is only a member of \h{}:
 \begin{code}[style=lbnf]
 (declare-network f
     (declare-input  X float32 [1])
-    (declare-hidden H float32 [1])
+    (declare-hidden H float32 [1] "hidden")
     (declare-output Y float32 [1])
 )
 \end{code}
@@ -183,7 +183,7 @@ The ``Multiple node comparisons'' theory set therefore contains two theories \sn
 
 (declare-network g
     (declare-input  A float32 [2])
-    (declare-hidden H float32 [1])
+    (declare-hidden H float32 [1] "hidden")
     (declare-output B float32 [1])
 )
 \end{code}

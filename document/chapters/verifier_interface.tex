@@ -106,7 +106,7 @@ The variables should be reported in the order that they are declared in the quer
 (declare-network f
     (declare-input  A float32 [2,2])
     (declare-input  B float32 [1])
-    (declare-hidden H float32 [1,2])
+    (declare-hidden H float32 [1,2] "hidden")
     (declare-output Y float32 [1])
 )
 (declare-network g
