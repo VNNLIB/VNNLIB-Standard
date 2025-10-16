@@ -214,40 +214,50 @@ However, the following comparisons only belong to \mnc{}:
 \centering
 \begin{tikzpicture}
    \node (poly)     [theory] {\poly{} \\ (Polynomial arithmetic)};
-   \node (linear)   [theory, left=of poly] {\lin{} \\ (Linear arithmetic)};
-   \node (bounds)   [theory, left=of linear]   {\bnd{} \\ (Bounds)};
+   \node (linear)   [theory, above left=of poly, xshift=6em] {\lin{} \\ (Linear arithmetic)};   
+   \node (cout)   [theory, below left=of linear, xshift=6em] {\cout{} \\ (Output comparisons)};
+   \node (bounds)   [theory, above left=of cout, xshift=6em]   {\bnd{} \\ (Bounded variables)};
    
-   \draw [arrow] (bounds) -- (linear);
+   \draw [arrow] (bounds) -- (cout);
+   \draw [arrow] (cout) -- (linear);
    \draw [arrow] (linear) -- (poly);  
 \end{tikzpicture}
 \caption{The ``Arithmetic complexity'' theory set.}
 \label{fig:arithmetic-complexities}
 \end{figure}
 
-The more complex the arithmetic constraints the more computationally expensive the verification is. Therefore, the ``Arithmetic complexity'' query set is used to restrict the complexity of the arithmetic constraints by dividing them into three theories:
+The more complex the arithmetic constraints the more computationally expensive the verification is. Therefore, the ``Arithmetic complexity'' query set is used to restrict the complexity of the arithmetic constraints by dividing them into the following theories:
 
 \begin{enumerate}
 \item \textbf{\bnd{}} - 
-The simplest level of arithmetic complexity is \bnd{}, which restricts query assertions to equalities or inequalities that relate a single variable representing 
-inputs, outputs or hidden nodes to a constant. For example, the following assertions live within \bnd{}:
+The simplest level of arithmetic complexity, which restricts query assertions to equalities or inequalities that relate single variables to constants. For example, the following assertions live within \bnd{}:
 
 \begin{code}[style=lbnf]
 (assert (and (<= X[0] 1.0) (<= X[0] 1.0)))
 (assert (>= Y[0] 0.5))
 \end{code}
 
-\item \textbf{\lin{}} - Linear arithmetic restricts query assertions to linear expressions over the variables representing inputs, outputs or hidden nodes. Every query in LIN is also a query in BND. For example, the following assertion belongs in \lin{} but not in \bnd{} e.g. 
+\item \textbf{\cout{}} - 
+The next level of arithmetic complexity, which allows assertions performing simple comparisons of hidden or output values, but still restricts query assertions over input variables to equalities or inequalities that relate single variables to constants. For example, the following assertions live within \cout{} but not \bnd{}:
+
+\begin{code}[style=lbnf]
+(assert (and (<= X[0] 1.0) (<= X[0] 1.0)))
+(assert (>= Y[0] Y[1]))
+\end{code}
+
+\item \textbf{\lin{}} - Linear arithmetic restricts query assertions to linear expressions over the variables representing inputs, outputs or hidden nodes. For example, the following assertion belongs in \lin{} but not in \cout{} e.g. 
 
 \begin{code}[style=lbnf]
 (assert (<= (+ (* 0.5 X[0]) (* 0.75 X[1])) 1.0))
+(assert (>= (+ Y[0] Y[1]) 0.5))
 \end{code}
 
 \item \textbf{\poly{}} - Polynomial arithmetic restricts query assertions to polynomial expressions over the variables representing inputs, outputs or hidden nodes. 
-Every query in POLY is also a query in LIN.
 For example, the following assertion belongs in \poly{} but not in \lin{}
 
 \begin{code}[style=lbnf]
 (assert (<= (* X[0] X[1]) 1.0)
+(assert (>= (+ Y[0] Y[1]) 0.5))
 \end{code}
 
 \end{enumerate}
