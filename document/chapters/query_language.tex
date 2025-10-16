@@ -1,22 +1,74 @@
-\chapter{Query Language}\label{sec:specification_language}
+\chapter{Query Language}
+\label{sec:specification_language}
 
-At the heart of the \vnnlib{} standard is the \vnnlib{} query language. Heavily influenced by SMT-LIB, this language is designed as a standardised computer-readable format for expressing a wide range of satisfiability problems over neural networks. This chapter describes the syntax, scoping, typing and semantics of the query language.
+The centre-piece of the \vnnlib{} standard is the \vnnlib{} query language which is designed as a standardised computer-readable format for expressing a wide range of satisfiability problems over neural networks.
+Although the syntax is somewhat human-readable, the syntax of \vnnlib{} is primarily designed with machine-readability in mind. 
+It is envisaged that \vnnlib{} queries will primarily be generated automatically by higher level tools that provide human-orientated interfaces.
+This chapter describes the syntax, scoping, typing and semantics of the query language.
 
 \section{Syntax}
 \label{sec:syntax}
 
+The syntax of the language is shown in Figure~\ref{fig:vnnlib-syntax}.  This section will now describe the key syntactic constructs of the language via illustrative examples. Firstly, \vnnlib{} queries are split into three parts: 
+\begin{enumerate}
+\item \textbf{Version number} - the version of the VNN-LIB the query is using. This allows tools to provide better diagnostic error messages.
+\item \textbf{Network declarations} - a non-empty list of network declarations. This allows the definition of the networks that the satisfiability problem will involve and the definition of new abstract variables that represent the values for the inputs and outputs of the network.
+\item \textbf{Assertions} - a list of assertions that reference the variables introduced by the network declarations. This allows the constraints that should be satisfied to be defined.
+\end{enumerate}
+Currently, the standard does not permit the interleaving of network declarations and assertions. Figure~\ref{fig:simple-query} shows an example of a simple query.
 
-Similar to SMT-LIB, the syntax of \vnnlib{} is primarily designed with machine-readability in mind. Although the syntax is somewhat human-readable, maximising human-readability is not a primary goal of the language. Instead it is envisaged that \vnnlib{} queries will be generated automatically by higher level tools that provide better human-orientated interfaces.
-
-The syntax of \vnnlib{} is formally defined by the Labelled Backus-Naur Form~\cite{forsberg2005labelled} (LBNF) grammar found in Appendix~\ref{app:lbnf_grammar}. Although we won't describe each of the production rules in detail, we will now describe the key syntactic constructs of the language via illustrative examples.
-
-Firstly, all \vnnlib{} queries are split into two parts: a list of network declarations and a list of assertions. The former allow users to specify an interface for the networks and bring new abstract variables into scope that represent the input and output values of the network. The latter than reference those variables in order to express the desired constraints that should be satisfied. Currently, the standard does not permit the interleaving of network declarations and assertions. Figure~\ref{fig:simple-query} shows an example of a simple query.
+\begin{figure}[p]
+	\setlength{\grammarindent}{6.5em}
+	
+	\begin{grammar}
+	<query> ::= <version> [<network>]$^+$ [<assert>]$^*$
+	
+	<version> ::= (\texttt{vnnlib-version} [0-9]$^+$.[0-9]$^+$)
+	
+	<name> ::= [A-Za-z][\_A-Za-z0-9]*
+		
+	<network> ::= (\texttt{declare-network} <name> <equiv>$^?$ <input>$^+$ <hidden>* <output>$^+$)
+	
+	<equiv> ::= (\texttt{equal-to} <name>) | (\texttt{isomorphic-to} <name>)
+	
+	<input> ::= (\texttt{declare-input} <name> <elementType> <shape>)
+	
+	<hidden> ::= (\texttt{declare-hidden} <name> <elementType> <shape> <name>)
+	
+	<output> ::= (\texttt{declare-output} <name> <elementType> <shape>)
+	
+	<assert> ::= (\texttt{assert} <bool>)
+	
+	<bool> ::= (\texttt{and} <bool> <bool>$^+$)
+	\alt (\texttt{or} <bool> <bool>$^+$)
+	\alt (\texttt{+} <arith> <arith>)
+	\alt (\texttt{\textless} <arith> <arith>)
+	\alt (\texttt{\textless=} <arith> <arith>)
+	\alt (\texttt{\textgreater} <arith> <arith>)
+	\alt (\texttt{\textgreater=} <arith> <arith>)
+	\alt (\texttt{==} <arith> <arith>)
+	\alt (\texttt{!=} <arith> <arith>)
+	
+	<arith> ::= <element>
+	\alt <name> <indices>
+	\alt (\texttt{-} <arith>)
+	\alt (\texttt{+} <arith> <arith>$^+$)
+	\alt (\texttt{*} <arith> <arith>$^+$)
+	\alt (\texttt{-} <arith> <arith>$^+$)
+	
+	<indices> ::= [i, ..., i] for $i \in \mathbb{N}$
+	\end{grammar}
+	\vspace{-1em}
+    \caption{The syntax of \vnnlib{} queries, parameterised by the syntax of some \networkTheory{} as described in Figure~\ref{fig:onnx-signature}. }
+    \label{fig:vnnlib-syntax}
+\end{figure}
 
 \subsection{Simple network declarations}
 \label{sec:network-declarations}
 
- At its simplest, a network is introduced by the keyword \texttt{declare-network}, followed by a user-defined name for the network, and then declarations for its associated input and output. An input is declared using the \texttt{declare-input} keyword, followed by a variable name, its element type (e.g., \texttt{Real}, \texttt{float64}), 
-and the shape of the tensor. Similarly, an output variable uses the \texttt{declare-output} keyword. In the case of Figure~\ref{fig:simple-query}, the network is named \texttt{myNetwork}, and it has one input called \texttt{X} consisting of a $1 \times 10$ tensor of the ONNX ``float'' type (32-bit floats) and one output called \texttt{Y} consisting of a $1 \times 2$ tensor of floats. 
+A network is introduced by the keyword \texttt{declare-network}, followed by a user-defined name for the network, and then declarations for its associated input and output. 
+An input is declared using the \texttt{declare-input} keyword, followed by a variable name, an element type from the associated \networkTheory{} (e.g., \texttt{float64}, \texttt{int32}), 
+and the shape of the tensor. Similarly, an output variable uses the \texttt{declare-output} keyword. In the case of Figure~\ref{fig:simple-query}, the network is named \texttt{myNetwork}, and it has one input called \texttt{X} consisting of a $1 \times 10$ tensor of ONNX \texttt{float32} values and one output called \texttt{Y} consisting of a $1 \times 2$ tensor of ONNX \texttt{float32} values. 
 \begin{figure}[t]
     \begin{minipage}[c]{0.62\textwidth}
         \begin{lstlisting}[style=lbnf]
@@ -33,23 +85,26 @@ and the shape of the tensor. Similarly, an output variable uses the \texttt{decl
         \centering
         \includegraphics[height=5cm]{imgs/simple_net.onnx.png}
     \end{minipage}
-    \caption{A simple \vnnlib{} specification which declares a network with a single input and output tensor. An example of one of the many possible ONNX models compatible with this declaration is shown on the right. Note that the variable names in the declared inputs and outputs do not have to match the node names in the ONNX file.}
+    \caption{A simple \vnnlib{} specification which declares a network with a single input and output tensor. An example of one of the many possible ONNX models compatible with this declaration is shown on the right. Note that the variable names \texttt{X} and \texttt{Y} for the declared inputs and outputs do not have to match the node names in the ONNX file.}
     \label{fig:simple-query}
 \end{figure}
 
 
-It is important to clarify that a network declaration only declares an \emph{interface} and by default does not refer in any way to a particular ONNX network model. When passing a query and a network to the verifier, the name of the network does not need to match the name of the ONNX model file. Instead, as described in Section~\ref{sec:verify_command}, the user will explicitly associate a network declaration to the relevant model file via the command line.
-Neither do the declared names of the inputs and outputs need to match the names of the input and output nodes within the model file. This flexibility allows many different alternative ONNX models to be compatible with the same query. This also implies that the declared ONNX names of the inputs and outputs is not referenced within the Assertions (discussed in Section 3.1.2) of a query.
+It is important to clarify that a network declaration only declares an \emph{interface} and does not reference any particular ONNX network model. 
+When passing a query and a network model to the verifier, the name of the network does not need to match the name of the ONNX model file. 
+Instead, as described in Section~\ref{sec:verify_command}, the user will explicitly associate a network declaration to the relevant model file via the command line.
+Neither do the declared names of the inputs and outputs need to match the names of the input and output nodes within the ONNX model file. This flexibility allows many different alternative ONNX models to be compatible with the same query.
 
-All variable names follow the same syntax conventions: they are case-sensitive, must start with a letter, and may only contain letters, digits and underscores. All variable names must be unique within the query (see Section~\ref{sec:scoping_and_typing} for a more in-depth discussion). 
+All variable names follow the same syntax conventions: they are case-sensitive, must start with a letter, and may only contain letters, digits and underscores. All variable names must be unique within the query (see Section~\ref{sec:scoping_and_typing} for more detailed scoping rules). 
 
 
 % The \texttt{@} character is a reserved character which is used to denote multiple applications of the same network, for the purpose of defining  hyperproperties such as monotonicity. For example \texttt{(declare-network acasXu@1 ...)} and \texttt{(declare-network acasXu@2 ...)} define two networks that are both instances of the same ONNX model,  denoted as \texttt{acasXu} in the command line interface of the verifier (See Chapter~\ref{sec:solver_interface} for more details).
 
 \subsection{Assertions}
 
-The second part of a \vnnlib{} query is a list of assertions that constrain the abstract tensor variables introduced by the network declarations. \vnnlib{} supports quantifier-free logical formulas as \textit{assertions}. Assertions are defined using parenthesized \texttt{(assert\ldots)} expressions, and following an SMT-LIB-like prefix syntax with the 
-operator preceding its operands. An assertion is a logical formula that may include logical connectives, relational comparisons, and arithmetic expressions over declared tensors and constants.
+The list of assertions constrain the variables introduced by the network declarations. \vnnlib{} assertions are quantifier-free logical formulas and are defined using parenthesized \texttt{(assert\ldots)} expressions. 
+They use an SMT-LIB-like reverse Polish notation syntax with the operator preceding its operands.
+An assertion is a logical formula that may include logical connectives, relational comparisons, and arithmetic expressions over declared tensors and constants.
 The final satisfiability problem is then the conjunction of all the assertions.
  
 \paragraph{Constants}
@@ -87,13 +142,14 @@ One forms boolean expressions by recursively combining comparisons via the follo
 \subsection{More complex network declarations}
 \label{sec:complex-networks-decls}
 
-Although queries usually relate the input of a single network to its output in some way, queries can be far more complex in general. The neural network may have multiple input or output nodes, or the query may refer to intermediate hidden layers of the network or it may relate the behaviour of multiple networks. All of these use cases can be expressed within the query language.
+Although queries often relate the input of a single network to its output in some way, \vnnlib{} supports more complex queries. The neural network may have multiple input or output nodes, or the query may refer to intermediate hidden layers of the network or it may relate the behaviour of multiple networks. The query language supports all of these use cases.
 
 \subsubsection{Multiple input and output declarations}
 
-Neural network that take multi-modal input or produce multi-modal output are becoming increasingly common. For example, the network in Figure~\ref{fig:multi-inputs-outputs} shows a model that takes both an image and meta-data about that image as inputs, and outputs both a bounding box around an identified object of interest and a probability distribution over the possible class that the object belongs to. 
+Neural network that accept multi-modal input or produce multi-modal output are becoming increasingly common. 
+For example, the network in Figure~\ref{fig:multi-inputs-outputs} shows a model that takes both an image and meta-data about that image as inputs, and outputs both a bounding box around an identified object of interest and a probability distribution over the possible class that the object belongs to. 
 
-The query language supports such networks by allowing a network declaration to declare an arbitrary number of inputs and outputs. The question is then how is the list of declared inputs and outputs mapped to the list of inputs and outputs nodes in the ONNX model. There are two ways to specify this mapping: 
+The query language supports such networks by allowing a network declaration to declare an arbitrary number of input and output declarations. The question is then how is the list of declared inputs and outputs mapped to the list of inputs and outputs nodes in the ONNX model. There are two ways to specify this mapping: 
 \begin{itemize}
     \item \textbf{By order:} the default is that declared inputs and outputs are mapped to the ONNX graph's inputs and outputs by matching the order of declaration in the query to the order of declaration in the ONNX model file. This is demonstrated in the top code snippet in Figure~\ref{fig:multi-inputs-outputs}
     \item \textbf{By name:} alternatively, variables can be explicitly mapped using the names of the nodes within the ONNX graph. If this method is used, all input and output variables within that network declaration must be given an explicit ONNX node name. This is demonstrated in the bottom code snippet in Figure~\ref{fig:multi-inputs-outputs}.
@@ -153,7 +209,7 @@ The hidden node declaration crucially refers to the uniquely identified outputs 
 
 Often you may want to relate the behaviour of one neural network to that of another. Classic examples include: teacher-student networks where you try to train a smaller, more efficient network to mimic the output of the larger network, or observer-controller architectures.
 
-\vnnlib{} supports defining multiple networks in by including multiple \inlinevnn{(declare-network ...)} expressions in the same query. Figure~\ref{fig:multiple-networks} 
+\vnnlib{} supports defining multiple networks in by including multiple network declarations in the same query. Figure~\ref{fig:multiple-networks} 
 shows an example which declares two networks representing a teacher and a student network.
 
 \begin{figure}[h!]
@@ -246,25 +302,18 @@ While a verifier may make use of the \texttt{equal-to} and \texttt{isomorphic-to
 Comments in \vnnlib{} are denoted by a semicolon (\texttt{;}) and extend to the end of the line. They are used for annotation, explaining logic, or providing additional context. Whitespace in \vnnlib{} is used to separate tokens and improve readability and can include spaces, tabs, and newlines. Additional whitespace beyond the minimal necessary to separate tokens is ignored.
 
 
-\section{Scoping and Typing}
+\section{Typing}
 \label{sec:scoping_and_typing}
-The scoping and judgments of a \vnnlib{} query is given for network Declarations, arithmetic expressions, boolean Expressions and for a query in \autoref{fig:scoping-network-decls}, \autoref{fig:typing-arithExpr}, and \autoref{fig:typing-boolExpr-query} respectively. \\
-In a \vnnlib{} query, network declarations are used to construct the static context ($\Gamma$) which is then used to type the variables and literals used in the assertions of a query.
+The scoping and typing judgments for the language are given in \autoref{fig:scoping-network-decls}, \autoref{fig:typing-arithExpr} and \autoref{fig:typing-boolExpr-query}. 
+Network declarations are used to construct the static context ($\Gamma$) which is then used to type the globally-scoped variables and literals used in the assertions of a query.
 
-
-\subsection{Scoping}
-A \vnnlib{} query is said to be \textit{well-scoped}, if it satisfies the following criteria.
+A \vnnlib{} query is well-scoped if it satisfies the following criteria:
 \begin{enumerate}
-    \item All variables must declared before they are referenced.
-    \item All variables are \textit{globally scoped}. All variables are scoped to the entire body of the query.
-    \item All variable declarations are \textit{ordered} within network declarations such that inputs before hidden outputs, and hidden outputs before outputs.
-    \item All variables have unique names within the query. No variable name is reused within the same query.
-    \item A congruence statement in a network declaration must point to another network declaration that does not have a congruence statement.
+    \item All variables are declared before they are referenced.
+    \item All variable names are unique.
+    \item An equivalence statement in a network declaration must point to another network declaration that does not have a congruence statement.
 \end{enumerate}
-
-\subsection{Typing}
 A \vnnlib{} query is said to be \textit{well-typed}, if it satisfies the following criteria.
-
 \begin{itemize}
     \item All variables have a valid ONNX element type.
     \item Variables are \textit{strictly-typed}; so all variable references must match the expected element type in the context where it is substituted.
@@ -273,111 +322,58 @@ A \vnnlib{} query is said to be \textit{well-typed}, if it satisfies the followi
 Although some ONNX types can be soundly cast for operations in certain cases, for example, a \textit{float16} can be added safely to a \textit{float32} if the expected type of evaluated expression is a \textit{float32}, the \vnnlib{} standard does not permit such implicit casting.
 If a query is agnostic to the element type of variables, it should be declared with the \textit{Real} type.
 
-
-\begin{figure}
-    \centering
-    \begin{minipage}[t]{1\textwidth}
-        \centering
-            \begin{tabular}{@{}lcl@{}}
-            $\langle$ElementType$\rangle$ & $\ni$ & 
-            \begin{tabular}[t]{@{}l@{}}
-                $\tau ::= \left\{\text{Real,int4, int8, int16, int32, int64,}\right.$ \\
-                $\quad\quad\quad\text{uint4, uint8, uint16, uint32, uint64,}$ \\
-                $\quad\quad\quad\text{float16, float32, float64, bfloat16,} $\\
-                $\quad\quad\quad\text{float8e4m3fn, float8e5m2, float4e2m1,}$\\
-                $\quad\quad\quad\left.\text{float8e4m3fnuz, float8e5m2fnuz}\right\} $\\
-                \end{tabular} \\
-            $\langle$TensorShape$\rangle$ & $\ni$ & $s ::= [j_1, ..., j_n] \quad j \in \mathbb{N}$ \\
-            $\langle$VariableName$\rangle$ & $\ni$ & $v ::= \verb|[A-Za-z][A-Za-z0-9_]*| \quad \text{(regex)}$ \\
-            $\langle$InputDeclaration$\rangle$ & $\ni$ & $I::= (\texttt{declare-input}~v~\tau~s$) \\
-            $\langle$HiddenDeclaration$\rangle$ & $\ni$ & $H ::= (\texttt{declare-hidden}~v~\tau~s$) \\
-            $\langle$OutputDeclaration$\rangle$ & $\ni$ & $O ::= (\texttt{declare-output}~v~\tau~s$) \\
-            $\langle$CongruenceStatements$\rangle$ & $\ni$ & $C ::= (\texttt{isomorphic-to}~v) \;|\ (\texttt{equal-to}~v)$ \\
-            $\langle$NetworkDeclaration$\rangle$ & $\ni$ & $D ::= (\texttt{declare-network}~v~C_?~I^+~H^*~O^+$) \\ \\
-            $\langle$Double$\rangle$ & $\ni$ & $d ::= \verb|-?[0-9]+(.[0-9]*)|$ \\
-            $\langle$TensorIndex$\rangle$ & $\ni$ & $i ::= [j_1,...,j_n]^+ \quad j \in \mathbb{N}$ \\
-            $\langle$ArithExpr$\rangle$ & $\ni$ & 
-                \begin{tabular}[t]{@{}l@{}}
-                $a ::= d$ \\
-                $\quad\;|\; v~j$ \\
-                $\quad\;|\; (\texttt{-}~a$) \\
-                $\quad\;|\; (\texttt{+}~a^*$) \\
-                $\quad\;|\; (\texttt{×}~a^*$) \\
-                $\quad\;|\; (\texttt{-}~a^*$) \\
-                \end{tabular} \\
-            $\langle$BoolExpr$\rangle$ & $\ni$ & 
-                \begin{tabular}[t]{@{}l@{}}
-                $b ::= (\texttt{>=}~a_1~a_2$) \\
-                $\quad\;|\; (\texttt{>}~~a_1~a_2$) \\
-                $\quad\;|\; (\texttt{<=}~a_1~a_2$) \\
-                $\quad\;|\; (\texttt{<}~~a_1~a_2$) \\
-                $\quad\;|\; (\texttt{==}~a_1~a_2$) \\
-                $\quad\;|\; (\texttt{!=}~a_1~a_2$) \\
-                $\quad\;|\; (\texttt{and}~b^*$) \\
-                $\quad\;|\; (\texttt{or}~b^*$)
-                \end{tabular} \\
-            $\langle$Assertion$\rangle$ & $\ni$ & $A ::= (\texttt{assert}~b$) \\ \\
-            $\langle$Version$\rangle$ & $\ni$ & $V ::= \verb|(vnnlib-version <[0-9]+.[0-9]+>)| \quad \text{(regex)}$ \\
-            $\langle$Query$\rangle$ & $\ni$ & $Q ::= V~D^*~A^+$ \\
-            \end{tabular}
-    \caption{\vnnlib{} format syntax}
-    \label{fig:vnnlib-syntax}
-    \end{minipage}
-\end{figure}
-
 \begin{figure}
     \begin{minipage}[t]{\linewidth}
     \resizebox{0.9\linewidth}{!}{
         \begin{mathpar}
-            \inferrule*[Right=InputDeclaration]{
-                \mu = \texttt{input}
+            \inferrule*[Right=Input Declaration]{
             }{
-                \Gamma \vdash (\texttt{declare-input}~v~\tau~s) : \Gamma, v \rightarrow (\tau,s,\mu) 
+                \Gamma \vdash (\texttt{declare-input}~v~\tau~s) : \Gamma[v \rightarrow (\tau,s,\texttt{input})]
             }
             \\
-            \inferrule*[Right=HiddenDeclaration]{
-                \mu = \texttt{hidden}
+            \inferrule*[Right=Hidden Declaration]{
             }{
-                \Gamma \vdash (\texttt{declare-hidden}~v~\tau~s) : \Gamma, v \rightarrow (\tau,s,\mu)
+                \Gamma \vdash (\texttt{declare-hidden}~v~\tau~s) : \Gamma[ v \rightarrow (\tau,s,\texttt{hidden})]
             }
             \\
-            \inferrule*[Right=OutputDeclaration]{
-                \mu = \texttt{output}
+            \inferrule*[Right=Output Declaration]{
             }{
-                \Gamma \vdash (\texttt{declare-output}~v~\tau~s) : \Gamma, v \rightarrow (\tau,s,\mu)
+                \Gamma \vdash (\texttt{declare-output}~v~\tau~s) : \Gamma[ v \rightarrow (\tau,s,\texttt{output})]
             }
             \\ \\
             \hspace*{5em}
             \inferrule*[]{
-                \ensuremath{
-                    \begin{array}{cccc}
-                    \Gamma_0 \vdash I_1 : \Gamma_1 & \Gamma_n \vdash H_1 : \Gamma_{n+1} & \Gamma_{m+n} \vdash O_1 : \Gamma_{m+n+1} &\\
-                    \vdots & \vdots & \vdots & \\
-                    \Gamma_{n-1} \vdash I_n : \Gamma_n & \Gamma_{m+n-1} \vdash H_m : \Gamma_{m+n} & \Gamma_{m+n+o-1} \vdash O_o : \Gamma_{n+m+o} & N_0 \vdash v : N_1
-                    \end{array}
-                }
+                    {\begin{array}{lll}
+                    \Gamma_0 &\vdash I_1 &: \Gamma_1 
+                    \\
+                    &\vdots
+                    \\
+                    \Gamma_{n-1} &\vdash I_n &: \Gamma_n 
+                    \end{array}}
+                    \\
+                    {\begin{array}{lll}
+                    \Gamma_n &\vdash H_1 &: \Gamma_{n+1} 
+					\\                    
+                    &\vdots 
+					\\                    
+                    \Gamma_{m+n-1} &\vdash H_m &: \Gamma_{m+n} 
+                    \end{array}}
+					\\                  
+                    {\begin{array}{lll}
+                    \Gamma_{m+n} &\vdash O_1 &: \Gamma_{m+n+1} 
+                    \\
+					&\vdots
+					\\
+                    \Gamma_{m+n+o-1} &\vdash O_o &: \Gamma_{n+m+o} 
+                    \end{array}}
             }{
                 (\Gamma_0 , N_0) \vdash (\texttt{declare-network}~(I_1~...~I_n)~(H_1~...~H_m)~(O_1~...~O_o)) : (\Gamma_{n+m+o}, N_1)
             }
             \\
             \scalebox{0.9}{\textsf{\textsc{NetworkDeclaration}}}
-            \\ \\
-            \inferrule*[]{
-                \ensuremath{
-                    \begin{array}{cccc}
-                    \Gamma_0 \vdash I_1 : \Gamma_1 & \Gamma_n \vdash H_1 : \Gamma_{n+1} & \Gamma_{m+n} \vdash O_1 : \Gamma_{m+n+1} & \triangle \in \{\texttt{isomorphic-to},\texttt{equal-to}\}\\
-                    \vdots & \vdots & \vdots & v_2 \in N_0\\
-                    \Gamma_{n-1} \vdash I_n : \Gamma_n & \Gamma_{m+n-1} \vdash H_m : \Gamma_{m+n} & \Gamma_{m+n+o-1} \vdash O_o : \Gamma_{n+m+o} & N_0 \vdash v_1 : N_1
-                    \end{array}
-                }
-            }{
-                (\Gamma_0 , N_0) \vdash (\texttt{declare-network}~v_1~(\triangle~v_2)~(I_1~...~I_n)~(H_1~...~H_m)~(O_1~...~O_o)) : (\Gamma_{n+m+o}, N_1)
-            }
-            \\
-            \scalebox{0.9}{\textsf{\textsc{NetworkDeclaration CongruenceStatement}}} \\
             \end{mathpar}
         }
-    \caption{Scope construction judgments for network declarations}
+    \caption{Scoping judgments for network declarations}
     \label{fig:scoping-network-decls}
     \end{minipage}
 \end{figure}
@@ -407,7 +403,7 @@ If a query is agnostic to the element type of variables, it should be declared w
             }
             \\
             \inferrule*[Right=Variable]{
-                \Gamma [v] = (\tau,s,\mu) \quad \text{validIndices}~(i, s)\quad\text{where}~\mu~\in~\{\texttt{input}, \texttt{hidden}, \texttt{output}\}
+                \Gamma [v] = (\tau,s,\mu) \quad \text{validIndices}~(i, s)
             }{
                 \Gamma \vdash v~i : \tau
             }
@@ -463,7 +459,7 @@ If a query is agnostic to the element type of variables, it should be declared w
                     \end{array}
                 }
             }{
-                (V~(D_0~...~D_n)~(A_0,...,A_m))
+                (V~(D_1~...~D_n)~(A_1,...,A_m))
             }
         \end{mathpar}
         }
@@ -507,55 +503,51 @@ The semantic context for a \vnnlib{} query is constructed from the Declarations 
 The semantics of an assertion uses a typing context $\Gamma$, that is constructed iteratively for the network declarations (\autoref{fig:scoping-network-decls}).
 The semantics of arithmetic expressions (\autoref{eq:double} to \autoref{eq:minus}), and boolean comparative expressions (\autoref{eq:greaterEqual} to \autoref{eq:notEqual}) use typed ($\tau$) operators. The mapping of the equivalent ONNX operators \cite{onnxOperators} are given in \autoref{tab:onnx-operators}.\
 
-\begin{table}[h]
-  \centering
-  \begin{threeparttable}
-    \begin{tabular}{|l|l|}
-        \hline
-        \textbf{Semantics Operator} & \textbf{ONNX operator} \\
-        \hline
-        $\geq_\tau$   & GreaterOrEqual  \\
-        $>_\tau$      & Greater  \\
-        $\leq_\tau$   & LessOrEqual  \\
-        $<_\tau$      & Less  \\
-        $=_\tau$      & Equal  \\
-        $\neq_\tau$   & Equal $\circ$ Not \\
-        $-_\tau$      & Neg \\
-        $+_\tau$      & Add \\
-        $\tau.\sum$   & Add* \\
-        $\tau.\prod$  & Mul* \\
-        \hline
-    \end{tabular}
-    \begin{tablenotes}
-        \scriptsize
-        \item $\tau$ for the specific ONNX element type
-        \item $\circ$ the currying of the operators 
-        \item \textbf{*} Both the Add and Mul operators are binary. These are associative operations, so these can be arbitrarily implemented and expressed as n-ary operators, as the list of arguments can be is recursively aggregated.
-    \end{tablenotes}
-    \end{threeparttable}
-    \caption{The equivalent ONNX operators for the semantic operators}
-    \label{tab:onnx-operators}
-\end{table}
-
-\begin{align}
-    \semenv{\Gamma\vdash{d}:\tau} &= d \label{eq:double}\\
-    \semenv{\Gamma\vdash{v~i}:\tau} &= 
-    \begin{cases}
-        \Delta_{A_i}^k\quad\text{if}~g~\equiv (\tau,s,\texttt{input})\\
-        \Delta_{N}^k(\Delta_{A_i}^k)\quad\text{if}~g~\equiv (\tau,s,\texttt{output})\\
-    \end{cases} \\
-    &\text{where}~g = \Gamma[v]~\text{and}~k = \text{indexOf}~(g)\notag\\
-    \semenv{\Gamma\vdash(\text{\texttt{-}}~a_1):\tau} &= -_\tau~\semenv{\Gamma\vdash{a_1}~:~\tau} \label{eq:negation}\\
-    \semenv{\Gamma\vdash(\text{\texttt{+}}~a_1~...~a_n):\tau} &= \tau.\sum^{n}_{i=1}\semenv{\Gamma\vdash{a_i}:\tau} \\
-    \semenv{\Gamma\vdash(\text{\texttt{×}}~a_1~...~a_n):\tau} &= \tau.\prod^{n}_{i=1}\semenv{\Gamma\vdash{a_i}:\tau} \\
-    \semenv{\Gamma\vdash(\text{\texttt{-}}~a_1~...~a_n):\tau} &= \semenv{\Gamma\vdash{a_1}:\tau}~+_\tau~(-_\tau~\tau.\sum^{n}_{i=2}\semenv{\Gamma\vdash{a_i}:\tau}) \label{eq:minus}\\
-    \semenv{\Gamma\vdash(\text{\texttt{>=}}~a_1~a_2)} &= \semenv{\Gamma\vdash{a_1}}~\geq_\tau~\semenv{\Gamma\vdash{a_2}} \label{eq:greaterEqual}\\
-    \semenv{\Gamma\vdash(\text{\texttt{> }}~a_1~a_2)} &= \semenv{\Gamma\vdash{a_1}}~>_\tau~\semenv{\Gamma\vdash{a_2}} \\
-    \semenv{\Gamma\vdash(\text{\texttt{<=}}~a_1~a_2)} &= \semenv{\Gamma\vdash{a_1}}~\leq_\tau~\semenv{\Gamma\vdash{a_2}} \\
-    \semenv{\Gamma\vdash(\text{\texttt{< }}~a_1~a_2)} &= \semenv{\Gamma\vdash{a_1}}~<_\tau~\semenv{\Gamma\vdash{a_2}} \\
-    \semenv{\Gamma\vdash(\text{\texttt{==}}~a_1~a_2)} &= \semenv{\Gamma\vdash{a_1}}~=_\tau~\semenv{\Gamma\vdash{a_2}} \\
-    \semenv{\Gamma\vdash(\text{\texttt{!=}}~a_1~a_2)} &= \semenv{\Gamma\vdash{a_1}}~\neq_\tau~\semenv{\Gamma\vdash{a_2}} \label{eq:notEqual}\\
+\begin{equation*}
+\begin{array}{llll}
+    \semenv{\Gamma\vdash{d}:\tau} 
+    &= d 
+    \\
+    \semenv{\Gamma\vdash{v~i}:\tau} 
+    &= \begin{cases}
+        \Delta_{A_i}^k & \text{if}~\Gamma[v]~= (\tau,s,\texttt{input})\\
+        \Delta_{N}^k(\Delta_{A_i}^k) & \text{if}~\Gamma[v]~= (\tau,s,\texttt{output})\\
+    \end{cases} 
+    \\
+    &\text{where}~k = \text{indexOf}~(g)\notag
+    \\
+    \semenv{\Gamma\vdash(\text{\texttt{-}}~a_1):\tau}
+    &= -_\tau~\semenv{\Gamma\vdash{a_1}~:~\tau} 
+    \\
+    \semenv{\Gamma\vdash(\text{\texttt{+}}~a_1~...~a_n):\tau} 
+    &= \sum^{\tau, n}_{i=1}\semenv{\Gamma\vdash{a_i}:\tau} 
+    \\
+    \semenv{\Gamma\vdash(\text{\texttt{*}}~a_1~...~a_n):\tau} 
+    &= \prod^{\tau, n}_{i=1}\semenv{\Gamma\vdash{a_i}:\tau} 
+    \\
+    \semenv{\Gamma\vdash(\text{\texttt{-}}~a_1~...~a_n):\tau} 
+    &= \semenv{\Gamma\vdash{a_1}:\tau}~+_\tau~(-_\tau~\tau.\sum^{n}_{i=2}\semenv{\Gamma\vdash{a_i}:\tau}) 
+    \\
+    \semenv{\Gamma\vdash(\text{\texttt{>=}}~a_1~a_2)} 
+    &= \semenv{\Gamma\vdash{a_1}}~\geq_\tau~\semenv{\Gamma\vdash{a_2}}
+    \\
+    \semenv{\Gamma\vdash(\text{\texttt{> }}~a_1~a_2)} 
+    &= \semenv{\Gamma\vdash{a_1}}~>_\tau~\semenv{\Gamma\vdash{a_2}} 
+    \\
+    \semenv{\Gamma\vdash(\text{\texttt{<=}}~a_1~a_2)} 
+    &= \semenv{\Gamma\vdash{a_1}}~\leq_\tau~\semenv{\Gamma\vdash{a_2}} 
+    \\
+    \semenv{\Gamma\vdash(\text{\texttt{< }}~a_1~a_2)} 
+    &= \semenv{\Gamma\vdash{a_1}}~<_\tau~\semenv{\Gamma\vdash{a_2}} 
+    \\
+    \semenv{\Gamma\vdash(\text{\texttt{==}}~a_1~a_2)} 
+    &= \semenv{\Gamma\vdash{a_1}}~=_\tau~\semenv{\Gamma\vdash{a_2}} 
+    \\
+    \semenv{\Gamma\vdash(\text{\texttt{!=}}~a_1~a_2)} 
+    &= \semenv{\Gamma\vdash{a_1}}~\neq_\tau~\semenv{\Gamma\vdash{a_2}}
+    \\
     \semenv{\text{\texttt{and}}~b_1~...~b_n} &=\bigwedge^{n}_{i=1}\semenv{b_i}\\
     \semenv{\text{\texttt{or}}~b_1~...~b_n} &=\bigvee^{n}_{i=1}\semenv{b_i}\\
     \semenv{\text{\texttt{assert}}~b} &= \semenv{b}
-\end{align}
+\end{array}
+\end{equation*}
