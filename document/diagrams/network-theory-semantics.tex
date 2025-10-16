@@ -1,0 +1,58 @@
+
+	% This minipage exists to force left-alignment
+	\begin{minipage}[t]{0.5\textwidth}
+	\setlength{\arraycolsep}{2pt}
+	\begin{equation*}
+	\begin{array}{llll}
+	\semElementTypeAbs
+	&: \mgrammar{<elementType>}
+	&\rightarrow \set
+	&= \missing 
+	\\
+	\semTensorAbs
+	&: (\mgrammar{<tensor>} : \tensorTypeVar )
+	& \rightarrow \semTensorType{\tensorTypeVar}
+	&= \missing 
+	\\
+	\semModelAbs
+	&: (\mgrammar{<network>} : \modelTypeVar) 
+	& \rightarrow \semModelType{\modelTypeVar}
+	&= \missing
+	\end{array}
+	\end{equation*}
+	\begin{equation*}
+	\begin{array}{llll}
+	\compSem{\leq}
+	\\
+	\compSem{<}
+	\\
+	\compSem{\geq}
+	\\
+	\compSem{>}
+	\\
+	\compSem{=}
+	\\
+	\compSem{\neq}
+	\\
+	\opOneSem{-}
+	\\
+	\opTwoSem{+}
+	\\
+	\opTwoSem{\times}
+	\end{array}
+	\end{equation*}
+	\begin{equation*}
+	\begin{array}{llll}
+	\semTensorType 
+	&: ((\elementTypeVar, s))
+	& \rightarrow \set
+	&= \semElementType{\elementTypeVar}^{\prod_i s_i}
+	\\
+	\semModelType 
+	&: ((\tensorTypeVar^I, \tensorTypeVar^O))
+	& \rightarrow \set 
+	&= \prod_{i} \semTensorType{\tensorTypeVar^I_i}  \rightarrow
+	\prod_{i} \semTensorType{\tensorTypeVar^O_i}
+	\end{array}
+	\end{equation*}
+\end{minipage}

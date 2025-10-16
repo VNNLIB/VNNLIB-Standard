@@ -13,3 +13,6 @@ document/**/main.pdf
 document/**/*.synctex.gz
 document/**/*.blg
 document/**/*.toc
+document/**/*.bbl
+document/**/*.fdb_latexmk
+document/**/*.fls

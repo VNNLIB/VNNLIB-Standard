@@ -4,17 +4,18 @@
 \section{Motivation}
 
 While neural networks have shown exceptional performance across a range of tasks, 
-they remain vulnerable to issues such as adversarial examples~\cite{szegedy2013intriguing} and discriminatory behaviour~\cite{4}. As these models are increasingly deployed in safety-critical and high-impact societal applications~\cite{1,2,3}, the need for robust methods to verify their behaviour has become paramount.
+they remain vulnerable to issues such as adversarial examples~\cite{szegedy2013intriguing} and discriminatory behaviour~\cite{buolamwini2018gender}. As these models are increasingly deployed in safety-critical and high-impact societal applications, the need for robust methods to verify their behaviour has become paramount.
 
-As with many formal verification problems, neural network verification can typically be reduced to sets of satisfiability queries. These queries are answerable by domain specific solvers which will be referred to as \emph{neural network verifiers} or simply \emph{solvers} in this document. The \vnnlib{} standard was inspired by the success of SMT-LIB, which provides a unified format for queries to SMT solvers. 
-Since its introduction in 2023, the \vnnlib{} standard~\cite{5} has been the de-facto specification language for queries in the neural network verification community, most notably used in the annual VNN-COMP~\cite{7} competition. Its goal is to facilitate the standardisation of solver interfaces and enable the collection of neural network verification benchmarks in a common format. 
+As with many formal verification problems, neural network verification can typically be reduced to sets of satisfiability queries. These queries are answerable by domain specific solvers which will be referred to as \emph{neural network solvers} or simply \emph{solvers} in this document. The \vnnlib{} standard was inspired by the success of SMT-LIB, which provides a unified format for queries to SMT solvers. 
+Since its original introduction in 2023~\cite{demarchi2023supporting}, the \vnnlib{} standard has been the de-facto specification language for queries in the neural network verification community, most notably used in the annual VNN-COMP~\cite{brix2023first, bak2021second, muller2022third, brix2023fourth, brix2024fifth} competition. 
+Its goal is to facilitate the standardisation of solver interfaces and enable the collection of neural network verification benchmarks in a common format. 
 
 \section{Document structure}
 
 This document assumes some basic familiarity with neural networks, first-order logic and simple type theory. The document is orgnaised as follows:
 \begin{enumerate}
-\item \textbf{Chapter~\ref{sec:models} - \nameref{sec:models}}: A high-level description of the pre-existing ONNX standard for representing the neural network models.
-\item \textbf{Chapter~\ref{sec:specification_language} - \nameref{sec:specification_language}}: The \vnnlib{} language for representing a satisfiability query over one or more neural network models.
+\item \textbf{Chapter~\ref{sec:models} - \nameref{sec:models}}: A high-level description of the pre-existing ONNX standard for representing the neural network models, and the definition of an abstract interface to ONNX against which the rest of the document is defined.
+\item \textbf{Chapter~\ref{sec:specification_language} - \nameref{sec:specification_language}}: The \vnnlib{} language for representing a satisfiability query over one or more neural network models. This includes a description of both its syntax and its formal semantics.
 \item \textbf{Chapter~\ref{sec:theories-logics} - \nameref{sec:theories-logics}}: A system for describing the different subsets of the query language that a given solver may support.
 \item \textbf{Chapter~\ref{sec:solver_interface} - \nameref{sec:solver_interface}}: A standardised interface for allowing users to invoke and query the capabilities of a solver.
 \end{enumerate}
@@ -25,10 +26,10 @@ New versions of the document are identified by semantic versioning. In general p
 
 \subsection*{Changelog for v2.0}
 
-\paragraph{Authors:} Allen Antony, Ann Roy, Matthew Daggitt with regular input from Stefano Demarchi, Andrea Gimelli.
+\paragraph{Authors:} Allen Antony, Ann Roy, Matthew Daggitt with input from Stefano Demarchi, Andrea Gimelli.
 
-\noindent \paragraph{Acknowledgements:} This version of the standard was developed with the help of many others in the neural network verification community.
-Particular thanks must given to the following people, who provided many helpful suggestions, constructive criticism and encouragement: Taylor Johnson, Samuel Teuber, Wen Kokke, Julien Girard, Guilhem Ardouin, Augustin Lemesle, Michele Alberti, Julien Lehmann, Thomas Flinkow, Edoardo Manino, Omri Isac, Guy Katz, Idan Refaeli, David Shriver and Christopher Brix.
+\noindent \paragraph{Acknowledgements:} Version 2.0 of the standard was developed with the help of many others in the neural network verification community.
+Particular thanks must given to the following people, who provided many helpful suggestions, constructive criticism and encouragement: Taylor Johnson, Samuel Teuber, Wen Kokke, Julien Girard, Guilhem Ardouin, Augustin Lemesle, Michele Alberti, Julien Lehmann, Thomas Flinkow, Edoardo Manino, Guy Amir, Omri Isac, Guy Katz, Idan Refaeli, David Shriver and Christopher Brix.
 
 \noindent \paragraph{Changes from previous version:}
 \begin{itemize}

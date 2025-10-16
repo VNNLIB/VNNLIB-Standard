@@ -46,7 +46,7 @@ Throughout the following sections, \texttt{<...>} is used to indicate required v
 Invoking the solver will produce output in the format described in the rest of this section. Unless stated otherwise all output should be printed on \texttt{stdout}. Detailed logs, warnings, or error messages must be printed on \texttt{stderr}.
 At the moment, the \vnnlib{} standard contains two commands: \emph{verify} and \emph{capabilities}. Compliant solvers can provide additional other non-standard functionality under different commands. 
 
-\section{Global options}
+\section{Global Options}
 
 \vnnlib{} compliant solvers should implement the following global options:
 
@@ -68,7 +68,7 @@ CheckNeuralNetworks!
 \end{lstlisting}
 
 
-\section{The \texttt{verify} command}
+\section{The \texttt{verify} Command}
 \label{sec:verify_command}
 
 When invoked with the \texttt{verify} command  the solver should attempt to determine whether a satisfiable assignment of variables exist for the provided \vnnlib{} query and neural network models.
@@ -211,7 +211,19 @@ my/output/
   Z.pb
 \end{lstlisting}
 
-\section{The \texttt{supports} command}
+\subsection{Error conditions for the \texttt{verify} command}
+
+The \texttt{verify} command \textit{must} error in the following circumstances:
+\begin{enumerate}
+\item Either insufficient or unnecessary ONNX model files are provided relative to the network declarations in the \vnnlib{} query.
+\item The element types in the provided ONNX model files do not match the declared types in the \vnnlib{} query. The exception to this is if the query uses the \inlinevnn{real} type (see Section~\ref{sec:real-queries} for details).
+\item The solver is incapable of providing sound analysis over the declared types in \vnnlib{} query. If it is capable of unsound analysis, the user must explicitly provide consent for this by re-writing the query to use the \inlinevnn{real} type (see Section~\ref{sec:real-queries} for details).
+\end{enumerate}
+When \textit{any} error is thrown, including the above, the error message must be printed on \texttt{stderr}.
+
+In order to allow support for queries that are unable to be described by the current \vnnlib{} specification, when a verifier encounters other potential error scenarios (e.g. non-standard \vnnlib{} syntax, non-standard ONNX files), it, at its discretion, choose to error or not error as appropriate.
+
+\section{The \texttt{supports} Command}
 \label{sec:global_capabilities}
 
 When invoked with the \texttt{supports} command, the solver should report the types of queries and networks it is capable of verifying.
@@ -223,7 +235,8 @@ The general pattern of usage is as follows:
 \end{lstlisting}
 The solver must be able to respond to all of the following capabilities, although of course it may be able to report other capabilities as well.
 
-\subsection{ONNX capabilities}
+\subsection{ONNX Capabilities}
+\label{sec:onnx-capabilities}
 
 \clOutputOption
 {--onnx-opset-versions}
@@ -264,7 +277,7 @@ Add float64 float32 int64 int32
 Flatten
 \end{lstlisting}
 
-\subsection{\vnnlib{} query capabilities}
+\subsection{\vnnlib{} Query Capabilities}
 
 \clOutputOption
 {--vnnlib-versions}
@@ -333,7 +346,7 @@ LIN
 true
 \end{lstlisting}
 
-\subsection{Other capabilities}
+\subsection{Other Capabilities}
 \label{sec:other-capabilities}
 
 \clOutputOption

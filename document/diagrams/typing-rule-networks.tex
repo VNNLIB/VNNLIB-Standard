@@ -1,0 +1,21 @@
+\begin{mathpar}
+    \hspace{-5em}
+    \inferrule*[Right=Network-Nil]
+    {
+    }
+    {
+        \assertCtx \vdash \nilList : \assertCtx
+    }
+    \hspace{8em}
+    \inferrule*[Right=Network-Cons]
+    {
+        \assertCtx_1 \vdash \networkDeclVar : \assertCtx_2
+        \\
+        \assertCtx_2 \vdash \networkDeclSet : \assertCtx_3
+    }
+    {
+        \assertCtx_1 
+        \vdash \consList{\networkDeclVar}{\networkDeclSet} : 
+        \assertCtx_3
+    }
+\end{mathpar}
