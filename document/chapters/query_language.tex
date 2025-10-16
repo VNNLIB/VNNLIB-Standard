@@ -89,9 +89,9 @@ One forms boolean expressions by recursively combining comparisons via the follo
 
 Although queries usually relate the input of a single network to its output in some way, queries can be far more complex in general. The neural network may have multiple input or output nodes, or the query may refer to intermediate hidden layers of the network or it may relate the behaviour of multiple networks. All of these use cases can be expressed within the query language.
 
-\paragraph{Multiple input and output declarations}
+\subsubsection{Multiple input and output declarations}
 
-Neural network that take multi-modal input or produce multi-modal output are becoming increasingly common. For example, the network in Figure~\ref{fig:multi-inputs-outputs} shows a model that takes both an image and meta-data about that image as inputs, and outputs both a bounding box around an identified object of interest and a probability distribution over the possible classs that the object belongs to. 
+Neural network that take multi-modal input or produce multi-modal output are becoming increasingly common. For example, the network in Figure~\ref{fig:multi-inputs-outputs} shows a model that takes both an image and meta-data about that image as inputs, and outputs both a bounding box around an identified object of interest and a probability distribution over the possible class that the object belongs to. 
 
 The query language supports such networks by allowing a network declaration to declare an arbitrary number of inputs and outputs. The question is then how is the list of declared inputs and outputs mapped to the list of inputs and outputs nodes in the ONNX model. There are two ways to specify this mapping: 
 \begin{itemize}
@@ -119,17 +119,15 @@ The query language supports such networks by allowing a network declaration to d
 
     \vspace{0.5cm}
     \includegraphics[width=\textwidth]{imgs/multi_io_net.onnx.png}
-    \caption{A network with multiple inputs/outputs. The first code snippet shows the declared inputs and outputs mapped to the ONNX inputs and outputs nodes by declaration order, while the second snippet shows them explicitly mapped by the name of the ONNX node.}
+    \caption{A \vnnlib{} network declaration with multiple inputs/outputs. The first code snippet shows the declared inputs and outputs mapped to the ONNX inputs and outputs nodes by declaration order, while the second snippet shows them explicitly mapped by the name of the ONNX node.}
     \label{fig:multi-inputs-outputs}
 \end{figure}
 
 
-\paragraph{Hidden output declarations}
+\subsubsection{Hidden output declarations}
 \label{sec:hidden-output-declarations}
 
 In some use cases it is desirable to constrain the result of intermediate computation at the output of hidden nodes within the network. For example, when reasoning about the encodings in an encoder-decoder architecture or when reasoning about attention mechanisms. This can be achieved by declaring hidden nodes using the \texttt{declare-hidden} keyword. This declaration includes a variable name for use within the \vnnlib{} specification,  its element type, its tensor shape, and crucially, a string identifier that specifies the corresponding node name in the ONNX graph.  Multiple hidden nodes can be trivially declared within a single network declaration. Figure~\ref{fig:hidden-node} shows a \vnnlib{} network declaration with a hidden node.
-
-The hidden node declaration crucially refers to the uniquely identified outputs of a node, rather than the node (or operator) itself. It declares that an output of the node is to be used as a variable in the \vnnlib{} query.
 
 \begin{figure}[h!]
     \begin{minipage}[c]{0.76\textwidth}
@@ -144,11 +142,14 @@ The hidden node declaration crucially refers to the uniquely identified outputs 
         \centering
         \includegraphics[height=6cm]{imgs/encoder_net.onnx.png}
     \end{minipage}
-    \caption{\vnnlib{} network declaration that declares a hidden node}
+    \caption{A \vnnlib{} network declaration that declares a hidden node}
     \label{fig:hidden-node}
 \end{figure}
 
-\paragraph{Multiple networks}
+The hidden node declaration crucially refers to the uniquely identified outputs of a node, rather than the node (or operator) itself. It declares that an output of the node is to be used as a variable in the \vnnlib{} query.
+
+\subsubsection{Multiple networks}
+\label{sec:multiple-network}
 
 Often you may want to relate the behaviour of one neural network to that of another. Classic examples include: teacher-student networks where you try to train a smaller, more efficient network to mimic the output of the larger network, or observer-controller architectures.
 
@@ -159,13 +160,13 @@ shows an example which declares two networks representing a teacher and a studen
     \begin{minipage}[c]{0.64\textwidth}
         \begin{lstlisting}[style=lbnf]
 (declare-network teacher
-    (declare-input  tX float32 [1,32])
-    (declare-output tY float32 [1,2])
+    (declare-input  TX float32 [1,32])
+    (declare-output TY float32 [1,2])
 )
 
 (declare-network student
-    (declare-input  sX float16 [1,32])
-    (declare-output sY float16 [1,2])
+    (declare-input  SX float16 [1,32])
+    (declare-output SY float16 [1,2])
 )\end{lstlisting}
     \end{minipage}
     \begin{minipage}[c]{0.35\textwidth}
@@ -174,14 +175,75 @@ shows an example which declares two networks representing a teacher and a studen
         \vspace{0.5cm} 
         \includegraphics[height=5cm]{imgs/student_net.onnx.png}
     \end{minipage}
-    \caption{Two networks declared in \vnnlib{}: \texttt{teacher\_net} and \texttt{student\_net} respectively.}
+    \caption{A pair of \vnnlib{} network declarations that allows the referencing of multiple networks within a single query.}
     \label{fig:multiple-networks}
 \end{figure}
+
+For some use cases involving multiple networks (e.g. proving monotonicity), each \texttt{declare-network} declaration is intended to map to the same network implementation. In this case, the \texttt{equal-to} declaration may be used as shown in Figure~\ref{fig:multiple-equal-networks} to inform the verifier of this fact. An \texttt{equal-to} declaration must reference a network declaration which has identical \texttt{declare-input} and \texttt{declare-output} declarations (modulo the variable names). It \emph{is} possible to have a different list of \texttt{declare-hidden} declarations in the two networks. However if a \texttt{declare-hidden} declaration that references the same ONNX node is present in both networks then those \texttt{declare-hidden} declarations must be identical modulo the variable names. 
+ Finally, marking a \texttt{declare-network} declaration as equal to one another means that it is not necessary to provide an implementation for that declaration when calling the verifier (see Section~\ref{sec:verify_command} for details).
+ 
+\begin{figure}[h!]
+    \begin{minipage}[c]{0.64\textwidth}
+        \begin{lstlisting}[style=lbnf]
+(declare-network f
+    (declare-input  A float32 [1,10])
+    (declare-output B float32 [1,2])
+)
+
+(declare-network f-copy
+    (equal-to f)
+    (declare-input  C float32 [1,10])
+    (declare-output D float32 [1,2])
+)\end{lstlisting}
+    \end{minipage}
+    \begin{minipage}[c]{0.35\textwidth}
+        \centering
+        \includegraphics[height=5cm]{imgs/simple_net.onnx.png}
+    \end{minipage}
+    \caption{A pair of \vnnlib{} network declarations that reference the same ONNX network.}
+    \label{fig:multiple-equal-networks}
+\end{figure}
+
+In other use cases involving multiple networks (e.g. proving local equivalence after retraining or after quantisation), each network declaration will be mapped to a network with the same graph structure but with different weights. In this case, the \texttt{isomorphic-to} declaration may be used as shown in Figure~\ref{fig:multiple-isomorphic-networks}. An \texttt{isomorphic-to} declaration must reference a network declaration which has identical list of \texttt{declare-input} and \texttt{declare-output} declarations, modulo the variable names and the element type. As with the \texttt{equal-to} declaration, it \emph{is} possible to have a different list of \texttt{declare-hidden} declarations in the two \texttt{declare-network} declarations. However if a \texttt{declare-hidden} declaration that references the same ONNX node is present in both then those \texttt{declare-hidden} declarations must be identical modulo the variable names and element types.
+
+\begin{figure}[h!]
+    \begin{minipage}[c]{0.64\textwidth}
+        \begin{lstlisting}[style=lbnf]
+(declare-network f
+    (declare-input  A float32 [1,10])
+    (declare-output B float32 [1,2])
+)
+
+(declare-network g
+    (isomorphic-to f)
+    (declare-input  C float32 [1,10])
+    (declare-output D float32 [1,2])
+)\end{lstlisting}
+    \end{minipage}
+    \begin{minipage}[c]{0.35\textwidth}
+        \centering
+        \includegraphics[height=5cm]{imgs/simple_net.onnx.png}
+        \vspace{0.5cm} 
+        \includegraphics[height=5cm]{imgs/simple_net.onnx.png}
+    \end{minipage}
+    \caption{A pair of \vnnlib{} network declarations that reference isomorphic ONNX networks.}
+    \label{fig:multiple-isomorphic-networks}
+\end{figure}
+
+There are two additional restrictions to their use:
+\begin{enumerate}
+\item A \texttt{declare-network} declaration must contain at most one \texttt{equal-to} or \texttt{isomorphic-to} declaration.
+\item An \texttt{equal-to} or \texttt{isomorphic-to} declaration cannot reference another network declaration that also contains an \texttt{equal-to} or \texttt{isomorphic-to}. 
+\end{enumerate}
+Due to the transitivity of equality and isomorphism, these restrictions do not reduce the expressive power of this feature, and make the dependencies easier to track by the verifiers.
+
+While a verifier may make use of the \texttt{equal-to} and \texttt{isomorphic-to} declarations internally to optimise its representation and reasoning about the provided networks, it is not required to.
+
 
 
 \subsection{Comments and whitespace}
 
-Comments in \vnnlib{} are denoted by a semicolon (\texttt{;}) and extend to the end of the line. They are used for annotation, explaining logic, or providing additional context. Whitespace in \vnnlib{} is used to separate tokens and improve readability. It can include spaces, tabs, and newlines. Whitespace is ignored by the parser, except where it is necessary to separate tokens.
+Comments in \vnnlib{} are denoted by a semicolon (\texttt{;}) and extend to the end of the line. They are used for annotation, explaining logic, or providing additional context. Whitespace in \vnnlib{} is used to separate tokens and improve readability and can include spaces, tabs, and newlines. Additional whitespace beyond the minimal necessary to separate tokens is ignored.
 
 
 \section{Scoping and Typing}

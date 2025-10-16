@@ -37,7 +37,7 @@ The query language described in Chapter~\ref{sec:specification_language} is is r
 Each \emph{theory} represents a particular syntactic restriction on the query language, and a \emph{theory set} represents a set of related restrictions that are partially ordered under the inclusion relation. A \emph{logic} represents a subset of the query language and is constructed by selecting exactly one theory from the list of orthogonal theory sets. 
 By reporting the theories supported, a verifier can precisely describe the subset of the query language it supports. The formal reporting mechanism is introduced in Chapter~\ref{sec:global_capabilities}.
 
-\section{Theory sets}
+\section{Theories}
 
 The currently supported theory sets are:
 \begin{enumerate}
@@ -84,43 +84,6 @@ but the following query is only a member of \h{}:
 )
 \end{code}
 
-\subsection{Multiple networks}
-\label{sec:multiple-networks}
-
-\begin{figure}[h]
-\centering
-\begin{tikzpicture}
-   \node (mnet) [theory] {\mnet{} \\ (Multiple networks)};
-   \node (snet) [theory, left=of mnet]  {\snet{} \\ (Single network)};
-
-   \draw [arrow] (snet) -- (mnet);
-\end{tikzpicture}
-\caption{The ``Multiple networks'' theory set}
-\label{fig:multiple-networks-theory-set}
-\end{figure}
-
-Many neural network verifiers only support reasoning about a single network. The ``Multiple networks'' theory set therefore contains two theories \snet{} and \mnet{}, representing queries that contain a single network and queries that an arbitrary number of network declarations. Therefore \snet{} is a subset of \mnet{}. For example the following query is a member of both \snet{} and \mnet{}:
-
-\begin{code}[style=lbnf]
-(declare-network f
-    (declare-input  X float32 [1])
-    (declare-output Y float32 [1])
-)
-\end{code}
-
-but the following query is only a member of \mnet{}:
-
-\begin{code}[style=lbnf]
-(declare-network f
-    (declare-input  X float32 [1])
-    (declare-output Y float32 [1])
-)
-(declare-network g
-    (declare-input  U float32 [1])
-    (declare-output W float32 [1])
-)
-\end{code}
-
 \subsection{Multiple inputs/output}
 \label{sec:multiple-inputs-outputs}
 
@@ -128,7 +91,7 @@ but the following query is only a member of \mnet{}:
 \centering
 \begin{tikzpicture}
    \node (mio) [theory] {\mio{} \\ (Multiple inputs and outputs)};
-   \node (sio) [theory, left=of mnet, xshift=-1.2cm]  {\sio{} \\ (Single input and output)};
+   \node (sio) [theory, left=of mio]  {\sio{} \\ (Single input and output)};
 
    \draw [arrow] (sio) -- (mio);
 \end{tikzpicture}
@@ -154,6 +117,51 @@ but the following query is only a member of \mio{}:
     (declare-output Y  float32 [1])
 )
 \end{code}
+
+\subsection{Multiple networks}
+\label{sec:multiple-networks}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+   \node (snet) [theory]  {\snet{} \\ (Single network)};
+   \node (mnet) [theory, right=of snet, xshift=5em] {\mnet{} \\ (Multiple networks)};
+   \node (minet) [theory, below=of mnet] {\minet{} \\ (Multiple  isomorphic networks)};
+   \node (menet) [theory, left=of minet, below=of snet] {\menet{} \\ (Multiple equal networks)};
+
+   \draw [arrow] (snet) -- (mnet);
+   \draw [arrow] (minet) -- (mnet);
+   \draw [arrow] (menet) -- (minet);
+\end{tikzpicture}
+\caption{The ``Multiple networks'' theory set}
+\label{fig:multiple-networks-theory-set}
+\end{figure}
+
+Some neural network verifiers only support reasoning about a single network or are specialised to reason about equal or isomorphic networks. The ``Multiple networks'' theory set therefore contains four theories \snet{}, \menet{}, \minet{} and \mnet{}. \snet{} contains queries that have a single network declaration while \mnet{} contains queries that have an arbitrary number of network declarations. For example the following query is a member of \snet{}:
+
+\begin{code}[style=lbnf]
+(declare-network f
+    (declare-input  X float32 [1])
+    (declare-output Y float32 [1])
+)
+\end{code}
+
+and the following query is only a member of \mnet{}:
+
+\begin{code}[style=lbnf]
+(declare-network f
+    (declare-input  X float32 [1])
+    (declare-output Y float32 [1])
+)
+(declare-network g
+    (declare-input  U float32 [1])
+    (declare-output W float32 [1])
+)
+\end{code}
+
+The theory \menet{} contains queries that have multiple network declarations where all but one contain an \texttt{equal-to} declaration.
+\minet{} contains queries that have multiple network declarations where all but one contains either an \texttt{equal-to} or \texttt{isomorphic-to} declaration.
+
 
 \subsection{Multiple node comparisons}
 \label{sec:multi-node-comparisons}

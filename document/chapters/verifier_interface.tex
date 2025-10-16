@@ -82,7 +82,7 @@ The general pattern of usage is as follows:
 \end{lstlisting}
 The first argument should be the path to the \vnnlib{} query file (see Section~\ref{sec:specification_language}), and the verifier should support the following additional options:
 
-\clOption{--network}{This option maps the name of one of the networks declared in the provided \vnnlib{} query file to its implementation as an ONNX model file. When a query refers to multiple networks, this option should be used more than once.}{--network classifier=/a/path/to/a/model.onnx}
+\clOption{--network}{This option maps the name of one of the networks declared in the provided \vnnlib{} query file to its implementation as an ONNX model file. When the query file contains multiple \texttt{declare-network} declarations this option should be used multiple times -- once for each network declaration not marked with an \texttt{equal-to} declaration (see Section~\ref{sec:multiple-networks}).}{--network classifier=/a/path/to/a/model.onnx}
 
 \clOption{--timeout}{Maximum time to spend on processing on the query in an integer number of seconds.}{--timeout 10}
 
@@ -183,7 +183,7 @@ float32
 float16
 real
 \end{lstlisting}
-\textbf{Note}: as discussed in Section~\ref{sec:element-types}, in order for a solver to report that it supports an ONNX element type, then there must be a strong reason to believe that its analysis is sound with respect to that element type. If unsound, or the soundness is unknown then the solver should only report that it supports the `real' type.
+\textbf{Note}: as discussed in Section~\ref{sec:element-types}, in order for a solver to report that it supports an ONNX element type, then there must be a strong reason to believe that its analysis is sound with respect to that element type. If unsound, or the soundness is unknown then the solver should only report that it supports the \texttt{real} type.
 
 \clOutputOption
 {--onnx-operators}
