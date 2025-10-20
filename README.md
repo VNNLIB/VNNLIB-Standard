@@ -1,61 +1,26 @@
 # VNNLIB-Standard 
 
-⚠️ Work-in-Progress: This repository contains an early-stage proposal for VNNLIB-2.0
+⚠️ Work-in-Progress: This repository contains a draft proposal for the unreleased VNNLIB-2.0 standard.
 
-VNNLIB-2.0 defines a more expressive, rigorous, and ergonomic standard for the verification of neural networks, building on the VNNLIB specification format. The motivation is to 
-rigorously define a standard query language and CLI for verifiers, aiming for greater interoperability of the verification space. This repository contains:
-- A formal grammar written in LBNF (Labelled Backus-Naur Form), used by BNFC to generate an Abstract Syntax Tree and parser
-- A standard command-line interface for verifiers, described in the specification document
-- A production-grade C++ parser and typechecker with Python bindings.
-- VNNLIB semantics described in Agda
+The VNNLIB standard provides:
 
-### Quick start
+1. a standard syntax and semantics for satisfiability queries to neural network solvers
+2. a standard command-line-interface for neural network verifiers
 
-Clone and run the set-up script for parser:
+with the aim of greater interoperability and rigour in the formal verification of neural networks.
+See the official [VNNLIB website](https://www.vnnlib.org/) for more details, including tooling for
+interacting with the specification.
 
-```bash
-# C++ core + Python bindings
-./build_parser.sh
-./build_parser.sh test
-```
+### Contents
 
-## Usage of VNNLIB-2.0
-### Minimal .vnnlib example
-```lisp
-(declare-network acc
-  (declare-input  X Real [3])
-  (declare-output Y Real [1])
-)
-(assert (or (<= Y[0] -3.0) (>= Y[0] 0.0)))
-```
-A wider variety of examples can be viewed in the LaTeX document inside of `document/`
+This repository contains:
+- `document/main.tex` - the standard document 
+- `syntax.cf` - a formal grammar for VNNLIB queries written in Labelled Backus-Naur Form.
 
-### Python parsing
-```python
-import json
-import vnnlib
+There are official libraries for parsing VNNLIB queries available in a variety of languages:
+ - [Python](https://github.com/VNNLIB/VNNLIB-Python)
+ - [C++](https://github.com/VNNLIB/VNNLIB-CPP)
+ - [Julia](https://github.com/VNNLIB/VNNLIB.jl)
+ - [Agda](https://github.com/VNNLIB/VNNLIB-Agda)
 
-with open("examples/min.vnnlib", "r") as f:
-    src = f.read()
-
-try:
-    ast = vnnlib.parse_vnnlib_str(src)   # or: vnnlib.parse_vnnlib_file("examples/min.vnnlib")
-    # ..do something with AST
-except vnnlib.VNNLibError as e:
-    # The exception string is JSON with a stable schema
-    print(json.loads(str(e)))
-```
-
-## Additional Information
-
-### Roadmap for future spec
-- Add quantifiers to the query language
-- Add trigonometric functions to query language
-- Extend the standard with a standard format for proofs of UNSAT
-- Extend the query language with (check-sat) and (get-model) to allow incremental solving ala SMTLIB
-- Extend grammar: Including complex number access operations
-
-### Community
-- Issues: use GitHub Issues with a minimal reproducible .vnnlib example
-- Contributing: see [CONTRIBUTING.md](https://github.com/VNNLIB/VNNLIB-Standard/blob/main/CONTRIBUTING.md)
-
+The [Agda](https://github.com/VNNLIB/VNNLIB-Agda) library also contains a mechanised semantics for the query language.
