@@ -50,7 +50,7 @@ The currently supported theory sets are:
 \end{enumerate}
 The following sections examine each of these theory sets in more detail.
 
-\subsection{Hidden nodes}
+\subsection{\hiddenNodes{}}
 \label{sec:hidden-nodes}
 
 \begin{figure}[h]
@@ -61,11 +61,11 @@ The following sections examine each of these theory sets in more detail.
 
    \draw [arrow] (nh) -- (h);
 \end{tikzpicture}
-\caption{The ``Hidden nodes'' theory set}
+\caption{The \hiddenNodes{} theory set}
 \label{fig:hidden-nodes-theory-set}
 \end{figure}
 
-Some neural network verifiers do not support reasoning about hidden nodes. The ``Hidden nodes'' theory set therefore contains two theories \nh{} and \h{}, representing queries that contain networks that do not declare hidden nodes, and queries that contain networks that declare hidden nodes. Therefore \nh{} is a subset of \h{}. For example the following query is a member of both \nh{} and \h{}:
+Some neural network verifiers do not support reasoning about hidden nodes. The \hiddenNodes{} theory set therefore contains two theories \nh{} and \h{}, representing queries that contain networks that do not declare hidden nodes, and queries that contain networks that declare hidden nodes. Therefore \nh{} is a subset of \h{}. For example the following query is a member of both \nh{} and \h{}:
 
 \begin{code}[style=lbnf]
 (declare-network f
@@ -84,7 +84,7 @@ but the following query is only a member of \h{}:
 )
 \end{code}
 
-\subsection{Multiple inputs/output}
+\subsection{\multiIO{}}
 \label{sec:multiple-inputs-outputs}
 
 \begin{figure}[h]
@@ -95,11 +95,11 @@ but the following query is only a member of \h{}:
 
    \draw [arrow] (sio) -- (mio);
 \end{tikzpicture}
-\caption{The ``Multiple inputs/outputs'' theory set}
+\caption{The \multiIO{} theory set}
 \label{fig:multiple-inputs-outputs-set}
 \end{figure}
 
-Many neural network verifiers only support reasoning about networks with a single input and output node. The ``Multiple inputs/outputs'' theory set therefore contains two theories \sio{} and \mio{}, representing queries that contain network declarations that only contain a single input and output node, and queries that contain network declarations that declare an arbitrary number of inputs and outputs. Therefore \sio{} is a subset of \mio{}. For example the following query is a member of both \sio{} and \mio{}:
+Many neural network verifiers only support reasoning about networks with a single input and output node. The \multiIO{} theory set therefore contains two theories \sio{} and \mio{}, representing queries that contain network declarations that only contain a single input and output node, and queries that contain network declarations that declare an arbitrary number of inputs and outputs. Therefore \sio{} is a subset of \mio{}. For example the following query is a member of both \sio{} and \mio{}:
 
 \begin{code}[style=lbnf]
 (declare-network f
@@ -118,7 +118,7 @@ but the following query is only a member of \mio{}:
 )
 \end{code}
 
-\subsection{Multiple networks}
+\subsection{\multiNetwork{}}
 \label{sec:multiple-networks}
 
 \begin{figure}[h]
@@ -133,11 +133,11 @@ but the following query is only a member of \mio{}:
    \draw [arrow] (minet) -- (mnet);
    \draw [arrow] (menet) -- (minet);
 \end{tikzpicture}
-\caption{The ``Multiple networks'' theory set}
+\caption{The \multiNetwork{} theory set}
 \label{fig:multiple-networks-theory-set}
 \end{figure}
 
-Some neural network verifiers only support reasoning about a single network or are specialised to reason about equal or isomorphic networks. The ``Multiple networks'' theory set therefore contains four theories \snet{}, \menet{}, \minet{} and \mnet{}. \snet{} contains queries that have a single network declaration while \mnet{} contains queries that have an arbitrary number of network declarations. For example the following query is a member of \snet{}:
+Some neural network verifiers only support reasoning about a single network or are specialised to reason about equal or isomorphic networks. The \multiNetwork{} theory set therefore contains four theories \snet{}, \menet{}, \minet{} and \mnet{}. \snet{} contains queries that have a single network declaration while \mnet{} contains queries that have an arbitrary number of network declarations. For example the following query is a member of \snet{}:
 
 \begin{code}[style=lbnf]
 (declare-network f
@@ -163,7 +163,7 @@ The theory \menet{} contains queries that have multiple network declarations whe
 \minet{} contains queries that have multiple network declarations where all but one contains either an \texttt{equal-to} or \texttt{isomorphic-to} declaration.
 
 
-\subsection{Multiple node comparisons}
+\subsection{\multiComparison{}}
 \label{sec:multi-node-comparisons}
 
 \begin{figure}[h]
@@ -174,14 +174,14 @@ The theory \menet{} contains queries that have multiple network declarations whe
 
    \draw [arrow] (snc) -- (mnc);
 \end{tikzpicture}
-\caption{The ``Multiple node comparisons'' theory set}
+\caption{The \multiComparison{} theory set}
 \label{fig:multi-node-comparisons-theory-set}
 \end{figure}
 
 Many verifiers are based on some variant of abstract interpretation or reachability analysis where an over-approximation of the set of reachable values is computed for each layer in turn.
 One consequence of this is that they cannot easily verify queries that contain a comparison involving variables from different nodes in the same network.
 
-The ``Multiple node comparisons'' theory set therefore contains two theories \snc{} and \mnc{}, representing queries that contain comparisons that do not reference variables from different nodes of the same network, and queries that may contain such comparisons respectively. Therefore \snc{} is a subset of \mnc{}. For example, consider queries that declare the following networks:
+The \multiComparison{} theory set therefore contains two theories \snc{} and \mnc{}, representing queries that contain comparisons that do not reference variables from different nodes of the same network, and queries that may contain such comparisons respectively. Therefore \snc{} is a subset of \mnc{}. For example, consider queries that declare the following networks:
 
 \begin{code}[style=lbnf]
 (declare-network f
@@ -215,7 +215,7 @@ However, the following comparisons only belong to \mnc{}:
 (== B[0] H[0])
 \end{code}
 
-\subsection{Arithmetic complexity}
+\subsection{\arithComplexity{}}
 \label{sec:arithmetic-complexity}
 
 \begin{figure}[h]
@@ -234,7 +234,7 @@ However, the following comparisons only belong to \mnc{}:
 \label{fig:arithmetic-complexities}
 \end{figure}
 
-The more complex the arithmetic constraints the more computationally expensive the verification is. Therefore, the ``Arithmetic complexity'' query set is used to restrict the complexity of the arithmetic constraints by dividing them into the following theories:
+The more complex the arithmetic constraints the more computationally expensive the verification is. Therefore, the \arithComplexity{} query set is used to restrict the complexity of the arithmetic constraints by dividing them into the following theories:
 
 \begin{enumerate}
 \item \textbf{\bnd{}} - 
@@ -246,7 +246,7 @@ The simplest level of arithmetic complexity, which restricts query assertions to
 \end{code}
 
 \item \textbf{\cout{}} - 
-The next level of arithmetic complexity, which allows assertions performing simple comparisons of hidden or output values, but still restricts query assertions over input variables to equalities or inequalities that relate single variables to constants. For example, the following assertions live within \cout{} but not \bnd{}:
+The next level allows assertions to perform simple comparisons between multiple hidden or output variables, but maintains the restriction that query assertions over input variables must be equalities or inequalities that relate a single variable to a constant. For example, the following assertions live within \cout{} but not \bnd{}:
 
 \begin{code}[style=lbnf]
 (assert (and (<= X[0] 1.0) (<= X[0] 1.0)))

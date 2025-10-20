@@ -221,19 +221,7 @@ The general pattern of usage is as follows:
 \begin{lstlisting}[style=bash]
 <verifier> supports <capability>
 \end{lstlisting}
-The verifier should be able to respond to all of the following capabilities.
-
-\subsection{\vnnlib{} capabilities}
-
-\clOutputOption
-{--vnnlib-versions}
-{Prints a newline-separated pair of the minimum and maximum versions (inclusive) of \vnnlib{} that the verifier supports.}
-{Two version strings}
-\begin{lstlisting}[style=bash]
-%*\exampleVerifier* supports --vnnlib-versions
-2.0
-2.3
-\end{lstlisting}
+The verifier must be able to respond to all of the following capabilities, although of course it may be able to report other capabilities as well.
 
 \subsection{ONNX capabilities}
 
@@ -276,54 +264,73 @@ Add float64 float32 int64 int32
 Flatten
 \end{lstlisting}
 
-\clOutputOption
-{--multiple-input-outputs}
-{Does the verifier support ONNX networks with multiple input or output nodes? See Section~\ref{sec:multiple-inputs-outputs} for details.}
-{A boolean (\texttt{true} or \texttt{false})}
-\begin{lstlisting}[style=bash]
-%*\exampleVerifier* supports --multiple-inputs-outputs
-true
-\end{lstlisting}
-
-\subsection{Query capabilities}
+\subsection{\vnnlib{} query capabilities}
 
 \clOutputOption
-{--hidden-nodes}
-{Does the verifier support queries which refer to hidden nodes in the network? See Section~\ref{sec:hidden-nodes} for details.}
-{A boolean (\texttt{true} or \texttt{false})}
+{--vnnlib-versions}
+{Prints a newline-separated pair of the minimum and maximum versions (inclusive) of \vnnlib{} that the verifier supports.}
+{Two version strings}
 \begin{lstlisting}[style=bash]
-%*\exampleVerifier* supports --hidden-nodes
-true
+%*\exampleVerifier* supports --vnnlib-versions
+2.0
+2.3
 \end{lstlisting}
 
 \clOutputOption
-{--multiple-networks}
-{Does the verifier support queries with multiple networks? See Section~\ref{sec:multiple-networks} for details.}
-{A boolean (\texttt{true} or \texttt{false})}
+{--hidden-node-theories}
+{Which \hiddenNodes{} theories described in Section~\ref{sec:hidden-nodes} does the verifier support?}
+{A newline-seperated list of theories}
 \begin{lstlisting}[style=bash]
-%*\exampleVerifier* supports --multiple-networks
-false
+%*\exampleVerifier* supports --hidden-node-theories
+NH
 \end{lstlisting}
 
 \clOutputOption
-{--multiple-node-comparisons}
-{Does the verifier support comparisons between variables representing different nodes in the same network? See Section~\ref{sec:multi-node-comparisons} for details.}
-{A boolean (\texttt{true} or \texttt{false})}
+{--multiple-input-output-theories}
+{Which \multiIO{} theories described in Section~\ref{sec:multiple-inputs-outputs} does the verifier support?}
+{A newline-seperated list of theories}
 \begin{lstlisting}[style=bash]
-%*\exampleVerifier* supports --multiple-node-comparisons
-true
+%*\exampleVerifier* supports --multiple-inputs-output-theories
+SNET
+MENET
 \end{lstlisting}
 
 \clOutputOption
-{--arithmetic-complexity}
-{Prints a list of supported \vnnlib{} logics, indicating the scope of theoretical support. See Section~\ref{sec:arithmetic-complexity} for details.
+{--multiple-network-theories}
+{Which \multiNetwork{} theories described in Section~\ref{sec:multiple-networks} does the verifier support?}
+{A newline-seperated list of theories}
+\begin{lstlisting}[style=bash]
+%*\exampleVerifier* supports --multiple-network-theories
+SIO
+\end{lstlisting}
+
+\clOutputOption
+{--multiple-node-comparison-theories}
+{Which \multiComparison{} theories described in Section~\ref{sec:multi-node-comparisons} does the verifier support?}
+{A newline-seperated list of theories}
+\begin{lstlisting}[style=bash]
+%*\exampleVerifier* supports --multiple-node-comparison-theories
+MNC
+\end{lstlisting}
+
+\clOutputOption
+{--arithmetic-complexity-theories}
+{Which \arithComplexity{} theories described in Section~\ref{sec:arithmetic-complexity} does the verifier support?
 }
-{A newline-seperated list of logics.}
+{A newline-seperated list of theories.}
 \begin{lstlisting}[style=bash]
-%*\exampleVerifier* supports --logics
-FRA
-LINEAR
-R
+%*\exampleVerifier* supports --arithmetic-complexity-theories
+LIN
+\end{lstlisting}
+
+\clOutputOption
+{--optimised-disjunctive-reasoning}
+{Does the verifier uses an intelligent strategy for handling queries involving \texttt{(or ...)} statements or simply translates them to disjunctive normal form? If the latter, then higher-level tools can use this flag to decide whether to perform the conversion to DNF themselves and hence get a better indication of progress.
+}
+{A boolean (\texttt{true} or \texttt{false})}
+\begin{lstlisting}[style=bash]
+%*\exampleVerifier* supports --optimised-disjunctive-reasoning
+true
 \end{lstlisting}
 
 \subsection{Other capabilities}
