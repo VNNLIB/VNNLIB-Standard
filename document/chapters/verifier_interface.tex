@@ -52,8 +52,8 @@ At the moment, the \vnnlib{} standard contains two commands: \emph{verify} and \
 
 \clOutputOption
 {--name}
-{Print the verifier's full name. This can be different from the executable's name and may contain spaces, special characters etc.}
-{A string.}
+{Print the verifier's full name. This can be different from the executable's name.}
+{A string that may contain spaces, special characters etc.}
 \begin{lstlisting}[style=bash]
 %*\exampleVerifier* --name
 CheckNeuralNetworks!
@@ -61,7 +61,7 @@ CheckNeuralNetworks!
 
 \clOutputOption
 {--version}
-{Print the verifier's version string. It is strongly recommended that verifiers conform to \href{https://semver.org/}{semantic versioning}.}{A version string.}
+{Print the version of the verifier. It is strongly recommended that verifiers conform to \href{https://semver.org/}{semantic versioning}.}{A version string.}
 \begin{lstlisting}[style=bash]
 %*\exampleVerifier* --version
 1.0.1
@@ -79,12 +79,21 @@ The general pattern of usage is as follows:
   <filepath>
   [--network <name>=<filepath>]
   [--timeout <seconds>]
+  [--assignments <filepath>]
 \end{lstlisting}
 The first argument should be the path to the \vnnlib{} query file (see Section~\ref{sec:specification_language}), and the verifier should support the following additional options:
 
-\clOption{--network}{This option maps the name of one of the networks declared in the provided \vnnlib{} query file to its implementation as an ONNX model file. When a query refers to multiple networks, this option should be used more than once.}{--network classifier=/a/path/to/a/model.onnx}
+\clOption{--network}{This option maps the name of one of the networks declared in the provided \vnnlib{} query file to its implementation as an ONNX model file. When the query file contains multiple \texttt{declare-network} declarations this option should be used multiple times -- once for each network declaration not marked with an \texttt{equal-to} declaration (see Section~\ref{sec:multiple-networks}).}{--network classifier=/a/path/to/a/model.onnx}
 
 \clOption{--timeout}{Maximum time to spend on processing on the query in an integer number of seconds.}{--timeout 10}
+
+\clOption{--serialise-assignments}
+{Instructs the verifier to output satisfying assignments in the seralised format described in Section~\ref{sec:seralised-assignment-format}. This argument only needs to be supported if the verifier reports that it supports serialising assignments as described in Section~\ref{sec:other-capabilities}.}
+{--serialise-assignments /path/to/output}
+
+\noindent Compliant verifiers may also support additional non-standard arguments to the \texttt{verify} command to affect the internal behaviour of the verification algorithm. However, such additional non-standard arguments \textit{must} be optional.
+
+\subsection{Output of the \texttt{verify} command}
 
 \noindent The initial output of the command should be reported on \texttt{stdout} and should be a single line consisting of one of the following options: 
 \begin{itemize}
@@ -93,19 +102,16 @@ The first argument should be the path to the \vnnlib{} query file (see Section~\
 \item \texttt{unsat} - The verifier terminated and proved that the query was unsatisfiable.
 \item \texttt{sat} - The verifier terminated and proved that the query was satisfiable.
 \end{itemize}
-If the result is \texttt{sat}, the satisfying assignment found should be printed on the immediately following lines in the following format:
-\begin{lstlisting}[style=bash]
-sat
-<variable_1>=<value>
-<variable_2>=<value>
-...
-<variable_n>=<value>
-\end{lstlisting}
-The variables should be reported in the order that they are declared in the query file. For example, the result for a \vnnlib{} query that started with the following network declarations:
+If the query is satisfiable, there are two ways that the solver can output the satisfying assignment found:
+\begin{enumerate}
+\item \textbf{Command-line format}: If the \texttt{--serialise-assignments} option was not passed or the solver reports not supporting it, the solver should print the assignments on \texttt{stdout}. Outputting the assignment to the command-line is therefore the default behaviour and must be supported by all verifiers.
+\item \textbf{Serialised format}: If the \texttt{--serialise-assignments} option was passed and the solver reports supporting it, the solver should serialise the assignments in the folder specified by the \texttt{--serialise-assignments} option.
+\end{enumerate}
+As a motivating example, consider a \vnnlib{} query that started with the following network declarations:
 \begin{lstlisting}[style=bash]
 (declare-network f
     (declare-input  A float32 [2,2])
-    (declare-input  B float32 [1])
+    (declare-input  B int32   [1])
     (declare-hidden H float32 [1,2] "hidden")
     (declare-output Y float32 [1])
 )
@@ -113,28 +119,97 @@ The variables should be reported in the order that they are declared in the quer
     (declare-input  C float32 [2,2])
     (declare-output Z float32 [1])
 )
-...
 \end{lstlisting}
-then the output should be printed as:
-\begin{lstlisting}[style=bash]
-sat
-A[0,0]=...
-A[0,1]=...
-A[1,0]=...
-A[0,0]=...
-B[0]=...
-H[0,0]=...
-H[0,1]=...
-Y[0]=...
-C[0,0]=...
-C[0,1]=...
-C[1,0]=...
-C[0,0]=...
-Z[0]=...
-\end{lstlisting}
-Compliant verifiers may also support additional non-standard arguments to the \texttt{verify} command to affect the internal behaviour of the verification algorithm. However, such additional non-standard arguments must be optional.
+and an assignment found by the solver as follows:
+\begin{equation*}
+A = \begin{pmatrix}
+0.5 & 0.3 \\
+0.4 & 0.2
+\end{pmatrix}
+\quad
+B = \begin{pmatrix}
+-1
+\end{pmatrix}
+\quad
+H = \begin{pmatrix}
+0.5 & 0.3
+\end{pmatrix}
+\quad
+Y = \begin{pmatrix}
+0.1
+\end{pmatrix}
+\end{equation*}
+\begin{equation*}
+C = \begin{pmatrix}
+1.0 & 0.3 \\
+0.4 & 0.2
+\end{pmatrix}
+\quad
+Z = \begin{pmatrix}
+0.0
+\end{pmatrix}
+\end{equation*}
+The two different assignment formats are now described in more detail.
 
-\mnote{TODO: Is there a way to output these tensors more efficiently in a standardised format?}
+\subsubsection{Command-line assignment format}
+
+By default, the assignment must be printed to \texttt{stdout} in the following format:
+\begin{lstlisting}[style=bash]
+<variable_1_name> <variable_1_type> <variable_1_dimensions>
+<value>
+<value>
+...
+<variable_n_name> <variable_n_type> <variable_n_dimensions>
+\end{lstlisting}
+The variables should be reported in the order that they are declared in the query file. Each assignment is reported on a separate line, with the elements in row-major order. 
+Therefore for the example given above, the output should be:
+\begin{lstlisting}[style=bash]
+A float32 [2,2]
+0.5
+0.3
+0.4
+0.2
+B int32 [1]
+-1
+H Real [1,2]
+0.5
+0.3
+Y Real [1]
+0.1
+C Real [2,2]
+1.0
+0.3
+0.4
+0.2
+Z Real [1]
+0.0
+\end{lstlisting}
+
+\textbf{Note}: Although outputting the assignment via the command line as above is the default behaviour, both printing and parsing it may induce a significant overhead for very large tensors. 
+
+\subsubsection{Serialised assignment format}
+\label{sec:seralised-assignment-format}
+
+In the case where efficiency is important, a verifier may optionally support outputting assignments as a folder containing binary files of seralised ONNX TensorProto objects. If the user passes \texttt{--serialise-assignments <folder>} to the \texttt{verify} command, then the verifier should generate a folder:
+\begin{lstlisting}[style=bash]
+<folder>/
+  <variable_1_name>.pb
+  <variable_2_name>.pb
+  ...
+  <variable_n_name>.pb
+\end{lstlisting}
+where each of the files contains a serialised TensorProto object of the correct element type and shape.
+
+For the example given above, if \texttt{--serialise-assignments my/output} was passed then the solver should therefore generate the following files:
+\begin{lstlisting}[style=bash]
+my/output/
+  A.pb
+  B.pb
+  H.pb
+  Y.pb
+  C.pb
+  Z.pb
+\end{lstlisting}
 
 \section{The \texttt{supports} command}
 \label{sec:global_capabilities}
@@ -144,9 +219,9 @@ These options provide a way for higher-level tools to automatically assess the c
 
 The general pattern of usage is as follows:
 \begin{lstlisting}[style=bash]
-<verifier> supports <option>
+<verifier> supports <capability>
 \end{lstlisting}
-and the verifier should be able to report the following capabilities:
+The verifier should be able to respond to all of the following capabilities.
 
 \subsection{\vnnlib{} capabilities}
 
@@ -183,7 +258,7 @@ float32
 float16
 real
 \end{lstlisting}
-\textbf{Note}: as discussed in Section~\ref{sec:element-types}, in order for a solver to report that it supports an ONNX element type, then there must be a strong reason to believe that its analysis is sound with respect to that element type. If unsound, or the soundness is unknown then the solver should only report that it supports the `real' type.
+\textbf{Note}: as discussed in Section~\ref{sec:element-types}, in order for a solver to report that it supports an ONNX element type, then there must be a strong reason to believe that its analysis is sound with respect to that element type. If unsound, or the soundness is unknown then the solver should only report that it supports the \texttt{real} type.
 
 \clOutputOption
 {--onnx-operators}
@@ -250,6 +325,19 @@ FRA
 LINEAR
 R
 \end{lstlisting}
+
+\subsection{Other capabilities}
+\label{sec:other-capabilities}
+
+\clOutputOption
+{--serialise-assignments}
+{Does the verifier support the \texttt{--serialise-assignments} option to the \texttt{verify} command? See Section~\ref{sec:verify_command} for details.}
+{A boolean (\texttt{true} or \texttt{false})}
+\begin{lstlisting}[style=bash]
+%*\exampleVerifier* supports --serialise-assignments
+true
+\end{lstlisting}
+
 
 
 
