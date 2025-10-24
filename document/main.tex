@@ -109,12 +109,40 @@
 % VNNLIB %
 %%%%%%%%%%
 
-\newcommand{\versionVar}{V}
-\newcommand{\equivVar}{E}
+\newcommand{\queryVar}{q}
+\newcommand{\versionVar}{v}
+\newcommand{\equivVar}{e}
+
 \newcommand{\networkDeclVar}{D}
-\newcommand{\inputDeclVar}{I}
-\newcommand{\hiddenDeclVar}{H}
-\newcommand{\outputDeclVar}{O}
+\newcommand{\networkDeclSet}{D}
+
+\newcommand{\inputDeclVar}{i}
+\newcommand{\inputDeclSet}{I}
+
+\newcommand{\hiddenDeclVar}{h}
+\newcommand{\hiddenDeclSet}{H}
+
+\newcommand{\outputDeclVar}{o}
+\newcommand{\outputDeclSet}{O}
+
+\newcommand{\assertionVar}{A}
+
+\newcommand{\networkExpansion}
+{
+\texttt{declare-network} ~
+\versionVar ~
+\equivVar ~
+(\inputDeclVar_1~...~\inputDeclVar_n) ~
+(\hiddenDeclVar_1~...~\hiddenDeclVar_m) ~
+(\outputDeclVar_1~...~\outputDeclVar_o)
+}
+
+\newcommand{\queryExpansion}
+{
+\versionVar ~
+(\networkDeclVar_1~...~\networkDeclVar_n) ~
+(\assertionVar_1,...,\assertionVar_m)
+}
 
 \newcommand{\assertEnv}{\Delta}
 \newcommand{\semQuery}{\semGrammar{query}}
@@ -123,8 +151,20 @@
 \newcommand{\semBool}[1]{\semGrammar{bool}(\assertEnv,#1)}
 \newcommand{\semAssert}[1]{\semGrammar{assert}(\assertEnv,#1)}
 
-\newcommand{\networkImplementations}{N}
-\newcommand{\networkInputAssignments}{A}
+\newcommand{\networkDeclType}{\text{modelType}}
+\newcommand{\networkInputsType}{\text{inputTypes}}
+
+
+\newcommand{\networkImplementation}{f}
+\newcommand{\networkImplementationSet}{F}
+\newcommand{\networkImplementations}{[\networkImplementation_1 \ldots \networkImplementation_n]}
+
+\newcommand{\networkInputTensor}{t}
+\newcommand{\networkInputTensors}{[\networkInputTensor_1 \ldots \networkInputTensor_n]}
+
+\newcommand{\networkInput}{x}
+\newcommand{\networkInputSet}{X}
+\newcommand{\networkInputs}{[\networkInput_1 \ldots \networkInput_n]}
 
 %%%%%%%%%%%%
 % Theories %

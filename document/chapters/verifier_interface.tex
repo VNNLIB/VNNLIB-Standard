@@ -211,6 +211,18 @@ my/output/
   Z.pb
 \end{lstlisting}
 
+\subsection{Error conditions for the \texttt{verify} command}
+
+The \texttt{verify} command \textit{must} error in the following circumstances:
+\begin{enumerate}
+\item Either insufficient or unnecessary ONNX model files are provided relative to the network declarations in the \vnnlib{} query.
+\item The element types in the provided ONNX model files do not match the declared types in the \vnnlib{} query. The exception to this is if the query uses the \inlinevnn{real} type (see Section~\ref{sec:real-queries} for details).
+\item The solver is incapable of providing sound analysis over the declared types in \vnnlib{} query. If it is capable of unsound analysis, the user must explicitly provide consent for this by re-writing the query to use the \inlinevnn{real} type (see Section~\ref{sec:real-queries} for details).
+\end{enumerate}
+When \textit{any} error is thrown, including the above, the error message must be printed on \texttt{stderr}.
+
+In order to allow support for queries that are unable to be described by the current \vnnlib{} specification, when a verifier encounters other potential error scenarios (e.g. non-standard \vnnlib{} syntax, non-standard ONNX files), it, at its discretion, choose to error or not error as appropriate.
+
 \section{The \texttt{supports} command}
 \label{sec:global_capabilities}
 
