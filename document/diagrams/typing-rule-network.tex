@@ -1,0 +1,53 @@
+\begin{mathpar}
+    \inferrule*[]
+    {
+        {\begin{array}{c}
+        \nameVar \notin \networkCtx
+        \hspace{1em}
+        {\color{red} e???} 
+        \vspace{1.5em}
+        \\
+        \vspace{0.25em}
+        {
+            \begin{array}{lll}
+                \variableCtx_0 &
+                \vdash \inputDeclVar_1 : \variableCtx_1 
+                \\
+                &\vdots
+                \\
+                \variableCtx_{n-1} &
+                \vdash \inputDeclVar_n : \variableCtx_n 
+            \end{array}
+        }
+        \hspace{1em}
+        {
+            \begin{array}{lll}
+                \variableCtx_n &
+                \vdash \hiddenDeclVar_1 : \variableCtx_{n+1} 
+                \\                    
+                &\vdots 
+                \\                    
+                \variableCtx_{m+n-1} &
+                \vdash \hiddenDeclVar_m : \variableCtx_{m+n} 
+            \end{array}
+        }       
+        \hspace{1em}         
+        {
+            \begin{array}{lll}
+                \variableCtx_{m+n} &
+                \vdash \outputDeclVar_1 : \variableCtx_{m+n+1} 
+                \\
+                &\vdots
+                \\
+                \variableCtx_{m+n+o-1} &
+                \vdash \outputDeclVar_o : \variableCtx_{n+m+o} 
+            \end{array}
+        }
+        \end{array}}
+    }
+    {
+        \networkCtx, \variableCtx 
+        \vdash \networkExpansion : 
+        \networkCtx[\nameVar \rightarrow ..], \variableCtx_{n+m+o+1}
+    }
+\end{mathpar}

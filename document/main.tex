@@ -111,9 +111,10 @@
 
 \newcommand{\queryVar}{q}
 \newcommand{\versionVar}{v}
+\newcommand{\nameVar}{n}
 \newcommand{\equivVar}{e}
 
-\newcommand{\networkDeclVar}{D}
+\newcommand{\networkDeclVar}{n}
 \newcommand{\networkDeclSet}{D}
 
 \newcommand{\inputDeclVar}{i}
@@ -125,12 +126,13 @@
 \newcommand{\outputDeclVar}{o}
 \newcommand{\outputDeclSet}{O}
 
-\newcommand{\assertionVar}{A}
+\newcommand{\assertionVar}{a}
+\newcommand{\assertionSet}{A}
 
 \newcommand{\networkExpansion}
 {
 \texttt{declare-network} ~
-\versionVar ~
+\nameVar ~
 \equivVar ~
 (\inputDeclVar_1~...~\inputDeclVar_n) ~
 (\hiddenDeclVar_1~...~\hiddenDeclVar_m) ~
@@ -143,6 +145,10 @@
 (\networkDeclVar_1~...~\networkDeclVar_n) ~
 (\assertionVar_1,...,\assertionVar_m)
 }
+
+\newcommand{\assertCtx}{\Gamma}
+\newcommand{\networkCtx}{\assertCtx^N}
+\newcommand{\variableCtx}{\assertCtx^V}
 
 \newcommand{\assertEnv}{\Delta}
 \newcommand{\semQuery}{\semGrammar{query}}

@@ -1,23 +1,15 @@
 \chapter{Query Language}
 \label{sec:specification_language}
 
-The centre-piece of the \vnnlib{} standard is the \vnnlib{} query language which is designed as a standardised computer-readable format for expressing a wide range of satisfiability problems over neural networks.
-Although the syntax is somewhat human-readable, the syntax of \vnnlib{} is primarily designed with machine-readability in mind. 
-It is envisaged that \vnnlib{} queries will primarily be generated automatically by higher level tools that provide human-orientated interfaces.
-This chapter describes the syntax, scoping, typing and semantics of the query language. Unless explicitly stated otherwise, everything in this chapter is implicitly parameterised by some underlying network theory $\networkTheoryVar$.
+The centre-piece of the \vnnlib{} standard is the \vnnlib{} query language which is heavily inspired by the SMT-LIB query language and is designed as a standardised computer-readable format for expressing satisfiability problems over neural networks.
+Although the syntax is somewhat human-readable, the query language is designed to primarily optimise machine-readability. 
+It is expected that \vnnlib{} queries will primarily be generated automatically by higher level tools that provide more human-friendly interfaces.
+This chapter describes the syntax, scoping, typing and semantics of the query language. Unless explicitly stated otherwise, everything in this chapter is implicitly parameterised by some underlying network theory $\networkTheoryVar$, the definition of which was provided in Section~\ref{sec:network-theory}.
 
 \section{Syntax}
 \label{sec:syntax}
 
-The syntax of the language is shown in Figure~\ref{fig:vnnlib-syntax}.  This section will now describe the key syntactic constructs of the language via illustrative examples. Firstly, \vnnlib{} queries are split into three parts: 
-\begin{enumerate}
-\item \textbf{Version number} - the version of the VNN-LIB the query is using. This allows tools to provide better diagnostic error messages.
-\item \textbf{Network declarations} - a non-empty list of network declarations. This allows the definition of the networks that the satisfiability problem will involve and the definition of new abstract variables that represent the values for the inputs and outputs of the network.
-\item \textbf{Assertions} - a list of assertions that reference the variables introduced by the network declarations. This allows the constraints that should be satisfied to be defined.
-\end{enumerate}
-Currently, the standard does not permit the interleaving of network declarations and assertions. Figure~\ref{fig:simple-query} shows an example of a simple query.
-
-\begin{figure}[p]
+\begin{figure}
 	\setlength{\grammarindent}{6.5em}
 	
 	\begin{grammar}
@@ -59,11 +51,20 @@ Currently, the standard does not permit the interleaving of network declarations
 	<indices> ::= [i, ..., i] for $i \in \mathbb{N}$
 	\end{grammar}
 	\vspace{-1em}
-    \caption{The syntax of \vnnlib{} queries, parameterised by the syntax of the underlying network theory $\networkTheoryVar$ described in Figures~\ref{fig:onnx-type-syntax}~\&~\ref{fig:onnx-expr-syntax}. }
+    \caption{The syntax of \vnnlib{} queries, parameterised by the syntax of the underlying network theory $\networkTheoryVar$ described in Figures~\ref{fig:onnx-type-syntax}~\&~\ref{fig:onnx-expr-syntax}. As is convention, $^*$ means zero or more, $^+$ means one or more, and $^?$ means optional.}
     \label{fig:vnnlib-syntax}
 \end{figure}
 
-\subsection{Simple network declarations}
+The syntax of the \vnnlib{} query language is shown in Figure~\ref{fig:vnnlib-syntax}.  This section will now describe the key syntactic constructs of the language via illustrative examples. Firstly, queries are split into three parts: 
+\begin{enumerate}
+\item \textbf{Version number} - the version of the VNN-LIB the query is using. This allows tools to provide better diagnostic error messages.
+\item \textbf{Network declarations} - a non-empty list of network declarations. These describe the networks that involved in the satisfiability problem and allow the introduction of new abstract variables that represent the values for the inputs and outputs of those networks.
+\item \textbf{Assertions} - a list of assertions that reference the variables introduced by the network declarations, thereby defining the constraints that should be satisfied.
+\end{enumerate}
+Currently, the standard does not permit the interleaving of network declarations and assertions. Figure~\ref{fig:simple-query} shows an example of a simple query.
+
+
+\subsection{Network Declarations}
 \label{sec:network-declarations}
 
 A network is introduced by the keyword \texttt{declare-network}, followed by a user-defined name for the network, and then declarations for its associated input and output. 
@@ -85,9 +86,12 @@ and the shape of the tensor. Similarly, an output variable uses the \texttt{decl
         \centering
         \includegraphics[height=5cm]{imgs/simple_net.onnx.png}
     \end{minipage}
-    \caption{A simple \vnnlib{} specification which declares a network with a single input and output tensor. An example of one of the many possible ONNX models compatible with this declaration is shown on the right. Note that the variable names \texttt{X} and \texttt{Y} for the declared inputs and outputs do not have to match the node names in the ONNX file.}
+    \caption{A simple \vnnlib{} specification which declares a network with a single input and output tensor. An example of one of the many possible ONNX models compatible with this declaration is shown on the right. Note that the variable names \texttt{X} and \texttt{Y} for the declared inputs and outputs do not have to match the node names in the ONNX model.}
     \label{fig:simple-query}
 \end{figure}
+
+
+All variable names follow the same syntax conventions: they are case-sensitive, must start with a letter, and may only contain letters, digits and underscores. All variable names must be unique within the query (see Section~\ref{sec:scoping_and_typing} for more detailed scoping rules). 
 
 
 It is important to clarify that a network declaration only declares an \emph{interface} and does not reference any particular ONNX network model. 
@@ -95,8 +99,7 @@ When passing a query and a network model to the verifier, the name of the networ
 Instead, as described in Section~\ref{sec:verify_command}, the user will explicitly associate a network declaration to the relevant model file via the command line.
 Neither do the declared names of the inputs and outputs need to match the names of the input and output nodes within the ONNX model file. This flexibility allows many different alternative ONNX models to be compatible with the same query.
 
-All variable names follow the same syntax conventions: they are case-sensitive, must start with a letter, and may only contain letters, digits and underscores. All variable names must be unique within the query (see Section~\ref{sec:scoping_and_typing} for more detailed scoping rules). 
-
+Equally, the network declarations do not constrain the internal architecture of the model, including which operators (e.g. Gemm, ReLU, Softmax) are used. In practice, different verifiers will support different operators and Section~\ref{sec:onnx-capabilities} provides a mechanism for a verifier to report its own capabilities in this regard.
 
 % The \texttt{@} character is a reserved character which is used to denote multiple applications of the same network, for the purpose of defining  hyperproperties such as monotonicity. For example \texttt{(declare-network acasXu@1 ...)} and \texttt{(declare-network acasXu@2 ...)} define two networks that are both instances of the same ONNX model,  denoted as \texttt{acasXu} in the command line interface of the verifier (See Chapter~\ref{sec:solver_interface} for more details).
 
@@ -124,7 +127,10 @@ One forms arithmetic expressions by recursively combining constant and variable 
     \item \inlinevnn{(* a b ...)}: Multiplication of two or more terms. 
     \item \inlinevnn{(- a b ...)}: Subtraction of two or more terms. Note that subtraction associates to the left, e.g. \inlinevnn{(- 1 2 3 4)} is the same as \inlinevnn{(- (- (- 1 2) 3) 4)} .
 \end{itemize}
-Arithmetic operations currently only operate over individual tensor elements and cannot be used to operate over multi-dimensional tensors (see Section~\ref{sec:scoping_and_typing} for detailed typing rules).
+Arithmetic operations currently only operate over individual tensor elements and cannot be used to operate over multi-dimensional tensors (see Section~\ref{sec:scoping_and_typing} for detailed typing rules). 
+
+Although some ONNX types can be safely coerced between in certain cases (e.g. a \inlinevnn{float16} can be added safely to a \inlinevnn{float32} if the expected type of evaluated expression is a \inlinevnn{float32}), the \vnnlib{} standard does not permit such coercions.
+All variables within an arithmetic expression must have the same type (see Section~\ref{sec:scoping_and_typing} for formal typing rules). 
 
 \paragraph{Comparisons}
 
@@ -139,7 +145,7 @@ One forms boolean expressions by recursively combining comparisons via the follo
     \item \inlinevnn{(or a b ...)}: Disjunction of two or more terms.
 \end{itemize}
 
-\subsection{More complex network declarations}
+\subsection{Complex Network Declarations}
 \label{sec:complex-networks-decls}
 
 Although queries often relate the input of a single network to its output in some way, \vnnlib{} supports more complex queries. The neural network may have multiple input or output nodes, or the query may refer to intermediate hidden layers of the network or it may relate the behaviour of multiple networks. The query language supports all of these use cases.
@@ -297,7 +303,7 @@ While a verifier may make use of the \texttt{equal-to} and \texttt{isomorphic-to
 
 
 
-\subsection{Comments and whitespace}
+\subsection{Comments and Whitespace}
 
 Comments in \vnnlib{} are denoted by a semicolon (\texttt{;}) and extend to the end of the line. They are used for annotation, explaining logic, or providing additional context. Whitespace in \vnnlib{} is used to separate tokens and improve readability and can include spaces, tabs, and newlines. Additional whitespace beyond the minimal necessary to separate tokens is ignored.
 
@@ -305,255 +311,81 @@ Comments in \vnnlib{} are denoted by a semicolon (\texttt{;}) and extend to the 
 \section{Typing}
 \label{sec:scoping_and_typing}
 
-\myremark{Section 3.2 is still a work in progress and the definitions and writing are not complete.}
+This section describes the typing rules for \vnnlib{} queries. The rules provide a formal description of the constraints on the syntax described informally in Section~\ref{sec:syntax}, e.g. all variable names must be unique, variables of different types cannot appear in the same assertion. 
 
-\subsection{Queries}
-\label{sec:query-typing}
+Crucial to the typing rules is the notion of the current \emph{context} $\assertCtx = (\networkCtx, \variableCtx)$ which consists of two parts. The first is the \emph{network context}, $\networkCtx : \mgrammar{<name>} \rightarrow \mgrammar{<network>}$, which is a mapping from network names to the corresponding network declarations. The second is the \emph{variable context}, $\variableCtx : \mgrammar{<name>} \rightarrow \mgrammar{<tensorType>}_\networkTheoryVar$, which is a mapping from the decared input/hidden/output variables to their shape and type.
 
-As shown in \autoref{fig:query-typing}, the query is typed by first to constructing a typing context $\Gamma$ from the network declarations, and then using that context to type the globally-scoped assertions.
-A \vnnlib{} query is well-scoped if it satisfies the following criteria:
-\begin{enumerate}
-    \item All variables are declared before they are referenced.
-    \item All variable names are unique.
-    \item An equivalence statement in a network declaration must point to another network declaration that does not have a congruence statement.
-\end{enumerate}
-A \vnnlib{} query is said to be \textit{well-typed}, if it satisfies the following criteria.
-\begin{itemize}
-    \item All variables within an arithmetic expression must have the same type.
-    \item All variable indices must fit within the declared shape of the variable.
-\end{itemize}
+As one would expect, queries are typed  by first constructing the context $\assertCtx$ by iterating over the network declarations, and then using that context to type the globally-scoped assertions:
+\input{diagrams/typing-rule-query.tex}
+The following sections now describe the typing rules for network declarations and assertions.
 
-\begin{figure}
-    \begin{minipage}[t]{1\textwidth}
-        \resizebox{\textwidth}{!}{
-        \begin{mathpar}
-            \inferrule*[Right=Query]
-            {
-	            \emptyset \vdash D_1 : \Gamma_1 \\
-                \hspace{-1em} \dots \hspace{-1em} \\
-	            \Gamma_{n-1} \vdash D_n : \Gamma_n \\
-	            \\
-                \Gamma_n \vdash A_1 \\
-                \hspace{-1em} \dots \hspace{-1em} \\
-                \Gamma_n \vdash A_m
-            }
-            {
-                \vdash \queryExpansion
-            }
-        \end{mathpar}
-        }
-    \caption{Typing judgment for a \vnnlib{} query}
-    \label{fig:query-typing}
-    \end{minipage}
-\end{figure}
+\subsection{Networks}
 
-Although some ONNX types can be soundly cast for operations in certain cases, for example, a \inlinevnn{float16} can be added safely to a \inlinevnn{float32} if the expected type of evaluated expression is a \inlinevnn{float32}, the \vnnlib{} standard does not permit such implicit casting.
+The rule for typing a network declaration is as follows:
+\input{diagrams/typing-rule-network.tex}
+First it is checked that the network name is unique, next the variable context is updated by iterating sequentially through the input, hidden and output node declarations. 
 
-\begin{figure}
-    \begin{mathpar}
-    \inferrule*[]
-            {
-                {	
-                 	\begin{array}{lll}
-                    \Gamma_0 &\vdash I_1 : \Gamma_1 
-                    \\
-                    &\vdots
-                    \\
-                    \Gamma_{n-1} &\vdash I_n : \Gamma_n 
-                    \end{array}
-                }
-                \\
-                {
-                 	\begin{array}{lll}
-                    \Gamma_n &\vdash H_1 : \Gamma_{n+1} 
-					\\                    
-                    &\vdots 
-					\\                    
-                    \Gamma_{m+n-1} &\vdash H_m : \Gamma_{m+n} 
-                    \end{array}
-                }
-				\\                  
-                {
-                    \begin{array}{lll}
-                    \Gamma_{m+n} &\vdash O_1 : \Gamma_{m+n+1} 
-                    \\
-					&\vdots
-					\\
-                    \Gamma_{m+n+o-1} &\vdash O_o : \Gamma_{n+m+o} 
-                	\end{array}
-                }
-            }
-            {
-                \Gamma_0 \vdash \networkExpansion : \Gamma_{n+m+o+1}
-            }
-            \\
-            \textsf{\textsc{Network}}
-            \\
-            \\
-            \inferrule*[Right=Input]
-            {
-            	v \notin \Gamma
-            }
-            {
-                \Gamma \vdash \texttt{declare-input}~v~\tau~s) : \Gamma[v \rightarrow (\tau, s)]
-            }
-            \\
-            \inferrule*[Right=Hidden]
-            {
-            	v \notin \Gamma
-            }
-            {
-                \Gamma \vdash \texttt{declare-hidden}~v~\tau~s~n : \Gamma[ v \rightarrow (\tau, s)]
-            }
-            \\
-            \inferrule*[Right=Output]
-            {
-            	v \notin \Gamma
-            }
-            {
-                \Gamma \vdash \texttt{declare-output}~v~\tau~s : \Gamma[ v \rightarrow (\tau, s)]
-            }
-    \end{mathpar}
-    \caption{Scoping judgments for network declarations}
-    \label{fig:scoping-network-decls}
-\end{figure}
+The rules for typing input/hidden and output declarations are as follows:
+\input{diagrams/typing-rule-network-variable.tex}
+i.e. as long as the name of the variable has not already been seen and is therefore unique, then each declaration  adds a corresponding entry to the $\variableCtx$.
 
-\begin{figure}
-    \begin{minipage}[t]{1\textwidth}
-        \resizebox{\textwidth}{!}{
-        \begin{mathpar}
-            \inferrule*[Right=VNNElement]
-            {
-                \vdash_\networkTheoryVar d : \tau
-            }
-            {
-                \Gamma \vdash d : \tau
-            }
-            \\
-            \inferrule*[Right=Variable]
-            {
-                \Gamma [v] = (\tau,s) \quad \forall i . \; l_i < s_i
-            }
-            {
-                \Gamma \vdash v~l : \tau
-            }
-            \\
-            \inferrule*[Right=Negation]
-            {
-                \Gamma \vdash a : \tau
-            }
-            {
-                \Gamma \vdash (\texttt{-}~a) : \tau
-            }
-            \\
-            \inferrule*[Right=N-ary Arithmetic]
-            {
-                \Gamma \vdash a_1 : \tau \quad ... \quad \Gamma \vdash a_n : \tau \quad \circledast \in \{\texttt{+}, \texttt{-}, \texttt{×}\}
-            }
-            {
-                \Gamma \vdash (\circledast~a_1~...~a_n) : \tau
-            }
-            \\
-            \inferrule*[Right=Comparison]{
-                \Gamma \vdash a_1 : \tau \quad \Gamma \vdash a_2 : \tau \quad \lozenge \in \{\texttt{>=}, \texttt{>}, \texttt{<}, \texttt{<=}, \texttt{==}, \texttt{!=}\}
-            }{
-                \Gamma \vdash (\lozenge~a_1~a_2) 
-            }
-            \\
-            \hspace{1cm}
-            \inferrule*[Right=N-ary Boolean]{
-                \Gamma \vdash b_1 \quad ... \quad \Gamma \vdash b_n \quad \Box \in \{\texttt{and}, \texttt{or}\}
-            }{
-                \Gamma \vdash (\Box~b_1~...~b_n)
-            }
-            \\
-            \inferrule*[Right=Assertion]{
-                \Gamma \vdash b
-            }{
-                \Gamma \vdash (\texttt{assert}~b)
-            }
-        \end{mathpar}
-        }
-    \caption{Typing judgments for \vnnlib{} assertions. Note that this is parameterised by the typing judgements of the \networkTheory{}, as the \textsc{Element} rule depends on that of the network. }
-    \label{fig:typing-arithExpr}
-    \end{minipage}
-\end{figure}
+\subsection{Assertions}
 
-\subsection{Models and Input Assignments}
-\label{sec:network-input-assignment-typing}
+Assertions are type-checked within some variable context.
+\input{diagrams/typing-rule-assertion.tex}
+which simply defers to the typing of boolean expressions.
 
-Section~\ref{sec:query-typing} has described the typing rules for \vnnlib{} query syntax.
-However, answering the query will involve finding a list of input assignments to a list of network models.
-Therefore it is necessary to use the typing judgements \textsc{Model} and \textsc{Tensor} from the underlying network theory in Figure~\ref{fig:onnx-signature} to form a new typing judgement that a set of ONNX network models and ONNX input assignment are well-typed with respect to a particular query. 
+The boolean expressions consist of the n-ary operations \texttt{and} and \texttt{or}, and the six comparison operators which can be type-checked as follows:
+\input{diagrams/typing-rule-boolExpr.tex}
+Crucially, the comparison operator rule requires that the arithmetic expressions being compared must of the same type $\elementTypeVar$.
 
-To begin with, we assume we have the functions:
-\begin{align*}
-\networkDeclType &: \mgrammar{<network>} \rightarrow \mgrammar{<modelType>}_\networkTheoryVar \\
-\networkInputsType &: \mgrammar{<network>} \rightarrow [\mgrammar{<tensorType>}_\networkTheoryVar]^+
-\end{align*}
-definable in the obvious way, which maps a network declaration to the overall type of the model and the list of input tensor types that it expects.
-Given a query $q$ and a set of ONNX models $\networkImplementationSet = \networkImplementations$, we can form a judgement $\queryVar \vdash \networkImplementationSet$ that the network models are well typed with respect to the query as follows:
-\begin{equation*}
-\inferrule*[Right=Models]
-{
-	{\begin{array}{c}
-    	\vdash_\networkTheoryVar \networkImplementation_1 : \semModelType(\networkDeclType(\networkDeclVar_1)) \\ 
- 	   \vdots \\ 
-    	\vdash_\networkTheoryVar \networkImplementation_n : \semModelType(\networkDeclType(\networkDeclVar_n))
-	\end{array}}
-}
-{
-    \queryExpansion \vdash \networkImplementations
-}
-\end{equation*}
-Equally, given a query $q$ and a set of tensors representing an input assignment $\networkInputSet = \networkInputs$, we can form a judgement $\queryVar \vdash \networkInputSet$ that the input assignments are well-typed with respect the query as follows:
-\begin{equation*}
-\inferrule*[Right=InputAssignment]
-{
-	{\begin{array}{c}
-	    \vdash_\networkTheoryVar \networkInput_1 : \semModelType_\networkTheoryVar(\networkInputsType(\networkDeclVar_1)) \\ 
-    	\vdots \\ 
-    	\vdash_\networkTheoryVar \networkInput_n : \semModelType_\networkTheoryVar(\networkInputsType(\networkDeclVar_n))
-    \end{array}}
-}
-{
-    \queryExpansion \vdash \networkInputs
-}
-\end{equation*}
+Arithmetic expressions consisting of the basic arithmetic operations can be type-checked as follows:
+\input{diagrams/typing-rule-arith-ops.tex}
+The typing rules for constants defers to the typing rule provided by the underlying network theory~$\networkTheoryVar$:
+\input{diagrams/typing-rule-arith-constants.tex}
+For example, one might expect that the constant \texttt{0.5} would be a member of the ONNX \texttt{float32} element type, but not of the ONNX \texttt{int32} element type.
+
+Finally, the typing rules for variables ensure that the variable is of the correct type and the indices provided fit within the declared shape of the variable:
+\input{diagrams/typing-rule-arith-variables.tex}
+Crucially, therefore variables provide the source of typing for the whole arithmetic expression. 
+One consequence of this is that comparisons that contain no variables (e.g. \texttt{(<= 0.0 1.0)}) have no canonical type and therefore are not considered well-formed.
+
+\subsection{Models}
+\label{sec:model-typing}
+
+As input, verifiers will take a query $\queryVar$ and a list of ONNX models $\networkImplementationSet \in [\mgrammar{<model>}_\networkTheoryVar]$, and it is important that the models passed conform to the network declarations. 
+Using the typing judgement \textsc{Model} from the underlying network theory in Figure~\ref{fig:onnx-signature}, the following typing judgement $\queryVar \vdash \networkImplementationSet$ ensures that the network models $\networkImplementationSet$ are well typed with respect to the network declarations in the query $\queryVar$:
+\input{diagrams/typing-rule-model.tex}
+where the function $\networkDeclType : \mgrammar{<network>} \rightarrow \mgrammar{<modelType>}_\networkTheoryVar$ that maps a network declaration to the overall type of the model that it expects is defined in the obvious way.
+
+\subsection{Input Assignments}
+\label{sec:input-assignment-typing}
+
+As output, verifiers will produce either a judgement that the query $q$ is unsatisfiable or a concrete assignment of input tensors, $\networkInputSet \in [\mgrammar{<tensor>}_\networkTheoryVar]$, that causes the query to be satisfied. 
+Using the typing judgement \textsc{Tensor} from the underlying network theory in Figure~\ref{fig:onnx-signature}, the following typing judgment $\queryVar \vdash \networkInputSet$ ensures that the input assignment $\networkInputSet$ is well typed with respect to the network declarations in the query~$\queryVar$:
+\input{diagrams/typing-rule-inputAssignment.tex}
+where the function $\networkInputsType : \mgrammar{<network>} \rightarrow [\mgrammar{<tensorType>}_\networkTheoryVar]$ that maps a network declaration to the types of the input tensors that it expects is defined in the obvious way.
 
 \section{Semantics}
 \label{sec:semantics}
 
-\myremark{Section 3.3 is still a work in progress and the definitions and writing are not complete.}
+This section will now define the semantics of the \vnnlib{} query language, i.e. a precise description of the mathematical satisfiability problem that a solver is attempting to answer when provided with a well-typed query $\queryVar$ and list of models~$\networkImplementationSet$.
 
-The next task is define the meaning of the \vnnlib{} query language, i.e. a precise description of the mathematical problem that a solver is answers when given a query. This is known as the semantics of the language and, amongst other things, allows one to prove:
-\begin{itemize}
-\item that a transformation of a \vnnlib{} query preserves the meaning of the original query (e.g. conversion of assertions into Disjunctive Normal Form (DNF)). 
-\item the soundness of verifiers, i.e. that a particular solver will give always give the right answer.
-\item the soundness of higher-level tools that compile higher-level problems down to \vnnlib{} queries.
-\end{itemize}
-This section therefore defines the semantics of \vnnlib{} query language using standard mathematical notation. A fully formal version of the semantics mechanised in the Agda interactive theorem prover is available via the official Agda-VNNLIB repository~\cite{}. 
-
-
-\subsection{Queries}
-
-Inuitively, the semantics of a query is defined in terms of the satisfiability problem it represents, i.e. given a set of networks, is there an assignment of input tensors that cause all the assertions to evaluate to true?
-A query is said to be \textit{satisfiable} if there is such an input assignment, and \textit{unsatisfiable} otherwise.
-
-More formally, the semantics of a query is defined as a function. The input to the function is a well-typed query $\queryVar$ and a syntactic list of models $\networkImplementationSet$ from the underlying theory $\networkTheoryVar$ that are well-typed with respect to $\queryVar$. The output of the function is the truth value of whether there exists a input assignment consisting of a syntactic list of tensors $\networkInputSet$ from the underlying theory :
-\begin{equation*}
-\begin{array}{lll}
-\semQuery & : \mgrammar{<query>} \rightarrow [\mgrammar{<model>}_\networkTheoryVar] \rightarrow \mathbb{B} \\
-\semQuery & (\queryExpansion)~\networkImplementationSet = \\
-    & \exists~(\networkInputSet : [\mgrammar{<tensor>}_\networkTheoryVar]). \; \bigwedge^{m}_{i=1}~\semGrammar{assert}(\assertEnv(\networkImplementationSet,\networkInputSet), A_i)) \\
-\end{array}
-\end{equation*}
-
-\subsection{Context}
+\subsection{Environment}
 \label{sec:semantic-context}
 
-The semantic context $\assertEnv$ is defined as a set of three functions mapping input/hidden/output network variables $\tensorVar$ of type $\tensorTypeVar$ to a semantic tensor $\semTensor_\networkTheoryVar(\delta)$. 
-Given a network declaration $\networkDeclVar$, and a well-typed model $\networkImplementation$ and an input assignment $\networkInput$ we can define the environment for $\networkDeclVar$ as follows:
+Whether or not a query $\queryVar$ over a list of network models $\networkImplementationSet$ is satisfied by a given input assignment $\networkInputSet$, depends on the resulting value of the network variables. 
+This notion is captured formally by the \emph{environment} $\assertEnv$ which is a function:
+\begin{equation*}
+\assertEnv : (\nameVar : \tensorTypeVar) \rightarrow \semTensor_\networkTheoryVar(\delta)
+\end{equation*}
+that maps input/hidden/output network variables $\nameVar$ to tensors of the corresponding type.
+
+Given a list of network declarations $\networkDeclSet$, a list of models $\networkImplementationSet$ and an input assignment $\networkInputSet$, the environment $\assertEnv (\networkDeclSet, \networkImplementationSet, \networkInputSet)$ is calculated as the union of the environments induced by each network:
+\begin{equation*}
+\assertEnv (\networkDeclSet, \networkImplementationSet, \networkInputSet) = \bigcup_i \assertEnv (\networkDeclSet_i, \networkImplementationSet_i, \networkInputSet_i)
+\end{equation*}
+Concretely, given a network declaration $\networkDeclVar$, and a well-typed model $\networkImplementation$ and an input assignment $\networkInput$, the calculation of the environment can be defined as follows:
 \begin{align*}
 \assertEnv (\networkExpansion, \networkImplementation, \networkInputTensors) 
 & = (\assertEnv_{I}, \assertEnv_{H}, \assertEnv_{O}) 
@@ -569,66 +401,42 @@ where
 \assertEnv_{O} 
 &= \{ \outputDeclVar_i.name \rightarrow \semModel_{\networkTheoryVar}(\networkImplementation)(\semTensor_\networkTheoryVar(\networkInputTensor_0), \ldots, \semTensor_\networkTheoryVar(\networkInputTensor_n)) \}
 \end{align*}
-Therefore, given a set of networks $\networkImplementationSet$ and an input assignment $\networkInputSet$ we can construct the context as follows:
-\begin{equation*}
-\assertEnv (\networkImplementationSet, \networkInputSet) = \bigcup_i \assertEnv (\networkImplementationSet_i, \networkInputSet_i)
-\end{equation*}
 
 \subsection{Assertions}
 
 Given an environment $\assertEnv$ calculated as described in Section~\ref{sec:semantic-context}, we can calculate the semantics of assertions as shown in Figure~\ref{fig:sem-assertions}. 
-There is nothing particularly surprising about the semantics of assertions with both $\semGrammar{assert}$ and $\semGrammar{bool}$ mapping assertions and boolean expressions to boolean values, and $\semGrammar{arith}$ mapping arithmetic expressions to numeric values.
-The only thing to note is that, as the exact numeric types provided by the underlying network theory $\networkTheoryVar$ that are being calculated with are unknown, the semantics of arithmetic operations and comparisons operations are delegated to the semantics provided by $\networkTheoryVar$.
+\input{diagrams/semantics-assertion.tex}
 
-\begin{figure}
-\newcommand{\semComp}[1]{\semBool{(\mathtt{#1}~a_1~a_2)}
-    &= \sem{#1}_\networkTheoryVar(\semBool{a_1},\semBool{a_2})}
- 
+There is nothing particularly surprising about the semantics of assertions with both $\semGrammar{assert}$ and $\semGrammar{bool}$ mapping assertions and boolean expressions to boolean values, and $\semGrammar{arith}$ mapping arithmetic expressions to numeric values.
+\input{diagrams/semantics-boolExpr.tex}
+
+The only thing to note is that, as the exact numeric types provided by the underlying network theory $\networkTheoryVar$ that are being calculated with are unknown, the semantics of arithmetic operations and comparisons operations are delegated to the semantics provided by $\networkTheoryVar$.
+\input{diagrams/semantics-arithExpr.tex}
+
+
+\subsection{Queries}
+
+As expected, the semantics of a query is defined in terms of the satisfiability problem it represents, i.e. given a set of networks, is there an assignment of input tensors that cause all the assertions to evaluate to true?
+A query is said to be \textit{satisfiable} if there is such an input assignment, and \textit{unsatisfiable} otherwise.
+
+More formally, the semantics of a query is defined as a function. The input to the function is a well-typed query $\queryVar$ and a syntactic list of models $\networkImplementationSet$ from the underlying theory $\networkTheoryVar$ that are well-typed with respect to $\queryVar$. The output of the function is the truth value of whether there exists a input assignment consisting of a syntactic list of tensors $\networkInputSet$ from the underlying theory :
 \begin{equation*}
-\begin{array}{llll}
-    \semArith{d}
-    &= \semTensor_\networkTheoryVar(d)
-    \\
-    \semArith{v[l_1, \ldots, \l_k]} 
-    &= \assertEnv(v)_{l_1, \ldots, l_k} 
-    \\
-    \semArith{({\mathtt{-}}~e)}
-    &= \sem{-}_\networkTheoryVar(\semArith{e}) 
-    \\
-    \semArith{(\mathtt{+}~e_1~...~e_n)} 
-    &= \sem{\sum^n_{i=1}}_\networkTheoryVar~\semArith{e_i}
-    \\
-    \semArith{(\mathtt{*}~a_1~...~a_n)} 
-    &= \sem{\prod^n_{i=1}}_\networkTheoryVar~\semArith{e_i}
-    \\
-    \semArith{(\mathtt{-}~a_1~...~a_n)} 
-    &= \sem{+}_\networkTheoryVar(\semArith{e_1}, \sem{-}_\networkTheoryVar(\sem{\sum^n_{i=2}}_\networkTheoryVar~\semArith{e_i}))
-    \\
-    \\
-    \semComp{<}
-    \\
-    \semComp{>}
-    \\
-    \semComp{<=}
-    \\
-    \semComp{>=}
-    \\
-    \semComp{==}
-    \\
-    \semComp{!=}
-    \\
-    \semBool{(\mathtt{and}~b_1~...~b_n)} &=\bigwedge_{i} \;\semBool{b_i}\\
-    \semBool{(\mathtt{or}~b_1~...~b_n)} &=\bigvee_{i} \; \semBool{b_i}
-    \\
-    \\
-    \semAssert{(\mathtt{assert}~b)} &= \semBool{b}
+\begin{array}{lll}
+\semQuery & : \mgrammar{<query>} \rightarrow [\mgrammar{<model>}_\networkTheoryVar] \rightarrow \mathbb{B} \\
+\semQuery & (\queryExpansion)~\networkImplementationSet = \\
+    & \exists~(\networkInputSet : [\mgrammar{<tensor>}_\networkTheoryVar]). \; \bigwedge^{m}_{i=1}~\semGrammar{assert}(\assertEnv(\networkImplementationSet,\networkInputSet), A_i)) \\
 \end{array}
 \end{equation*}
-\caption{Semantics of \vnnlib{} assertions, parameterised by the semantics of the underlying network theory $\networkTheoryVar$ described in Figure~\ref{fig:onnx-semantics}. $\sem{\sum}_\networkTheoryVar$ and $\sem{\prod}_\networkTheoryVar$ are defined in the obvious way from $\sem{+}_\networkTheoryVar$ and $\sem{\times}_\networkTheoryVar$. }
-\label{fig:sem-assertions}
-\end{figure}
 
- 
+\subsection{Applications}
+
+There are various applications of the semantics of the language, including:
+\begin{itemize}
+\item \textbf{proving the soundness of query transformations}, i.e. various transformations of a query preserves the meaning, e.g. conversion of assertions into Disjunctive Normal Form (DNF) do not change the satisfiability of the query. 
+\item \textbf{proving the soundness of verifiers}, i.e. that a particular solver will give always give the right answer.
+\item \textbf{proving the soundness of higher-level tools}, i.e. that tools that compile higher-level specifications down to a set of \vnnlib{} queries preserve the meaning of the original specification.
+\end{itemize}
+
 
 \section{Queries over \real}
 \label{sec:real-queries}
@@ -723,3 +531,8 @@ Luckily, the notion of a network theory gives us a modular way to do so. In part
 \item \textbf{Models} - models in $\networkTheoryVar_\real$ are models from the original theory $\networkTheoryVar$. They are well-typed as long as all the input and output tensors are of the same shape, i.e. the actual original element types provided by $\networkTheoryVar$ are irrelevant. The semantics of the model is provided by the function $\sem{\mathtt{realModel}}_\networkTheoryVar$ that we assume we have access to.
 \end{itemize}
 We can then use this new theory $\networkTheoryVar_\real$, to obtain both the syntax and semantics for queries over $\real$ simply by reparametrising the exsting syntax and semantics defined in the previous sections. \autoref{fig:real-simple-query} shows an example query over $\networkTheoryVar_\real$.
+
+\section{Mechanisation}
+
+A fully formal version of the contents of this chapter, including the syntax, typing rules and semantics has been mechanised in the Agda interactive theorem prover.
+This is available via the official Agda-VNNLIB repository~\cite{}. 

@@ -1,0 +1,27 @@
+\begin{mathpar}
+            \inferrule*[Right=Query]
+            {
+            	{\begin{array}{ll}
+	            \emptyset &
+	            \vdash \networkDeclVar_1 : \assertCtx_1 \\
+	            \assertCtx_{1} &
+	            \vdash \networkDeclVar_2 : \assertCtx_2 \\
+                & \vdots \\
+	            \assertCtx_{n-1} &
+	            \vdash \networkDeclVar_n : \assertCtx_n
+	            \end{array}}
+	            \\
+	            {\begin{array}{ll}
+                \assertCtx_n &
+                \vdash \assertionVar_1 \\
+                \assertCtx_n &
+                \vdash \assertionVar_2 \\
+                &\vdots \\
+                \assertCtx_n &
+                \vdash \assertionVar_m
+                \end{array}}
+            }
+            {
+                \vdash \queryExpansion
+            }
+\end{mathpar}

@@ -1,0 +1,9 @@
+\begin{mathpar}
+    \inferrule*[Right=Variable]
+    {
+        \assertCtx [v] = (\tau,s) \quad \forall i . \; l_i < s_i
+    }
+    {
+        \assertCtx \vdash v~l : \tau
+    }
+\end{mathpar}
