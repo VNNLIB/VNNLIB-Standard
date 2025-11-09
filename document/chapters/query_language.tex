@@ -31,7 +31,7 @@ and the shape of the tensor. Similarly, an output variable uses the \texttt{decl
     \end{minipage}%
     \begin{minipage}[c]{0.35\textwidth}
         \centering
-        \includegraphics[height=5cm]{imgs/simple_net.onnx.png}
+        \includegraphics[height=5cm]{imgs/simple_net.onnx.pdf}
     \end{minipage}
     \caption{A simple \vnnlib{} specification which declares a network with a single input and output tensor. An example of one of the many possible ONNX models compatible with this declaration is shown on the right. Note that the variable names in the declared inputs and outputs do not have to match the node names in the ONNX file.}
     \label{fig:simple-query}
@@ -118,7 +118,7 @@ The query language supports such networks by allowing a network declaration to d
 )\end{lstlisting}
 
     \vspace{0.5cm}
-    \includegraphics[width=\textwidth]{imgs/multi_io_net.onnx.png}
+    \includegraphics[width=\textwidth]{imgs/multi_io_net.onnx.pdf}
     \caption{A \vnnlib{} network declaration with multiple inputs/outputs. The first code snippet shows the declared inputs and outputs mapped to the ONNX inputs and outputs nodes by declaration order, while the second snippet shows them explicitly mapped by the name of the ONNX node.}
     \label{fig:multi-inputs-outputs}
 \end{figure}
@@ -140,7 +140,7 @@ In some use cases it is desirable to constrain the result of intermediate comput
     \end{minipage}%
     \begin{minipage}[c]{0.21\textwidth}
         \centering
-        \includegraphics[height=6cm]{imgs/encoder_net.onnx.png}
+        \includegraphics[height=6cm]{imgs/encoder_net.onnx.pdf}
     \end{minipage}
     \caption{A \vnnlib{} network declaration that declares a hidden node}
     \label{fig:hidden-node}
@@ -171,9 +171,9 @@ shows an example which declares two networks representing a teacher and a studen
     \end{minipage}
     \begin{minipage}[c]{0.35\textwidth}
         \centering
-        \includegraphics[height=7cm]{imgs/teacher_net.onnx.png}
+        \includegraphics[height=7cm]{imgs/student_net.onnx.pdf}
         \vspace{0.5cm} 
-        \includegraphics[height=5cm]{imgs/student_net.onnx.png}
+        \includegraphics[height=7cm]{imgs/teacher_net.onnx.pdf}
     \end{minipage}
     \caption{A pair of \vnnlib{} network declarations that allows the referencing of multiple networks within a single query.}
     \label{fig:multiple-networks}
@@ -198,7 +198,7 @@ For some use cases involving multiple networks (e.g. proving monotonicity), each
     \end{minipage}
     \begin{minipage}[c]{0.35\textwidth}
         \centering
-        \includegraphics[height=5cm]{imgs/simple_net.onnx.png}
+        \includegraphics[height=5cm]{imgs/simple_net.onnx.pdf}
     \end{minipage}
     \caption{A pair of \vnnlib{} network declarations that reference the same ONNX network.}
     \label{fig:multiple-equal-networks}
@@ -222,9 +222,9 @@ In other use cases involving multiple networks (e.g. proving local equivalence a
     \end{minipage}
     \begin{minipage}[c]{0.35\textwidth}
         \centering
-        \includegraphics[height=5cm]{imgs/simple_net.onnx.png}
+        \includegraphics[height=5cm]{imgs/simple_net.onnx.pdf}
         \vspace{0.5cm} 
-        \includegraphics[height=5cm]{imgs/simple_net.onnx.png}
+        \includegraphics[height=5cm]{imgs/simple_net.onnx.pdf}
     \end{minipage}
     \caption{A pair of \vnnlib{} network declarations that reference isomorphic ONNX networks.}
     \label{fig:multiple-isomorphic-networks}
