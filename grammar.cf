@@ -38,24 +38,24 @@ Equal.        BoolExpr   ::= "(" "==" ArithExpr ArithExpr ")";
 
 -- A connective (or logical) operator is an n-ary operator that combines multiple Boolean formulas
 And.          BoolExpr   ::= "(" "and" [BoolExpr] ")" ;
-Or.           BoolExpr   ::= "(" "or" [BoolExpr] ")";
+Or.           BoolExpr   ::= "(" "or" [BoolExpr] ")" ;
 separator nonempty BoolExpr "" ;
 
 -- An assertion is a constraint that must be satisfied by the model. 
 Assert.       Assertion   ::= "(assert" BoolExpr ")" ;
 separator nonempty Assertion "" ;
 
--- A tensor element is a generic scalar variable of type "Real", or a type defined by ONNX
+-- A tensor element is a generic scalar variable of type 'Real', or a type defined by ONNX
 -- https://github.com/onnx/onnx/blob/main/docs/IR.md#tensor-element-types
-DType.        ElementType ::= String ; 
--- The ONNX name associated with a tensor
+DType.        ElementType ::= VariableName ; 
+-- The ONNX name associated with a tensor. Bounded by double quotes
 NodeName.     OnnxName    ::= String ;
 
--- A tensor definition is a declaration of a tensor variable with a shape and an element type
+-- A tensor definition consists of the variable name, element type, shape, and optional ONNX name
 InputDef.     InputDefinition  ::= "(declare-input" VariableName ElementType TensorShape ")" ;
 InputOnnxDef. InputDefinition  ::= "(declare-input" VariableName ElementType TensorShape OnnxName ")" ;
 
--- Hidden definitions have a mandatory ONNX name string
+-- Hidden definitions have a mandatory ONNX name
 HiddenDef.    HiddenDefinition ::= "(declare-hidden" VariableName ElementType TensorShape OnnxName ")" ;
 
 OutputDef.     OutputDefinition ::= "(declare-output" VariableName ElementType TensorShape ")" ;
