@@ -45,57 +45,36 @@ separator nonempty BoolExpr "" ;
 Assert. Assertion ::= "(assert" BoolExpr ")" ;
 separator nonempty Assertion "" ;
 
--- A tensor element is a generic scalar variable of type Real
--- or a specific type that is defined for onnx nodes:
+-- A tensor element is a generic scalar variable of type "Real", or a type defined by ONNX
 -- https://github.com/onnx/onnx/blob/main/docs/IR.md#tensor-element-types
-GenericElementType. ElementType ::= "Real" ;
-ElementTypeF16. ElementType ::= "float16" ;
-ElementTypeF32. ElementType ::= "float32" ;
-ElementTypeF64. ElementType ::= "float64" ;
-ElementTypeBF16. ElementType ::= "bfloat16" ;
-ElementTypeF8E4M3FN. ElementType ::= "float8e4m3fn" ;
-ElementTypeF8E5M2. ElementType ::= "float8e5m2" ;
-ElementTypeF8E4M3FNUZ. ElementType ::= "float8e4m3fnuz" ;
-ElementTypeF8E5M2FNUZ. ElementType ::= "float8e5m2fnuz" ;
-ElementTypeF4E2M1. ElementType ::= "float4e2m1" ;
-ElementTypeI8. ElementType ::= "int8" ;
-ElementTypeI16. ElementType ::= "int16" ;
-ElementTypeI32. ElementType ::= "int32" ;
-ElementTypeI64. ElementType ::= "int64" ;
-ElementTypeU8. ElementType ::= "uint8" ;
-ElementTypeU16. ElementType ::= "uint16" ;
-ElementTypeU32. ElementType ::= "uint32" ;
-ElementTypeU64. ElementType ::= "uint64" ;
-ElementTypeC64. ElementType ::= "complex64" ;
-ElementTypeC128. ElementType ::= "complex128" ;
-ElementTypeBool. ElementType ::= "bool" ;
-ElementTypeString. ElementType ::= "string" ;
+DType. ElementType ::= String ; 
+-- The ONNX name associated with a tensor
+NodeName. OnnxName ::= String ;
 
 -- A tensor definition is a declaration of a tensor variable with a shape and an element type
--- Input and output definitions have an optional ONNX name string (using double quotes)
 InputDef. InputDefinition ::= "(declare-input" VariableName ElementType TensorShape ")" ;
-InputOnnxDef. InputDefinition ::= "(declare-input" VariableName ElementType TensorShape String ")" ;
+InputOnnxDef. InputDefinition ::= "(declare-input" VariableName ElementType TensorShape OnnxName ")" ;
 
 -- Hidden definitions have a mandatory ONNX name string
-HiddenDef. HiddenDefinition ::= "(declare-hidden" VariableName ElementType TensorShape String ")" ;
+HiddenDef. HiddenDefinition ::= "(declare-hidden" VariableName ElementType TensorShape OnnxName ")" ;
 
 OutputDef. OutputDefinition ::= "(declare-output" VariableName ElementType TensorShape ")" ;
-OutputOnnxDef. OutputDefinition ::= "(declare-output" VariableName ElementType TensorShape String ")" ;
+OutputOnnxDef. OutputDefinition ::= "(declare-output" VariableName ElementType TensorShape OnnxName ")" ;
 
 separator nonempty InputDefinition "" ;
 separator HiddenDefinition "" ;
 separator nonempty OutputDefinition "" ;
 
--- This statement declares that a network has the same architecture as another.
-IsomorphicTo. CompStm ::= "(isomorphic-to" VariableName ")" ;
--- This statement declares that two networks have identical architecture weights
-EqualTo. CompStm ::= "(equal-to" VariableName ")" ;
+-- This statement declares that a network has the same structure as another.
+IsomorphicTo. NetworkEquivalence ::= "(isomorphic-to" VariableName ")" ;
+-- This statement declares that two networks have identical structures and weights.
+EqualTo. NetworkEquivalence ::= "(equal-to" VariableName ")" ;
 -- A network should have only one of these statements, but this is not enforced here for brevity
-separator CompStm "" ;
+separator NetworkEquivalence "" ;
 
 -- A network definition declares a neural network with an associated name, optional congruence statement/s, and input, hidden and output tensor definitions
-NetworkDef. NetworkDefinition ::= "(declare-network" VariableName [CompStm] [InputDefinition] [HiddenDefinition] [OutputDefinition] ")" ;
-separator NetworkDefinition "" ;
+NetworkDef. NetworkDefinition ::= "(declare-network" VariableName [NetworkEquivalence] [InputDefinition] [HiddenDefinition] [OutputDefinition] ")" ;
+separator nonempty NetworkDefinition "" ;
 
 -- The version of the VNN-LIB query being used that follows <breaking>.<non-breaking> version numbering
 VNNLibVersion. Version ::= "(vnnlib-version" VersionToken ")" ;
