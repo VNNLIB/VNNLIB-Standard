@@ -12,53 +12,53 @@ position token VariableName letter (letter|digit|'_')* ;
 separator nonempty Number "," ;
 
 -- Production of Tensor Shape (empty shape is allowed for scalar tensors)
-ScalarDims. TensorShape ::= "[" "]" ;
-TensorDims. TensorShape ::= "[" [Number] "]" ;
+ScalarDims.  TensorShape ::= "[" "]" ;
+TensorDims.  TensorShape ::= "[" [Number] "]" ;
 
 -- The base case of ArithExpr is a numeric value or a tensor element
 -- A variable refers to a tensor element, constructed with the associated variable name and tensor indices
-VarExpr. ArithExpr ::= VariableName "[" [Number] "]" ;
-ValExpr. ArithExpr ::= Number ;
+VarExpr.     ArithExpr   ::= VariableName "[" [Number] "]" ;
+ValExpr.     ArithExpr   ::= Number ;
 
 -- An arithmetic operator is a unary or binary operator that performs an arithmetic operation
 -- Operations can be defined with an arbitrary number of inputs which are left associative.
-Negate. ArithExpr ::= "(" "-" ArithExpr  ")" ;
-Plus. ArithExpr ::= "(" "+" [ArithExpr] ")";
-Minus. ArithExpr ::= "(" "-" ArithExpr [ArithExpr] ")" ;
-Multiply. ArithExpr ::= "(" "*" [ArithExpr] ")" ;
+Negate.      ArithExpr   ::= "(" "-" ArithExpr  ")" ;
+Plus.        ArithExpr   ::= "(" "+" [ArithExpr] ")";
+Minus.       ArithExpr   ::= "(" "-" ArithExpr [ArithExpr] ")" ;
+Multiply.    ArithExpr   ::= "(" "*" [ArithExpr] ")" ;
 separator nonempty ArithExpr "" ;
 
 -- A comparative operator is a binary operator that compares two inputs
-GreaterThan. BoolExpr ::= "(" ">" ArithExpr ArithExpr ")" ;
-LessThan. BoolExpr ::= "(" "<" ArithExpr ArithExpr ")" ;
-GreaterEqual. BoolExpr ::= "(" ">=" ArithExpr ArithExpr ")" ;
-LessEqual. BoolExpr ::= "(" "<=" ArithExpr ArithExpr ")" ;
-NotEqual. BoolExpr ::= "(" "!=" ArithExpr ArithExpr ")" ;
-Equal. BoolExpr ::= "(" "==" ArithExpr ArithExpr ")";
+GreaterThan.  BoolExpr   ::= "(" ">" ArithExpr ArithExpr ")" ;
+LessThan.     BoolExpr   ::= "(" "<" ArithExpr ArithExpr ")" ;
+GreaterEqual. BoolExpr   ::= "(" ">=" ArithExpr ArithExpr ")" ;
+LessEqual.    BoolExpr   ::= "(" "<=" ArithExpr ArithExpr ")" ;
+NotEqual.     BoolExpr   ::= "(" "!=" ArithExpr ArithExpr ")" ;
+Equal.        BoolExpr   ::= "(" "==" ArithExpr ArithExpr ")";
 
 -- A connective (or logical) operator is an n-ary operator that combines multiple Boolean formulas
-And. BoolExpr ::= "(" "and" [BoolExpr] ")" ;
-Or. BoolExpr ::= "(" "or" [BoolExpr] ")";
+And.          BoolExpr   ::= "(" "and" [BoolExpr] ")" ;
+Or.           BoolExpr   ::= "(" "or" [BoolExpr] ")";
 separator nonempty BoolExpr "" ;
 
 -- An assertion is a constraint that must be satisfied by the model. 
-Assert. Assertion ::= "(assert" BoolExpr ")" ;
+Assert.       Assertion   ::= "(assert" BoolExpr ")" ;
 separator nonempty Assertion "" ;
 
 -- A tensor element is a generic scalar variable of type "Real", or a type defined by ONNX
 -- https://github.com/onnx/onnx/blob/main/docs/IR.md#tensor-element-types
-DType. ElementType ::= String ; 
+DType.        ElementType ::= String ; 
 -- The ONNX name associated with a tensor
-NodeName. OnnxName ::= String ;
+NodeName.     OnnxName    ::= String ;
 
 -- A tensor definition is a declaration of a tensor variable with a shape and an element type
-InputDef. InputDefinition ::= "(declare-input" VariableName ElementType TensorShape ")" ;
-InputOnnxDef. InputDefinition ::= "(declare-input" VariableName ElementType TensorShape OnnxName ")" ;
+InputDef.     InputDefinition  ::= "(declare-input" VariableName ElementType TensorShape ")" ;
+InputOnnxDef. InputDefinition  ::= "(declare-input" VariableName ElementType TensorShape OnnxName ")" ;
 
 -- Hidden definitions have a mandatory ONNX name string
-HiddenDef. HiddenDefinition ::= "(declare-hidden" VariableName ElementType TensorShape OnnxName ")" ;
+HiddenDef.    HiddenDefinition ::= "(declare-hidden" VariableName ElementType TensorShape OnnxName ")" ;
 
-OutputDef. OutputDefinition ::= "(declare-output" VariableName ElementType TensorShape ")" ;
+OutputDef.     OutputDefinition ::= "(declare-output" VariableName ElementType TensorShape ")" ;
 OutputOnnxDef. OutputDefinition ::= "(declare-output" VariableName ElementType TensorShape OnnxName ")" ;
 
 separator nonempty InputDefinition "" ;
@@ -68,19 +68,19 @@ separator nonempty OutputDefinition "" ;
 -- This statement declares that a network has the same structure as another.
 IsomorphicTo. NetworkEquivalence ::= "(isomorphic-to" VariableName ")" ;
 -- This statement declares that two networks have identical structures and weights.
-EqualTo. NetworkEquivalence ::= "(equal-to" VariableName ")" ;
+EqualTo.      NetworkEquivalence ::= "(equal-to" VariableName ")" ;
 -- A network should have only one of these statements, but this is not enforced here for brevity
 separator NetworkEquivalence "" ;
 
 -- A network definition declares a neural network with an associated name, optional congruence statement/s, and input, hidden and output tensor definitions
-NetworkDef. NetworkDefinition ::= "(declare-network" VariableName [NetworkEquivalence] [InputDefinition] [HiddenDefinition] [OutputDefinition] ")" ;
+NetworkDef.   NetworkDefinition ::= "(declare-network" VariableName [NetworkEquivalence] [InputDefinition] [HiddenDefinition] [OutputDefinition] ")" ;
 separator nonempty NetworkDefinition "" ;
 
 -- The version of the VNN-LIB query being used that follows <breaking>.<non-breaking> version numbering
-VNNLibVersion. Version ::= "(vnnlib-version" VersionToken ")" ;
+VNNLibVersion. Version         ::= "(vnnlib-version" VersionToken ")" ;
 
 -- A query is a series of network definitions followed by a series of assertions
-VNNLibQuery. Query ::= Version [NetworkDefinition] [Assertion] ;
+VNNLibQuery.   Query           ::= Version [NetworkDefinition] [Assertion] ;
 
 -- A comment starts with a semicolon
 comment ";" ;
