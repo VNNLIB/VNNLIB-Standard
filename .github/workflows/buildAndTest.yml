@@ -17,7 +17,7 @@ jobs:
           run: cabal update && cabal install alex && cabal install happy && cabal install BNFC
 
         - name: Build the parser
-          run: bnfc -d -m syntax.cf && make
+          run: bnfc -d -m grammar.cf && make
         
         - name: Test the parser
           run: chmod +x test.sh && ./test.sh
