@@ -14,13 +14,13 @@ Among these, ONNX (Open Neural Network Exchange) has been chosen as the standard
 
 \item \textbf{Versioning and Documentation}: The ONNX specification includes detailed documentation and operator definitions, and a robust versioning system. This makes it easier for tools to implement and interact with the format in a consistent manner.
 
-\item \textbf{Existing Verifier Ecosystem}: Finally, ONNX is already well-integrated into the neural network verification research community. It has served as the standard format in the VNN-COMP competition, making it a natural fit for \vnnlib{} and aligning with existing verifier tooling.
+\item \textbf{Existing Solver Ecosystem}: Finally, ONNX is already well-integrated into the neural network verification research community. It has served as the standard format in the VNN-COMP competition, making it a natural fit for \vnnlib{} and aligning with existing solver tooling.
 \end{itemize}
 
 \section{Overview of the ONNX Format}
 \label{sec:onnx_overview}
 
-We will now give a brief overview of the ONNX format. For a more detailed description suitable for implementators of neural network verifiers, the full ONNX specification should be consulted. 
+We will now give a brief overview of the ONNX format. For a more detailed description suitable for implementators of neural network solvers, the full ONNX specification should be consulted. 
 
 \paragraph{Model structure} 
 
@@ -58,8 +58,8 @@ The ONNX format provides a syntax for specifying the computations performed by a
 
 This lack of formal semantics presents challenges for verification, but the community has so far accepted this limitation as a practical compromise. Encouragingly, progress is being made: since 2024, the \emph{ONNX Safety-Related Profile} working group has been developing a restricted subset of ONNX with formally specified semantics. Work is currently ongoing.
 
-\section{Verifier support for ONNX in practice}
+\section{Solver support for ONNX in practice}
 \label{sec:onnx_support}
 
 Currently, we are not aware of any neural network solver that supports the full range of ONNX models. In practice, a particular solver will handle only a subset of ONNX operators, data types, and model structures.
-To promote clarity and interoperability, the \vnnlib{} command-line interface includes a mechanism for querying the extent of a particular verifier's support for the ONNX standard (see Section~\ref{sec:global_capabilities}). This mechanism allows verifiers to explicitly report the ONNX features they support, enabling toolchains and users to reason more effectively about compatibility.
+To promote clarity and interoperability, the \vnnlib{} command-line interface includes a mechanism for querying the extent of a particular solver's support for the ONNX standard (see Section~\ref{sec:global_capabilities}). This mechanism allows solvers to explicitly report the ONNX features they support, enabling toolchains and users to reason more effectively about compatibility.

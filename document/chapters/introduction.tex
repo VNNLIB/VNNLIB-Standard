@@ -6,7 +6,7 @@
 While neural networks have shown exceptional performance across a range of tasks, 
 they remain vulnerable to issues such as adversarial examples~\cite{szegedy2013intriguing} and discriminatory behaviour~\cite{4}. As these models are increasingly deployed in safety-critical and high-impact societal applications~\cite{1,2,3}, the need for robust methods to verify their behaviour has become paramount.
 
-As with many formal verification problems, neural network verification can typically be reduced to sets of satisfiability queries. These queries are answerable by domain specific solvers which will be referred to as \emph{neural network verifiers} or simply \emph{verifiers} in this document. The \vnnlib{} standard was inspired by the success of SMT-LIB, which provides a unified format for queries to SMT solvers. 
+As with many formal verification problems, neural network verification can typically be reduced to sets of satisfiability queries. These queries are answerable by domain specific solvers which will be referred to as \emph{neural network verifiers} or simply \emph{solvers} in this document. The \vnnlib{} standard was inspired by the success of SMT-LIB, which provides a unified format for queries to SMT solvers. 
 Since its introduction in 2023, the \vnnlib{} standard~\cite{5} has been the de-facto specification language for queries in the neural network verification community, most notably used in the annual VNN-COMP~\cite{7} competition. Its goal is to facilitate the standardisation of solver interfaces and enable the collection of neural network verification benchmarks in a common format. 
 
 \section{Document structure}
@@ -16,7 +16,7 @@ This document assumes some basic familiarity with neural networks, first-order l
 \item \textbf{Chapter~\ref{sec:models} - \nameref{sec:models}}: A high-level description of the pre-existing ONNX standard for representing the neural network models.
 \item \textbf{Chapter~\ref{sec:specification_language} - \nameref{sec:specification_language}}: The \vnnlib{} language for representing a satisfiability query over one or more neural network models.
 \item \textbf{Chapter~\ref{sec:theories-logics} - \nameref{sec:theories-logics}}: A system for describing the different subsets of the query language that a given solver may support.
-\item \textbf{Chapter~\ref{sec:solver_interface} - \nameref{sec:solver_interface}}: A standardised interface for allowing users to invoke a neural network verifier on a query and to query the capabilities of the verifier.
+\item \textbf{Chapter~\ref{sec:solver_interface} - \nameref{sec:solver_interface}}: A standardised interface for allowing users to invoke and query the capabilities of a solver.
 \end{enumerate}
 
 \section{Document versioning}

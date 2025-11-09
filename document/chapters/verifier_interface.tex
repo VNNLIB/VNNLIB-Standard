@@ -25,45 +25,45 @@
     backgroundcolor=\color{white}
 }
 
-\newcommand{\exampleVerifier}{checkNN}
+\newcommand{\exampleSolver}{checkNN}
 
-With the growing number of neural network verifiers and their increasing integration into larger toolchains, there is a clear need for a consistent and predictable way to invoke them. A standardised command-line interface (CLI) therefore enables interoperability between verifiers and higher-level tools, facilitates benchmarking and automation, and reduces the burden on users adapting to multiple systems.
+With the growing number of solvers and their increasing integration into larger toolchains, there is a clear need for a consistent and predictable way to invoke them. A standardised command-line interface (CLI) therefore enables interoperability between solvers and higher-level tools, facilitates benchmarking and automation, and reduces the burden on users adapting to multiple systems.
 
-This chapter defines the CLI for neural network verifiers that conform to the \vnnlib{} standard. The interface supports querying verifier capabilities, listing supported operations, and running verification tasks with configurable options.
+This chapter defines the CLI for solvers that conform to the \vnnlib{} standard. The interface supports querying solver capabilities, listing supported operations, and running verification tasks with configurable options.
 
 \section{Invocation}
 
-All verifiers adhering to the \vnnlib{} specification should be available as an executable or script invokable by the command line, which will be referred to in this chapter as \texttt{<verifier>}. The general syntax for interacting with the verifier via the CLI is:
+All solvers adhering to the \vnnlib{} specification should be available as an executable or script invokable by the command line, which will be referred to in this chapter as \texttt{<solver>}. The general syntax for interacting with the solver via the CLI is:
 \begin{lstlisting}[style=bash]
-<verifier>
+<solver>
     [global-options] 
     <command> 
     [command-options] 
     [arguments] 
 \end{lstlisting}
-Throughout the following sections, \texttt{<...>} is used to indicate required values and \texttt{[...]} is used to indicate optional values. To illustrate the example usages, we will  use an imaginary verifier called \texttt{\exampleVerifier}.
+Throughout the following sections, \texttt{<...>} is used to indicate required values and \texttt{[...]} is used to indicate optional values. To illustrate the example usages, we will  use an imaginary solver called \texttt{\exampleSolver}.
 
-Invoking the verifier will produce output in the format described in the rest of this section. Unless stated otherwise all output should be printed on \texttt{stdout}. Detailed logs, warnings, or error messages must be printed on \texttt{stderr}.
-At the moment, the \vnnlib{} standard contains two commands: \emph{verify} and \emph{capabilities}. Compliant verifiers can provide additional other non-standard functionality under different commands. 
+Invoking the solver will produce output in the format described in the rest of this section. Unless stated otherwise all output should be printed on \texttt{stdout}. Detailed logs, warnings, or error messages must be printed on \texttt{stderr}.
+At the moment, the \vnnlib{} standard contains two commands: \emph{verify} and \emph{capabilities}. Compliant solvers can provide additional other non-standard functionality under different commands. 
 
 \section{Global options}
 
-\vnnlib{} compliant verifiers should implement the following global options:
+\vnnlib{} compliant solvers should implement the following global options:
 
 \clOutputOption
 {--name}
-{Print the verifier's full name. This can be different from the executable's name.}
+{Print the solver's full name. This can be different from the executable's name.}
 {A string that may contain spaces, special characters etc.}
 \begin{lstlisting}[style=bash]
-%*\exampleVerifier* --name
+%*\exampleSolver* --name
 CheckNeuralNetworks!
 \end{lstlisting}
 
 \clOutputOption
 {--version}
-{Print the version of the verifier. It is strongly recommended that verifiers conform to \href{https://semver.org/}{semantic versioning}.}{A version string.}
+{Print the version of the solver. It is strongly recommended that solvers conform to \href{https://semver.org/}{semantic versioning}.}{A version string.}
 \begin{lstlisting}[style=bash]
-%*\exampleVerifier* --version
+%*\exampleSolver* --version
 1.0.1
 \end{lstlisting}
 
@@ -71,40 +71,40 @@ CheckNeuralNetworks!
 \section{The \texttt{verify} command}
 \label{sec:verify_command}
 
-When invoked with the \texttt{verify} command  the verifier should attempt to determine whether a satisfiable assignment of variables exist for the provided \vnnlib{} query and neural network models.
+When invoked with the \texttt{verify} command  the solver should attempt to determine whether a satisfiable assignment of variables exist for the provided \vnnlib{} query and neural network models.
 
 The general pattern of usage is as follows:
 \begin{lstlisting}[style=bash]
-<verifier> verify 
+<solver> verify 
   <filepath>
   [--network <name>=<filepath>]
   [--timeout <seconds>]
   [--assignments <filepath>]
 \end{lstlisting}
-The first argument should be the path to the \vnnlib{} query file (see Section~\ref{sec:specification_language}), and the verifier should support the following additional options:
+The first argument should be the path to the \vnnlib{} query file (see Section~\ref{sec:specification_language}), and the solver should support the following additional options:
 
 \clOption{--network}{This option maps the name of one of the networks declared in the provided \vnnlib{} query file to its implementation as an ONNX model file. When the query file contains multiple \texttt{declare-network} declarations this option should be used multiple times -- once for each network declaration not marked with an \texttt{equal-to} declaration (see Section~\ref{sec:multiple-networks}).}{--network classifier=/a/path/to/a/model.onnx}
 
 \clOption{--timeout}{Maximum time to spend on processing on the query in an integer number of seconds.}{--timeout 10}
 
 \clOption{--serialise-assignments}
-{Instructs the verifier to output satisfying assignments in the seralised format described in Section~\ref{sec:seralised-assignment-format}. This argument only needs to be supported if the verifier reports that it supports serialising assignments as described in Section~\ref{sec:other-capabilities}.}
+{Instructs the solver to output satisfying assignments in the seralised format described in Section~\ref{sec:seralised-assignment-format}. This argument only needs to be supported if the solver reports that it supports serialising assignments as described in Section~\ref{sec:other-capabilities}.}
 {--serialise-assignments /path/to/output}
 
-\noindent Compliant verifiers may also support additional non-standard arguments to the \texttt{verify} command to affect the internal behaviour of the verification algorithm. However, such additional non-standard arguments \textit{must} be optional.
+\noindent Compliant solvers may also support additional non-standard arguments to the \texttt{verify} command to affect the internal behaviour of the verification algorithm. However, such additional non-standard arguments \textit{must} be optional.
 
 \subsection{Output of the \texttt{verify} command}
 
 \noindent The initial output of the command should be reported on \texttt{stdout} and should be a single line consisting of one of the following options: 
 \begin{itemize}
 \item \texttt{timed-out} - The allocated time elapsed before the verification procedure terminated.
-\item \texttt{unknown} - The verifier terminated but was unable to definitively prove whether or not the query was unsatisfiable.
-\item \texttt{unsat} - The verifier terminated and proved that the query was unsatisfiable.
-\item \texttt{sat} - The verifier terminated and proved that the query was satisfiable.
+\item \texttt{unknown} - The solver terminated but was unable to definitively prove whether or not the query was unsatisfiable.
+\item \texttt{unsat} - The solver terminated and proved that the query was unsatisfiable.
+\item \texttt{sat} - The solver terminated and proved that the query was satisfiable.
 \end{itemize}
 If the query is satisfiable, there are two ways that the solver can output the satisfying assignment found:
 \begin{enumerate}
-\item \textbf{Command-line format}: If the \texttt{--serialise-assignments} option was not passed or the solver reports not supporting it, the solver should print the assignments on \texttt{stdout}. Outputting the assignment to the command-line is therefore the default behaviour and must be supported by all verifiers.
+\item \textbf{Command-line format}: If the \texttt{--serialise-assignments} option was not passed or the solver reports not supporting it, the solver should print the assignments on \texttt{stdout}. Outputting the assignment to the command-line is therefore the default behaviour and must be supported by all solvers.
 \item \textbf{Serialised format}: If the \texttt{--serialise-assignments} option was passed and the solver reports supporting it, the solver should serialise the assignments in the folder specified by the \texttt{--serialise-assignments} option.
 \end{enumerate}
 As a motivating example, consider a \vnnlib{} query that started with the following network declarations:
@@ -190,7 +190,7 @@ Z Real [1]
 \subsubsection{Serialised assignment format}
 \label{sec:seralised-assignment-format}
 
-In the case where efficiency is important, a verifier may optionally support outputting assignments as a folder containing binary files of seralised ONNX TensorProto objects. If the user passes \texttt{--serialise-assignments <folder>} to the \texttt{verify} command, then the verifier should generate a folder:
+In the case where efficiency is important, a solver may optionally support outputting assignments as a folder containing binary files of seralised ONNX TensorProto objects. If the user passes \texttt{--serialise-assignments <folder>} to the \texttt{verify} command, then the solver should generate a folder:
 \begin{lstlisting}[style=bash]
 <folder>/
   <variable_1_name>.pb
@@ -214,33 +214,33 @@ my/output/
 \section{The \texttt{supports} command}
 \label{sec:global_capabilities}
 
-When invoked with the \texttt{supports} command, the verifier should report the types of queries and networks it is capable of verifying.
-These options provide a way for higher-level tools to automatically assess the capabilities of the verifier.
+When invoked with the \texttt{supports} command, the solver should report the types of queries and networks it is capable of verifying.
+These options provide a way for higher-level tools to automatically assess the capabilities of the solver.
 
 The general pattern of usage is as follows:
 \begin{lstlisting}[style=bash]
-<verifier> supports <capability>
+<solver> supports <capability>
 \end{lstlisting}
-The verifier must be able to respond to all of the following capabilities, although of course it may be able to report other capabilities as well.
+The solver must be able to respond to all of the following capabilities, although of course it may be able to report other capabilities as well.
 
 \subsection{ONNX capabilities}
 
 \clOutputOption
 {--onnx-opset-versions}
-{Prints a newline-separated pair of the minimum and maximum \href{https://onnxruntime.ai/docs/reference/compatibility.html\#onnx-opset-support}{ONNX opset versions} that the verifier supports.}
+{Prints a newline-separated pair of the minimum and maximum \href{https://onnxruntime.ai/docs/reference/compatibility.html\#onnx-opset-support}{ONNX opset versions} that the solver supports.}
 {Two version strings}
 \begin{lstlisting}[style=bash]
-%*\exampleVerifier* supports --onnx-opset-versions
+%*\exampleSolver* supports --onnx-opset-versions
 13
 19
 \end{lstlisting}
 
 \clOutputOption
 {--onnx-element-types}
-{Prints a newline-separated list of the element types that the verifier supports. See Section~\ref{sec:element-types} for details.}
+{Prints a newline-separated list of the element types that the solver supports. See Section~\ref{sec:element-types} for details.}
 {List of ONNX types}
 \begin{lstlisting}[style=bash]
-%*\exampleVerifier* supports --onnx-element-types
+%*\exampleSolver* supports --onnx-element-types
 float64
 float32
 float16
@@ -250,12 +250,12 @@ real
 
 \clOutputOption
 {--onnx-operators}
-{Reports the ONNX operators (e.g., \texttt{Conv}, \texttt{Relu}, \texttt{Gemm}) that are supported by the verifier. See Section~\ref{sec:models} for more details on the ONNX standard and its operators. 
+{Reports the ONNX operators (e.g., \texttt{Conv}, \texttt{Relu}, \texttt{Gemm}) that are supported by the solver. See Section~\ref{sec:models} for more details on the ONNX standard and its operators. 
 }
-{A newline-separated list of lines, where each line contains the name of an ONNX operator followed by a possibly empty space-separated list of ONNX element types. If the list is empty, then the verifier is assumed to support the operator for all element types it reports via the \texttt{supports --onnx-element-types} command.
+{A newline-separated list of lines, where each line contains the name of an ONNX operator followed by a possibly empty space-separated list of ONNX element types. If the list is empty, then the solver is assumed to support the operator for all element types it reports via the \texttt{supports --onnx-element-types} command.
 }
 \begin{lstlisting}[style=bash]
-%*\exampleVerifier* supports --onnx-operators
+%*\exampleSolver* supports --onnx-operators
 Conv float64 float32
 Relu float64 float32
 MatMul
@@ -268,68 +268,68 @@ Flatten
 
 \clOutputOption
 {--vnnlib-versions}
-{Prints a newline-separated pair of the minimum and maximum versions (inclusive) of \vnnlib{} that the verifier supports.}
+{Prints a newline-separated pair of the minimum and maximum versions (inclusive) of \vnnlib{} that the solver supports.}
 {Two version strings}
 \begin{lstlisting}[style=bash]
-%*\exampleVerifier* supports --vnnlib-versions
+%*\exampleSolver* supports --vnnlib-versions
 2.0
 2.3
 \end{lstlisting}
 
 \clOutputOption
 {--hidden-node-theories}
-{Which \hiddenNodes{} theories described in Section~\ref{sec:hidden-nodes} does the verifier support?}
+{Which \hiddenNodes{} theories described in Section~\ref{sec:hidden-nodes} does the solver support?}
 {A newline-seperated list of theories}
 \begin{lstlisting}[style=bash]
-%*\exampleVerifier* supports --hidden-node-theories
+%*\exampleSolver* supports --hidden-node-theories
 NH
 \end{lstlisting}
 
 \clOutputOption
 {--multiple-input-output-theories}
-{Which \multiIO{} theories described in Section~\ref{sec:multiple-inputs-outputs} does the verifier support?}
+{Which \multiIO{} theories described in Section~\ref{sec:multiple-inputs-outputs} does the solver support?}
 {A newline-seperated list of theories}
 \begin{lstlisting}[style=bash]
-%*\exampleVerifier* supports --multiple-inputs-output-theories
+%*\exampleSolver* supports --multiple-inputs-output-theories
 SNET
 MENET
 \end{lstlisting}
 
 \clOutputOption
 {--multiple-network-theories}
-{Which \multiNetwork{} theories described in Section~\ref{sec:multiple-networks} does the verifier support?}
+{Which \multiNetwork{} theories described in Section~\ref{sec:multiple-networks} does the solver support?}
 {A newline-seperated list of theories}
 \begin{lstlisting}[style=bash]
-%*\exampleVerifier* supports --multiple-network-theories
+%*\exampleSolver* supports --multiple-network-theories
 SIO
 \end{lstlisting}
 
 \clOutputOption
 {--multiple-node-comparison-theories}
-{Which \multiComparison{} theories described in Section~\ref{sec:multi-node-comparisons} does the verifier support?}
+{Which \multiComparison{} theories described in Section~\ref{sec:multi-node-comparisons} does the solver support?}
 {A newline-seperated list of theories}
 \begin{lstlisting}[style=bash]
-%*\exampleVerifier* supports --multiple-node-comparison-theories
+%*\exampleSolver* supports --multiple-node-comparison-theories
 MNC
 \end{lstlisting}
 
 \clOutputOption
 {--arithmetic-complexity-theories}
-{Which \arithComplexity{} theories described in Section~\ref{sec:arithmetic-complexity} does the verifier support?
+{Which \arithComplexity{} theories described in Section~\ref{sec:arithmetic-complexity} does the solver support?
 }
 {A newline-seperated list of theories.}
 \begin{lstlisting}[style=bash]
-%*\exampleVerifier* supports --arithmetic-complexity-theories
+%*\exampleSolver* supports --arithmetic-complexity-theories
 LIN
 \end{lstlisting}
 
 \clOutputOption
 {--optimised-disjunctive-reasoning}
-{Does the verifier uses an intelligent strategy for handling queries involving \texttt{(or ...)} statements or simply translates them to disjunctive normal form? If the latter, then higher-level tools can use this flag to decide whether to perform the conversion to DNF themselves and hence get a better indication of progress.
+{Does the solver uses an intelligent strategy for handling queries involving \texttt{(or ...)} statements or simply translates them to disjunctive normal form? If the latter, then higher-level tools can use this flag to decide whether to perform the conversion to DNF themselves and hence get a better indication of progress.
 }
 {A boolean (\texttt{true} or \texttt{false})}
 \begin{lstlisting}[style=bash]
-%*\exampleVerifier* supports --optimised-disjunctive-reasoning
+%*\exampleSolver* supports --optimised-disjunctive-reasoning
 true
 \end{lstlisting}
 
@@ -338,10 +338,10 @@ true
 
 \clOutputOption
 {--serialise-assignments}
-{Does the verifier support the \texttt{--serialise-assignments} option to the \texttt{verify} command? See Section~\ref{sec:verify_command} for details.}
+{Does the solver support the \texttt{--serialise-assignments} option to the \texttt{verify} command? See Section~\ref{sec:verify_command} for details.}
 {A boolean (\texttt{true} or \texttt{false})}
 \begin{lstlisting}[style=bash]
-%*\exampleVerifier* supports --serialise-assignments
+%*\exampleSolver* supports --serialise-assignments
 true
 \end{lstlisting}
 

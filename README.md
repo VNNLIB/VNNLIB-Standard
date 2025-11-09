@@ -5,7 +5,7 @@
 The VNNLIB standard provides:
 
 1. a standard syntax and semantics for satisfiability queries to neural network solvers
-2. a standard command-line-interface for neural network verifiers
+2. a standard command-line-interface for solvers
 
 with the aim of greater interoperability and rigour in the formal verification of neural networks.
 See the official [VNNLIB website](https://www.vnnlib.org/) for more details, including tooling for
