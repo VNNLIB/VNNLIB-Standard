@@ -52,7 +52,7 @@ Each node in the ONNX graph is an \emph{operator} which takes some number of inp
 ONNX uses a versioning system called \emph{opsets} to manage the evolution of the list of supported operators. Each opset version supports a given set of operators, and the semantics of existing operators may change between opset versions.
 This ensures that the definition and behaviour of each operator can evolve over time without breaking existing models. The ONNX model file declares the opset version it uses in its metadata.
 
-\section{Semantics of ONNX networks}
+\section{Semantics of ONNX models}
 
 The ONNX format provides a syntax for specifying the computations performed by a neural network. However, formal verification requires more than syntax—it requires a precise, mathematical understanding of the network’s semantics. Unfortunately, no mainstream neural network format, including ONNX, currently offers a formal semantics. The intended behavior of each operator is described informally in natural language by the ONNX documentation, in varying levels of detail and clarity. As a result, the exact computation may differ across implementations or hardware platforms.
 

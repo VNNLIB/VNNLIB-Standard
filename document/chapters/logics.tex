@@ -321,7 +321,7 @@ It is a well-known problem in the community that some solvers assume real semant
 
 If a user writes the ``real'' type in their \vnnlib{} query then they are explicitly giving permission for the solver to convert the numeric ONNX types used by the actual ONNX file to an arbitrary internal numeric representation. The user is therefore explicitly acknowledging that the result may be unsound due to floating point imprecision. 
 
-Conversely if user writes an ONNX element type in their \vnnlib{} query then they are explicitly requesting sound analysis. If the solver does not support the ONNX element type in question, then the solver must throw an error. The solver must also throw an error if the types used in the ONNX network provided do not match the ONNX element types written in the query.
+Conversely if user writes an ONNX element type in their \vnnlib{} query then they are explicitly requesting sound analysis. If the solver does not support the ONNX element type in question, then the solver must throw an error. The solver must also throw an error if the types used in the ONNX model provided do not match the ONNX element types written in the query.
 
 \section{Logics}
 
