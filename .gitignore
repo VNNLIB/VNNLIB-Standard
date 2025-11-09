@@ -1,30 +1,6 @@
 *.bak
 Syntax
 
-# BNFC generated files in parsers
-parsers/cpp/src/generated/**
-
-# Build artifacts for parsers
-parsers/cpp/build/
-parsers/cpp/bin/
-parsers/python/build/
-parsers/python/dist/
-parsers/python/cpp/
-parsers/python/*.egg-info/
-parsers/python/vnnlib/*.so
-parsers/python/vnnlib/__pycache__/
-
-# CMake build files
-parsers/cpp/CMakeFiles/
-parsers/cpp/CMakeCache.txt
-parsers/cpp/cmake_install.cmake
-parsers/cpp/Makefile
-
-# Test artifacts
-parsers/.pytest_cache/
-parsers/test/__pycache__/
-parsers/test/.vscode/
-
 # Development environment
 .vscode
 __pycache__
