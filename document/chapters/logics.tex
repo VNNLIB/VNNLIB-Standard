@@ -32,10 +32,10 @@
 \chapter{Theories and Logics}
 \label{sec:theories-logics}
 
-The query language described in Chapter~\ref{sec:specification_language} is is relatively expressive. However, in practice very few verifiers are capable of handling the full range of queries it permits.  To address this, the \vnnlib{} standard takes a similar approach to SMTLib by using the notion of \emph{logics} and \emph{theories} to define subsets of the language.
+The query language described in Chapter~\ref{sec:specification_language} is is relatively expressive. However, in practice very few solvers are capable of handling the full range of queries it permits.  To address this, the \vnnlib{} standard takes a similar approach to SMTLib by using the notion of \emph{logics} and \emph{theories} to define subsets of the language.
 
 Each \emph{theory} represents a particular syntactic restriction on the query language, and a \emph{theory set} represents a set of related restrictions that are partially ordered under the inclusion relation. A \emph{logic} represents a subset of the query language and is constructed by selecting exactly one theory from the list of orthogonal theory sets. 
-By reporting the theories supported, a verifier can precisely describe the subset of the query language it supports. The formal reporting mechanism is introduced in Chapter~\ref{sec:global_capabilities}.
+By reporting the theories supported, a solver can precisely describe the subset of the query language it supports. The formal reporting mechanism is introduced in Chapter~\ref{sec:global_capabilities}.
 
 \section{Theories}
 
@@ -65,7 +65,7 @@ The following sections examine each of these theory sets in more detail.
 \label{fig:hidden-nodes-theory-set}
 \end{figure}
 
-Some neural network verifiers do not support reasoning about hidden nodes. The \hiddenNodes{} theory set therefore contains two theories \nh{} and \h{}, representing queries that contain networks that do not declare hidden nodes, and queries that contain networks that declare hidden nodes. Therefore \nh{} is a subset of \h{}. For example the following query is a member of both \nh{} and \h{}:
+Some solvers do not support reasoning about hidden nodes. The \hiddenNodes{} theory set therefore contains two theories \nh{} and \h{}, representing queries that contain networks that do not declare hidden nodes, and queries that contain networks that declare hidden nodes. Therefore \nh{} is a subset of \h{}. For example the following query is a member of both \nh{} and \h{}:
 
 \begin{code}[style=lbnf]
 (declare-network f
@@ -99,7 +99,7 @@ but the following query is only a member of \h{}:
 \label{fig:multiple-inputs-outputs-set}
 \end{figure}
 
-Many neural network verifiers only support reasoning about networks with a single input and output node. The \multiIO{} theory set therefore contains two theories \sio{} and \mio{}, representing queries that contain network declarations that only contain a single input and output node, and queries that contain network declarations that declare an arbitrary number of inputs and outputs. Therefore \sio{} is a subset of \mio{}. For example the following query is a member of both \sio{} and \mio{}:
+Many solvers only support reasoning about networks with a single input and output node. The \multiIO{} theory set therefore contains two theories \sio{} and \mio{}, representing queries that contain network declarations that only contain a single input and output node, and queries that contain network declarations that declare an arbitrary number of inputs and outputs. Therefore \sio{} is a subset of \mio{}. For example the following query is a member of both \sio{} and \mio{}:
 
 \begin{code}[style=lbnf]
 (declare-network f
@@ -137,7 +137,7 @@ but the following query is only a member of \mio{}:
 \label{fig:multiple-networks-theory-set}
 \end{figure}
 
-Some neural network verifiers only support reasoning about a single network or are specialised to reason about equal or isomorphic networks. The \multiNetwork{} theory set therefore contains four theories \snet{}, \menet{}, \minet{} and \mnet{}. \snet{} contains queries that have a single network declaration while \mnet{} contains queries that have an arbitrary number of network declarations. For example the following query is a member of \snet{}:
+Some solvers only support reasoning about a single network or are specialised to reason about equal or isomorphic networks. The \multiNetwork{} theory set therefore contains four theories \snet{}, \menet{}, \minet{} and \mnet{}. \snet{} contains queries that have a single network declaration while \mnet{} contains queries that have an arbitrary number of network declarations. For example the following query is a member of \snet{}:
 
 \begin{code}[style=lbnf]
 (declare-network f
@@ -178,7 +178,7 @@ The theory \menet{} contains queries that have multiple network declarations whe
 \label{fig:multi-node-comparisons-theory-set}
 \end{figure}
 
-Many verifiers are based on some variant of abstract interpretation or reachability analysis where an over-approximation of the set of reachable values is computed for each layer in turn.
+Many solvers are based on some variant of abstract interpretation or reachability analysis where an over-approximation of the set of reachable values is computed for each layer in turn.
 One consequence of this is that they cannot easily verify queries that contain a comparison involving variables from different nodes in the same network.
 
 The \multiComparison{} theory set therefore contains two theories \snc{} and \mnc{}, representing queries that contain comparisons that do not reference variables from different nodes of the same network, and queries that may contain such comparisons respectively. Therefore \snc{} is a subset of \mnc{}. For example, consider queries that declare the following networks:

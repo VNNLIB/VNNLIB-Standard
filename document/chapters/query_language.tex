@@ -38,13 +38,13 @@ and the shape of the tensor. Similarly, an output variable uses the \texttt{decl
 \end{figure}
 
 
-It is important to clarify that a network declaration only declares an \emph{interface} and by default does not refer in any way to a particular ONNX network model. When passing a query and a network to the verifier, the name of the network does not need to match the name of the ONNX model file. Instead, as described in Section~\ref{sec:verify_command}, the user will explicitly associate a network declaration to the relevant model file via the command line.
+It is important to clarify that a network declaration only declares an \emph{interface} and by default does not refer in any way to a particular ONNX network model. When passing a query and a network to the solver, the name of the network does not need to match the name of the ONNX model file. Instead, as described in Section~\ref{sec:verify_command}, the user will explicitly associate a network declaration to the relevant model file via the command line.
 Neither do the declared names of the inputs and outputs need to match the names of the input and output nodes within the model file. This flexibility allows many different alternative ONNX models to be compatible with the same query. This also implies that the declared ONNX names of the inputs and outputs is not referenced within the Assertions (discussed in Section 3.1.2) of a query.
 
 All variable names follow the same syntax conventions: they are case-sensitive, must start with a letter, and may only contain letters, digits and underscores. All variable names must be unique within the query (see Section~\ref{sec:scoping_and_typing} for a more in-depth discussion). 
 
 
-% The \texttt{@} character is a reserved character which is used to denote multiple applications of the same network, for the purpose of defining  hyperproperties such as monotonicity. For example \texttt{(declare-network acasXu@1 ...)} and \texttt{(declare-network acasXu@2 ...)} define two networks that are both instances of the same ONNX model,  denoted as \texttt{acasXu} in the command line interface of the verifier (See Chapter~\ref{sec:solver_interface} for more details).
+% The \texttt{@} character is a reserved character which is used to denote multiple applications of the same network, for the purpose of defining  hyperproperties such as monotonicity. For example \texttt{(declare-network acasXu@1 ...)} and \texttt{(declare-network acasXu@2 ...)} define two networks that are both instances of the same ONNX model,  denoted as \texttt{acasXu} in the command line interface of the solver (See Chapter~\ref{sec:solver_interface} for more details).
 
 \subsection{Assertions}
 
@@ -179,8 +179,8 @@ shows an example which declares two networks representing a teacher and a studen
     \label{fig:multiple-networks}
 \end{figure}
 
-For some use cases involving multiple networks (e.g. proving monotonicity), each \texttt{declare-network} declaration is intended to map to the same network implementation. In this case, the \texttt{equal-to} declaration may be used as shown in Figure~\ref{fig:multiple-equal-networks} to inform the verifier of this fact. An \texttt{equal-to} declaration must reference a network declaration which has identical \texttt{declare-input} and \texttt{declare-output} declarations (modulo the variable names). It \emph{is} possible to have a different list of \texttt{declare-hidden} declarations in the two networks. However if a \texttt{declare-hidden} declaration that references the same ONNX node is present in both networks then those \texttt{declare-hidden} declarations must be identical modulo the variable names. 
- Finally, marking a \texttt{declare-network} declaration as equal to one another means that it is not necessary to provide an implementation for that declaration when calling the verifier (see Section~\ref{sec:verify_command} for details).
+For some use cases involving multiple networks (e.g. proving monotonicity), each \texttt{declare-network} declaration is intended to map to the same network implementation. In this case, the \texttt{equal-to} declaration may be used as shown in Figure~\ref{fig:multiple-equal-networks} to inform the solver of this fact. An \texttt{equal-to} declaration must reference a network declaration which has identical \texttt{declare-input} and \texttt{declare-output} declarations (modulo the variable names). It \emph{is} possible to have a different list of \texttt{declare-hidden} declarations in the two networks. However if a \texttt{declare-hidden} declaration that references the same ONNX node is present in both networks then those \texttt{declare-hidden} declarations must be identical modulo the variable names. 
+ Finally, marking a \texttt{declare-network} declaration as equal to one another means that it is not necessary to provide an implementation for that declaration when calling the solver (see Section~\ref{sec:verify_command} for details).
  
 \begin{figure}[h!]
     \begin{minipage}[c]{0.64\textwidth}
@@ -235,9 +235,9 @@ There are two additional restrictions to their use:
 \item A \texttt{declare-network} declaration must contain at most one \texttt{equal-to} or \texttt{isomorphic-to} declaration.
 \item An \texttt{equal-to} or \texttt{isomorphic-to} declaration cannot reference another network declaration that also contains an \texttt{equal-to} or \texttt{isomorphic-to}. 
 \end{enumerate}
-Due to the transitivity of equality and isomorphism, these restrictions do not reduce the expressive power of this feature, and make the dependencies easier to track by the verifiers.
+Due to the transitivity of equality and isomorphism, these restrictions do not reduce the expressive power of this feature, and make the dependencies easier to track by the solvers.
 
-While a verifier may make use of the \texttt{equal-to} and \texttt{isomorphic-to} declarations internally to optimise its representation and reasoning about the provided networks, it is not required to.
+While a solver may make use of the \texttt{equal-to} and \texttt{isomorphic-to} declarations internally to optimise its representation and reasoning about the provided networks, it is not required to.
 
 
 
