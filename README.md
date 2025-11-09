@@ -15,7 +15,7 @@ interacting with the specification.
 
 This repository contains:
 - `document/main.tex` - the standard document 
-- `syntax.cf` - a formal grammar for VNNLIB queries written in Labelled Backus-Naur Form.
+- `grammar.cf` - a formal grammar for VNNLIB queries written in Labelled Backus-Naur Form.
 
 There are official libraries for parsing VNNLIB queries available in a variety of languages:
  - [Python](https://github.com/VNNLIB/VNNLIB-Python)
