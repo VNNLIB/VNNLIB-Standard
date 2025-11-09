@@ -200,7 +200,7 @@ For some use cases involving multiple networks (e.g. proving monotonicity), each
         \centering
         \includegraphics[height=5cm]{imgs/simple_net.onnx.pdf}
     \end{minipage}
-    \caption{A pair of \vnnlib{} network declarations that reference the same ONNX network.}
+    \caption{A pair of \vnnlib{} network declarations that reference the same ONNX model.}
     \label{fig:multiple-equal-networks}
 \end{figure}
 
@@ -226,7 +226,7 @@ In other use cases involving multiple networks (e.g. proving local equivalence a
         \vspace{0.5cm} 
         \includegraphics[height=5cm]{imgs/simple_net.onnx.pdf}
     \end{minipage}
-    \caption{A pair of \vnnlib{} network declarations that reference isomorphic ONNX networks.}
+    \caption{A pair of \vnnlib{} network declarations that reference isomorphic ONNX models.}
     \label{fig:multiple-isomorphic-networks}
 \end{figure}
 
@@ -477,7 +477,7 @@ If a query is agnostic to the element type of variables, it should be declared w
 
 The semantics of a \vnnlib{} query is defined in terms of the satisfiability problem it represents. A query is said to be \textit{satisfiable} if there exists an assignment of values to all/any of the the input tensors such that when the corresponding ONNX model(s) are evaluated, the set of assertions hold true. Conversely, a query is said to be \textit{unsatisfiable} if no such assignment exists.
 
-Given that the actual semantics of a \vnnlib{} query is dependent on the semantics of the neural network representation i.e. on the underlying ONNX model(s) it is associated with, we can describe the semantics of a query as a higher order function from functions representing the declared ONNX networks to a satisfiability problem over the input assignments. 
+Given that the actual semantics of a \vnnlib{} query is dependent on the semantics of the neural network representation i.e. on the underlying ONNX model(s) it is associated with, we can describe the semantics of a query as a higher order function from functions representing the declared ONNX models to a satisfiability problem over the input assignments. 
 
 The semantics are only well-defined if the query is well-scoped and well-typed, as described in Section~\ref{sec:scoping_and_typing}. Similarly, the semantics for the Declarations and Assertions can be described separately.
 
