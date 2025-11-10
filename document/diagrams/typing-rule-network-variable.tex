@@ -1,0 +1,25 @@
+\begin{mathpar}
+            \inferrule*[Right=Input]
+            {
+            	v \notin \variableCtx
+            }
+            {
+                \variableCtx \vdash \texttt{declare-input}~v~\tau~s : \variableCtx[v \rightarrow (\tau, s)]
+            }
+            \\
+            \inferrule*[Right=Hidden]
+            {
+            	v \notin \variableCtx
+            }
+            {
+                \variableCtx \vdash \texttt{declare-hidden}~v~\tau~s~n : \variableCtx[ v \rightarrow (\tau, s)]
+            }
+            \\
+            \inferrule*[Right=Output]
+            {
+            	v \notin \variableCtx
+            }
+            {
+                \variableCtx \vdash \texttt{declare-output}~v~\tau~s : \variableCtx[ v \rightarrow (\tau, s)]
+            }
+\end{mathpar}

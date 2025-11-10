@@ -1,0 +1,14 @@
+\begin{mathpar}
+    \inferrule*[Right=Comparison]{
+        \assertCtx \vdash a_1 : \tau \quad \assertCtx \vdash a_2 : \tau \quad \lozenge \in \{\texttt{>=}, \texttt{>}, \texttt{<}, \texttt{<=}, \texttt{==}, \texttt{!=}\}
+    }{
+        \assertCtx \vdash \lozenge~a_1~a_2
+    }
+    \\
+    \hspace{1cm}
+    \inferrule*[Right=N-ary Boolean]{
+        \assertCtx \vdash b_1 \quad ... \quad \assertCtx \vdash b_n \quad \lozenge \in \{\texttt{and}, \texttt{or}\}
+    }{
+        \assertCtx \vdash \lozenge~b_1~...~b_n
+    }
+\end{mathpar}

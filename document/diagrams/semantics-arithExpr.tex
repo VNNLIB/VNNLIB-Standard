@@ -1,0 +1,21 @@
+\begin{equation*}
+    \begin{array}{llll}
+        \semArith{d}
+        &= \semTensorTheory{d}
+        \\
+        \semArith{v[l_1, \ldots, l_k]} 
+        &= \assertEnv(v)_{l_1, \ldots, l_k} 
+        \\
+        \semArith{{\mathtt{-}}~e}
+        &= \sem{-}\networkTheoryVarParam(\semArith{e}) 
+        \\
+        \semArith{\mathtt{+}~e_1~...~e_n} 
+        &= \sem{\sum^n_{i=1}}\networkTheoryVarParam~\semArith{e_i}
+        \\
+        \semArith{\mathtt{*}~a_1~...~a_n} 
+        &= \sem{\prod^n_{i=1}}\networkTheoryVarParam~\semArith{e_i}
+        \\
+        \semArith{\mathtt{-}~a_1~...~a_n} 
+        &= \sem{+}\networkTheoryVarParam(\semArith{e_1}, \sem{-}\networkTheoryVarParam(\sem{\sum^n_{i=2}}\networkTheoryVarParam~\semArith{e_i}))
+    \end{array}
+\end{equation*}

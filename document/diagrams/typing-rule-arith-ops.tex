@@ -1,0 +1,17 @@
+\begin{mathpar}
+    \inferrule*[Right=Negation]
+    {
+        \assertCtx \vdash a : \tau
+    }
+    {
+        \assertCtx \vdash \texttt{-}~a : \tau
+    }
+    \\
+    \inferrule*[Right=N-ary Arithmetic]
+    {
+        \assertCtx \vdash a_1 : \tau \quad ... \quad \assertCtx \vdash a_n : \tau \quad \lozenge \in \{\texttt{+}, \texttt{-}, \texttt{×}\}
+    }
+    {
+        \assertCtx \vdash \lozenge~a_1~...~a_n : \tau
+    }
+\end{mathpar}

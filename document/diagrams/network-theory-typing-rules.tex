@@ -1,0 +1,22 @@
+	% This minipage exists to force left-alignment
+	\begin{minipage}[t]{0.5\textwidth}
+	\begin{flalign*}
+		&\inferrule*[Right=(Element)]{
+            \missing
+        }{
+            \vdash \elementVar : \elementTypeVar
+        }
+        \hspace{8em}
+        \inferrule*[Right=(Tensor)]{
+            \missing 
+        }{
+            \vdash \tensorVar : \tensorTypeVar
+        }
+        \hspace{8em}
+	    \inferrule*[Right=(Model)]{
+            \missing
+        }{
+            \vdash \modelVar : \modelTypeVar 
+        }
+    \end{flalign*}	
+	\end{minipage}

@@ -1,0 +1,22 @@
+\begin{equation*}
+    \newcommand{\semComp}[2]{
+        \semBool{\mathtt{#1}~a_1~a_2}
+        &= \sem{#2}_\networkTheoryVar(\semBool{a_1},\semBool{a_2})
+    }
+    \begin{array}{llll}
+        \semComp{<}{<}
+        \\
+        \semComp{>}{>}
+        \\
+        \semComp{<=}{\leq}
+        \\
+        \semComp{>=}{\geq}
+        \\
+        \semComp{==}{=}
+        \\
+        \semComp{!=}{\neq}
+        \\
+        \semBool{\mathtt{and}~b_1~...~b_n} &=\bigwedge_{i} \;\semBool{b_i}\\
+        \semBool{\mathtt{or}~b_1~...~b_n} &=\bigvee_{i} \; \semBool{b_i}
+    \end{array}
+\end{equation*}

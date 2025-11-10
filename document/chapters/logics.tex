@@ -50,7 +50,7 @@ The currently supported theory sets are:
 \end{enumerate}
 The following sections examine each of these theory sets in more detail.
 
-\subsection{\hiddenNodes{}}
+\subsection{Hidden Nodes}
 \label{sec:hidden-nodes}
 
 \begin{figure}[h]
@@ -84,7 +84,7 @@ but the following query is only a member of \h{}:
 )
 \end{code}
 
-\subsection{\multiIO{}}
+\subsection{Multiple Inputs/Outputs}
 \label{sec:multiple-inputs-outputs}
 
 \begin{figure}[h]
@@ -118,7 +118,7 @@ but the following query is only a member of \mio{}:
 )
 \end{code}
 
-\subsection{\multiNetwork{}}
+\subsection{Multiple Networks}
 \label{sec:multiple-networks}
 
 \begin{figure}[h]
@@ -163,7 +163,7 @@ The theory \menet{} contains queries that have multiple network declarations whe
 \minet{} contains queries that have multiple network declarations where all but one contains either an \texttt{equal-to} or \texttt{isomorphic-to} declaration.
 
 
-\subsection{\multiComparison{}}
+\subsection{Multiple Node Comparisons}
 \label{sec:multi-node-comparisons}
 
 \begin{figure}[h]
@@ -215,7 +215,7 @@ However, the following comparisons only belong to \mnc{}:
 (== B[0] H[0])
 \end{code}
 
-\subsection{\arithComplexity{}}
+\subsection{Arithmetic Complexity}
 \label{sec:arithmetic-complexity}
 
 \begin{figure}[h]
@@ -271,15 +271,13 @@ For example, the following assertion belongs in \poly{} but not in \lin{}
 \end{enumerate}
 
 
-\subsection{Tensor element types}
+\subsection{Element Types}
 \label{sec:element-types}
-
-\subsubsection{ONNX element types}
 
 \begin{figure}[h]
 \centering
 \begin{tikzpicture}    
-    \node (onnx) [category] at (-2,0) {ONNX element types};
+    \node (onnx) [category] at (-2,0) {Theory element types};
     
     \draw [dashed] (1.3,0.5) -- (1.3,-8);
     
@@ -298,11 +296,12 @@ For example, the following assertion belongs in \poly{} but not in \lin{}
    
    \node (real)        [theory, below=of other] {REAL};
 \end{tikzpicture}
-\caption{The ``Tensor element types'' theory set. Not all ONNX element types are shown.}
+\caption{The ``Tensor element types'' theory set. Note that the element type theories on the left hand side are representative only, as they will depend on the network theory $\networkTheoryVar$ being used.}
 \label{fig:element-type-theories}
 \end{figure}
 
-As discussed in Section~\ref{sec:onnx_overview} and as seen in Figure~\ref{fig:element-type-theories}, the ONNX format supports a range of different \href{https://onnx.ai/onnx/repo-docs/IR.html#tensor-element-types}{tensor element types} such ``float32''. Every tensor element type in the ONNX specification is associated with a \vnnlib{} theory of the same name. A solver supporting a particular element type theory means that it supports variable declarations that use that type. For example, the following network declaration belongs to the \theory{float16} theory:
+Every tensor element type in the network theory $\networkTheoryVar$ is associated with a \vnnlib{} theory of the same name.
+As the \vnnlib{} standard supports the ONNX, the ONNX format supports a range of different \href{https://onnx.ai/onnx/repo-docs/IR.html#tensor-element-types}{tensor element types} as discussed in Section~\ref{sec:onnx_overview}. Figure~\ref{fig:element-type-theories}. A solver supporting a particular element type theory means that it supports variable declarations that use that type. For example, the following network declaration belongs to the \theory{float16} theory:
 
 \begin{code}[style=lbnf]
 (declare-network f
@@ -315,14 +314,16 @@ Of course, the same network declaration can contain inputs and outputs of differ
 
 \textbf{Note}: the ONNX specification has two different sets of names for the element types: \href{https://onnx.ai/onnx/repo-docs/IR.html#tensor-element-types}{Set 1} and \href{https://onnx.ai/onnx/intro/concepts.html#element-type}{Set 2}. \vnnlib{} uses the former set of names.
 
-\subsubsection{The `Real' element type}
-
-It is a well-known problem in the community that some solvers assume real semantics and therefore are not sound with respect to the semantics of the various floating point types~\cite{jia2021exploiting}. In order to support such solvers, the specification contains an additional tensor element type `real` and associated theory that does not appear in the ONNX specification.
-
-If a user writes the ``real'' type in their \vnnlib{} query then they are explicitly giving permission for the solver to convert the numeric ONNX types used by the actual ONNX file to an arbitrary internal numeric representation. The user is therefore explicitly acknowledging that the result may be unsound due to floating point imprecision. 
-
-Conversely if user writes an ONNX element type in their \vnnlib{} query then they are explicitly requesting sound analysis. If the solver does not support the ONNX element type in question, then the solver must throw an error. The solver must also throw an error if the types used in the ONNX model provided do not match the ONNX element types written in the query.
-
 \section{Logics}
 
-Logics are therefore composed by the combination of theories from each of the above orthogonal categories. For example, the logic \logic{\h{}-\snet{}-\sio{}-\mnc{}-\lin{}-\theory{FLOAT32}} represents the class of queries that contain hidden nodes declarations, a single network declaration with a single input and output using the 32-bit floats, with linear comparisons between arbitrary declared variables.
+Logics are therefore composed by the combination of theories from each of the above orthogonal categories. For example, the logic:
+\begin{center}
+\logic{\h{}-\snet{}-\sio{}-\mnc{}-\lin{}-\theory{FLOAT32}} 
+\end{center}
+represents the class of queries that contain hidden nodes declarations, a single network declaration with a single input and output using the 32-bit floats, with linear comparisons between arbitrary declared variables.
+The set of logics is referred to as $\logicSet$. 
+
+Concretely, given a network theory $\networkTheoryVar$ and a logic $\logicVar \in \logicSet$, a solver for that logic is a function with the following type:
+\begin{equation*}
+\text{Solver}^{\logicVar}_{\networkTheoryVar} = \forall \queryVar \in \logicVar, \networkImplementationSet . \semQuery(\queryVar, \networkImplementationSet)
+\end{equation*}

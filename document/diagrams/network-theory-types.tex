@@ -1,0 +1,10 @@
+\setlength{\grammarindent}{9em}
+	\begin{grammar}	
+	<elementType> $\ni \elementTypeVar$ ::= \missing	
+	
+	<shape> $\ni \shapeVar$ ::= [$n_1$,...,$n_k$] \hspace{1em} for $n_i \in \mathbb{N}$ 
+	
+	<tensorType> $\ni \tensorTypeVar$ ::= <elementType>  $\times$ <shape>
+	
+	<modelType> $\ni \modelTypeVar$ ::= [<tensorType>]$^+$ $\times$ [<tensor-type>]$^+$
+\end{grammar}

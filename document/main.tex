@@ -1,6 +1,5 @@
 \documentclass[12pt,a4paper]{report}
 
-\usepackage[utf8]{inputenc}
 \usepackage[english]{babel}
 \usepackage{amsmath}
 \usepackage{amsfonts}
@@ -12,47 +11,225 @@
             %citecolor = blue,
             %anchorcolor = blue
             ]{hyperref}
-\usepackage{todonotes}
-\usepackage{xcolor}
-\usepackage{listings}
 \usepackage{authblk}
-\usepackage{algorithm, algpseudocode}
-\usepackage{amsmath}
+\usepackage{subcaption}
 \usepackage{geometry}
-\usepackage{booktabs} 
-\usepackage{longtable} 
+\usepackage{booktabs}
 \usepackage{array}
-\usepackage{geometry}
 \usepackage[font={small,it}]{caption}
 \usepackage{nameref}
 \usepackage{mathpartir}
 \usepackage{stmaryrd}
-\usepackage{threeparttable} 
+\usepackage[nounderscore]{syntax}
 
-\renewcommand{\lstlistingname}{Example}
-\newcommand{\ie}{\textit{i.e.}}
-\newcommand{\vnnlib}{VNN-LIB}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+
+%%%%%%%%%%%%
+% Diagrams %
+%%%%%%%%%%%%
 
 \usepackage{tikz}
 \usetikzlibrary{
-    arrows.meta,    % For arrow styles
-    positioning,    % For relative positioning of nodes (e.g., below=of)
+    arrows.meta,      % For arrow styles
+    positioning,      % For relative positioning of nodes
     shapes.geometric, % For shapes like rounded rectangles
-    trees           % For drawing tree structures
+    trees             % For drawing tree structures
 }
 
-%customized colours
+%%%%%%%%%%%
+% Colours %
+%%%%%%%%%%%
+
+\usepackage{xcolor}
 \definecolor{lightgreen}{rgb}{0.8,1.0,0.8}
 \definecolor{red}{rgb}{0.8,0,0}
 \definecolor{green}{rgb}{0,0.8,0}
 \definecolor{blue}{rgb}{0,0,1}
-% Define some colors for listings
 \definecolor{codegreen}{rgb}{0,0.6,0}
 \definecolor{codegray}{rgb}{0.5,0.5,0.5}
 \definecolor{codepurple}{rgb}{0.58,0,0.82}
 \definecolor{backcolour}{rgb}{0.95,0.95,0.92}
 \definecolor{keywordblue}{rgb}{0.13,0.13,1}
 \definecolor{stringred}{rgb}{0.8,0,0}
+
+%%%%%%%%%%%%%%%
+% TODO macros %
+%%%%%%%%%%%%%%%
+\setlength {\marginparwidth}{2cm}
+\usepackage{todonotes}
+\newcommand{\mytodo}[1]{\todo[inline,color=lightgreen]{TODO:#1}}
+\newcommand{\mnote}[2][]{\todo[inline,color=red!10,#1]{Matthew: #2}}
+\newcommand{\myremark}[1]{\todo[inline, color=lightgreen]{\textbf{Remark:} #1}}
+
+%%%%%%%%%%%%%%%%
+% Common terms %
+%%%%%%%%%%%%%%%%
+
+\newcommand{\vnnlib}{VNN-LIB}
+\newcommand{\ie}{\textit{i.e.}}
+
+\newcommand{\nilList}{[\:]}
+\newcommand{\consList}[2]{#1 :: #2}
+
+%%%%%%%%%%%%%
+% Semantics %
+%%%%%%%%%%%%%
+
+\newcommand{\mgrammar}[1]{\text{\small \textit{#1}}}
+\newcommand{\set}{\text{Set}}
+
+\newcommand{\sem}[1]{\llbracket #1 \rrbracket}
+\newcommand{\semenv}[1]{\llbracket #1 \rrbracket^{\Delta_N,\Delta_A}}
+
+%%%%%%%%%%%%%%%%%%
+% Network theory %
+%%%%%%%%%%%%%%%%%%
+
+\newcommand{\networkTheory}{Network Theory}
+\newcommand{\networkTheoryVar}{\Psi}
+\newcommand{\missing}{\ensuremath{\square}}
+
+\newcommand{\elementVar}{d}
+\newcommand{\modelVar}{m}
+\newcommand{\tensorVar}{t}
+
+\newcommand{\shapeVar}{s}
+\newcommand{\elementTypeVar}{\tau}
+\newcommand{\tensorTypeVar}{\delta}
+\newcommand{\modelTypeVar}{\gamma}
+
+\newcommand{\semApp}[2]{\sem{#2}_\text{#1}}
+\newcommand{\semElementType}[1]{\semApp{elementType}{#1}}
+\newcommand{\semTensorType}[1]{\semApp{tensorType}{#1}}
+\newcommand{\semTensor}[1]{\semApp{tensor}{#1}}
+\newcommand{\semModelType}[1]{\semApp{modelType}{#1}}
+\newcommand{\semModel}[1]{\semApp{model}{#1}}
+
+\newcommand{\semElementTypeAbs}{\semApp{elementType}{\cdot}}
+\newcommand{\semTensorAbs}{\semApp{tensor}{\cdot}}
+\newcommand{\semModelAbs}{\semApp{model}{\cdot}}
+
+\newcommand{\networkTheoryVarParam}{^\networkTheoryVar}
+\newcommand{\semElementTypeTheory}[1]{\semElementType{#1}\networkTheoryVarParam}
+\newcommand{\semTensorTypeTheory}[1]{\semTensorType{#1}\networkTheoryVarParam}
+\newcommand{\semTensorTheory}[1]{\semTensor{#1}\networkTheoryVarParam}
+\newcommand{\semModelTypeTheory}[1]{\semModelType{#1}\networkTheoryVarParam}
+\newcommand{\semModelTheory}[1]{\semModel{#1}\networkTheoryVarParam}
+
+\newcommand{\real}{\ensuremath{\mathbb{R}}
+}
+%%%%%%%%%%
+% VNNLIB %
+%%%%%%%%%%
+
+\newcommand{\queryVar}{q}
+\newcommand{\versionVar}{v}
+\newcommand{\nameVar}{v}
+\newcommand{\equivVar}{e}
+
+\newcommand{\networkDeclVar}{n}
+\newcommand{\networkDeclSet}{N}
+
+\newcommand{\inputDeclVar}{i}
+\newcommand{\inputDeclSet}{I}
+
+\newcommand{\hiddenDeclVar}{h}
+\newcommand{\hiddenDeclSet}{H}
+
+\newcommand{\outputDeclVar}{o}
+\newcommand{\outputDeclSet}{O}
+
+\newcommand{\assertionVar}{a}
+\newcommand{\assertionSet}{A}
+
+\newcommand{\networkExpansion}
+{
+\texttt{declare-network} ~
+\nameVar ~
+\equivVar ~
+\inputDeclSet ~
+\hiddenDeclSet ~
+\outputDeclSet
+}
+
+\newcommand{\queryExpansion}
+{
+\versionVar ~
+\networkDeclSet ~
+\assertionSet
+}
+
+\newcommand{\assertCtx}{\Gamma}
+\newcommand{\networkCtx}{\assertCtx^N}
+\newcommand{\variableCtx}{\assertCtx^V}
+
+\newcommand{\assertEnv}{\Delta}
+\newcommand{\semQuery}[1]{\semApp{query}{#1}}
+\newcommand{\semNetwork}[1]{\semApp{network}{#1}}
+\newcommand{\semArith}[1]{\semApp{arith}{#1}^\assertEnv}
+\newcommand{\semBool}[1]{\semApp{bool}{#1}^\assertEnv}
+\newcommand{\semAssert}[1]{\semApp{assert}{#1}^\assertEnv}
+
+\newcommand{\networkDeclType}{\text{modelType}}
+\newcommand{\networkInputsType}{\text{inputTypes}}
+
+
+\newcommand{\networkImplementation}{f}
+\newcommand{\networkImplementationSet}{F}
+\newcommand{\networkImplementations}{[\networkImplementation_1 \ldots \networkImplementation_n]}
+
+\newcommand{\networkInputTensor}{t}
+\newcommand{\networkInputTensors}{[\networkInputTensor_1 \ldots \networkInputTensor_n]}
+
+\newcommand{\networkInput}{x}
+\newcommand{\networkInputSet}{X}
+\newcommand{\networkInputs}{[\networkInput_1 \ldots \networkInput_n]}
+
+%%%%%%%%%%%%
+% Theories %
+%%%%%%%%%%%%
+
+% Theory sets
+\newcommand{\theoryset}[1]{\textbf{#1}}
+\newcommand{\hiddenNodes}{\theoryset{Hidden Nodes}}
+\newcommand{\multiIO}{\theoryset{Multiple Inputs/Outputs}}
+\newcommand{\multiNetwork}{\theoryset{Multiple Networks}}
+\newcommand{\multiComparison}{\theoryset{Multiple Node Comparisons}}
+\newcommand{\arithComplexity}{\theoryset{Arithmetic Complexity}}
+
+% Theories
+\newcommand{\theory}[1]{\texttt{#1}}
+\newcommand{\nh}{\theory{NH}}
+\newcommand{\h}{\theory{H}}
+\newcommand{\snet}{\theory{SNET}}
+\newcommand{\mnet}{\theory{MNET}}
+\newcommand{\menet}{\theory{MENET}}
+\newcommand{\minet}{\theory{MINET}}
+\newcommand{\sio}{\theory{SIO}}
+\newcommand{\mio}{\theory{MIO}}
+\newcommand{\snc}{\theory{SNC}}
+\newcommand{\mnc}{\theory{MNC}}
+\newcommand{\bnd}{\theory{BND}}
+\newcommand{\cout}{\theory{OUTC}}
+\newcommand{\lin}{\theory{LIN}}
+\newcommand{\poly}{\theory{POLY}}
+
+%%%%%%%%%%
+% Logics %
+%%%%%%%%%%
+
+\newcommand{\logicVar}{\mathcal{L}}
+\newcommand{\logicSet}{\mathbb{L}}
+\newcommand{\logic}[1]{\texttt{#1}}
+
+%%%%%%%%%%%%%%%%%%%%%
+% Code highlighting %
+%%%%%%%%%%%%%%%%%%%%%
+
+\usepackage{listings}
+
+\renewcommand{\lstlistingname}{Example}
 
 % Listings style for BNFC commands
 \lstdefinestyle{lbnf}{
@@ -102,8 +279,7 @@
     escapeinside={\%*}{*} 
 }
 
-
-% Stops splitting over multiple pages
+% Stops code splitting over multiple pages
 \lstnewenvironment{code}[1][]%
 {
    \noindent
@@ -112,41 +288,12 @@
    \lstset{basicstyle=\ttfamily\footnotesize,frame=single,#1}}
 {\endminipage}
 
-\newcommand{\mytodo}[1]{\todo[inline,color=lightgreen]{TODO:#1}}
-\newcommand{\mnote}[2][]{\todo[inline,color=red!10,#1]{Matthew: #2}}
-\newcommand{\myremark}[1]{\todo[inline, color=lightgreen]{\textbf{Remark:} #1}}
+\newcommand{\inlinevnn}[1]{\texttt{#1}}
 
-% Theory sets
-\newcommand{\theoryset}[1]{\textbf{#1}}
-\newcommand{\hiddenNodes}{\theoryset{Hidden Nodes}}
-\newcommand{\multiIO}{\theoryset{Multiple Inputs/Outputs}}
-\newcommand{\multiNetwork}{\theoryset{Multiple Networks}}
-\newcommand{\multiComparison}{\theoryset{Multiple Node Comparisons}}
-\newcommand{\arithComplexity}{\theoryset{Arithmetic Complexity}}
 
-% Theories
-\newcommand{\theory}[1]{\texttt{#1}}
-\newcommand{\nh}{\theory{NH}}
-\newcommand{\h}{\theory{H}}
-\newcommand{\snet}{\theory{SNET}}
-\newcommand{\mnet}{\theory{MNET}}
-\newcommand{\menet}{\theory{MENET}}
-\newcommand{\minet}{\theory{MINET}}
-\newcommand{\sio}{\theory{SIO}}
-\newcommand{\mio}{\theory{MIO}}
-\newcommand{\snc}{\theory{SNC}}
-\newcommand{\mnc}{\theory{MNC}}
-\newcommand{\bnd}{\theory{BND}}
-\newcommand{\cout}{\theory{OUTC}}
-\newcommand{\lin}{\theory{LIN}}
-\newcommand{\poly}{\theory{POLY}}
-
-\newcommand{\logic}[1]{\texttt{#1}}
-
-\newcommand{\inlinevnn}[1]{\lstinline[style=lbnf]{#1}}
-
-\newcommand{\sem}[1]{\llbracket #1 \rrbracket}
-\newcommand{\semenv}[1]{\llbracket #1 \rrbracket^{\Delta_N,\Delta_A}}
+%%%%%%%%%%%%
+% Metadata %
+%%%%%%%%%%%%
 
 \title{
 	The \vnnlib{} Standard \\ 
@@ -166,21 +313,22 @@
 \affil[2]{University of Sassari, Italy}
 \affil[3]{University of Western Australia, Australia}
   
+%%%%%%%%%%%%
+% Document %
+%%%%%%%%%%%%
+
 \begin{document}
 
 \maketitle
 
 \begin{abstract}
-This document presents \vnnlib{}, a standard that formalises the query language for solvers. The standard uses the 
-Open Neural Network Exchange (ONNX) format for model description and builds upon the Satisfiability Modulo Theories Library (SMT-LIB) 
-format for query specification. Key among the standard is a formally defined syntax and semantics, complimentary tooling, as well as a 
-command-line interface for solvers. The goal is to foster greater robustness and interoperability in the neural network verification 
-landscape.
+This document presents \vnnlib{}, a standard for solving satisfiability problems over neural networks. \vnnlib{} uses the 
+Open Neural Network Exchange (ONNX) format for neural network model description and the \vnnlib{} language for satisfiability query description. 
+The document provides a formally defined syntax and semantics for the \vnnlib{} language, and a command-line interface for solvers. 
+The goal is to foster greater robustness and interoperability in the neural network verification landscape.
 \end{abstract}
 
 \tableofcontents
-
-\input{chapters/changelog.tex}
 
 \input{chapters/introduction.tex}
 \input{chapters/models.tex}
@@ -192,27 +340,5 @@ landscape.
 
 \bibliography{bibliography}
 \bibliographystyle{plain}
-
-%\begin{thebibliography}{9} 
-%
-%\bibitem{1} 
-%D. Tang, B. Qin, and T. Liu, ``Document modelling with gated recurrent neural network for sentiment classification,'' in \emph{Proceedings of the 2015 Conference on Empirical Methods in Natural Language Processing}, 2015, pp. 1422--1432.
-%
-%\bibitem{2} 
-%M. Bojarski, et al., ``End to end learning for self-driving cars,'' \emph{arXiv preprint arXiv:1604.07316}, 2016.
-%
-%\bibitem{4} 
-%P. Zhang et al., ``White-box fairness testing through adversarial sampling,'' in \emph{2020 IEEE/ACM 42nd International Conference on Software Engineering (ICSE)}, New York, NY, USA:\@ ACM, 2020, pp. 949--960.\'doi: \href{https://doi.org/10.1145/3377811.3380331}{10.1145/3377811.3380331}.
-%
-%\bibitem{5} 
-%S. Demarchi, D. Guidotti, L. Pulina, and A. Tacchella, ``Supporting Standardization of Neural Networks Verification with VNN-LIB and CoCoNet,'' in \emph{Proc. 6th Int. Workshop on Formal Methods for ML-Enabled Autonomous Systems (FoMLAS 2023)}, 2023, pp. 47--58.
-%
-%\bibitem{6} 
-%C. Brix, S. Bak, C. Liu, and T. T. Johnson, ``The Fourth International Verification of Neural Networks Competition (VNN-COMP 2023): Summary and Results,'' 2023, doi: \href{https://doi.org/10.48550/arxiv.2312.16760}{10.48550/arxiv.2312.16760}.
-%
-%\bibitem{7} 
-%L. C. Cordeiro et al., ``Neural Network Verification is a Programming Language Challenge,'' 2025, doi: \href{https://doi.org/10.48550/arxiv.2501.05867}{10.48550/arxiv.2501.05867}.
-%
-%\end{thebibliography}
 
 \end{document}
