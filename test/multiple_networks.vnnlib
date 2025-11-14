@@ -12,8 +12,8 @@
 
 (declare-network AcasZu
 	(isomorphic-to AcasYu)
-	(declare-input C Real [5])
-	(declare-output D Real [6])
+	(declare-input E Real [5])
+	(declare-output F Real [5])
 )
 
 ; Unscaled Input 0: (55947.691, 60760)
