@@ -53,15 +53,12 @@ DType.          ElementType ::= VariableName ;
 -- The ONNX name associated with a tensor. Bounded by double quotes
 NodeName.       OnnxName    ::= String ;
 
--- A tensor definition consists of the variable name, element type, shape, and optional ONNX name
+-- A tensor definition consists of the variable name, element type, and shape
 InputDef.       InputDefinition  ::= "(declare-input" VariableName ElementType TensorShape ")" ;
-InputOnnxDef.   InputDefinition  ::= "(declare-input" VariableName ElementType TensorShape OnnxName ")" ;
+OutputDef.      OutputDefinition ::= "(declare-output" VariableName ElementType TensorShape ")" ;
 
 -- Hidden definitions have a mandatory ONNX name
 HiddenDef.      HiddenDefinition ::= "(declare-hidden" VariableName ElementType TensorShape OnnxName ")" ;
-
-OutputDef.      OutputDefinition ::= "(declare-output" VariableName ElementType TensorShape ")" ;
-OutputOnnxDef.  OutputDefinition ::= "(declare-output" VariableName ElementType TensorShape OnnxName ")" ;
 
 separator nonempty InputDefinition "" ;
 separator HiddenDefinition "" ;
