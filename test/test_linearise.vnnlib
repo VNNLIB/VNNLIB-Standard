@@ -83,7 +83,7 @@
 (assert (and (>= X[0] 0.0) (<= X[1] 100.0)))
 
 ; Expected: Two separate linear constraints in disjunction
-(assert (or (<= Y[0] -5.0) (>= Y[0] 5.0)))
+(assert (or (<= Y -5.0) (>= Y 5.0)))
 
 ; --- GROUP 8: Non-Linear (Should Fail) ---
 
