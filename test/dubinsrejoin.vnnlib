@@ -2,8 +2,8 @@
 ; dubinsrejoin property safe_6
 
 (declare-network dubinsrejoin
-	(declare-input X Real [8] "input_onnx_node")
-	(declare-output Y Real [8] "output_onnx_node")
+	(declare-input X Real [8])
+	(declare-output Y Real [8])
 )
 
 
