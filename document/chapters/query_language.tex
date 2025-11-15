@@ -151,16 +151,7 @@ Although queries often relate the input of a single network to its output in som
 
 \subsubsection{Multiple input and output declarations}
 
-Neural network that accept multi-modal input or produce multi-modal output are becoming increasingly common~\cite{wang2021survey}. 
-For example, the network in Figure~\ref{fig:multi-inputs-outputs} shows a model that takes both an image and meta-data about that image as inputs, and outputs both a bounding box around an identified object of interest and a probability distribution over the possible class that the object belongs to. 
-
-The query language supports such networks by allowing a network declaration to declare an arbitrary number of input and output declarations. The question is then how is the list of declared inputs and outputs mapped to the list of inputs and outputs nodes in the ONNX model. There are two ways to specify this mapping: 
-\begin{itemize}
-    \item \textbf{By order:} the default is that declared inputs and outputs are mapped to the ONNX graph's inputs and outputs by matching the order of declaration in the query to the order of declaration in the ONNX model file. This is demonstrated in the top code snippet in Figure~\ref{fig:multi-inputs-outputs}
-    \item \textbf{By name:} alternatively, variables can be explicitly mapped using the names of the nodes within the ONNX graph. If this method is used, all input and output variables within that network declaration must be given an explicit ONNX node name. This is demonstrated in the bottom code snippet in Figure~\ref{fig:multi-inputs-outputs}.
-\end{itemize}
-
-\begin{figure}[h!]
+\begin{figure}[t]
     \centering
     \begin{lstlisting}[style=lbnf]
 (declare-network multi_io_net
@@ -170,22 +161,20 @@ The query language supports such networks by allowing a network declaration to d
     (declare-output logits   float32 [1,1000])
 )\end{lstlisting}
 
-    \begin{lstlisting}[style=lbnf]
-(declare-network multi_io_net
-    (declare-input  metadata float32 [1,10]        "metadata")
-    (declare-input  image    float32 [1,3,224,224] "image")
-    (declare-output logits   float32 [1,1000]      "logits")
-    (declare-output bbox     int16   [1,4,2]       "bbox")
-)\end{lstlisting}
-
     \vspace{0.5cm}
     \includegraphics[width=\textwidth]{imgs/multi_io_net.onnx.pdf}
-    \caption{A \vnnlib{} network declaration with multiple inputs/outputs. The first code snippet shows the declared inputs and outputs mapped to the ONNX inputs and outputs nodes by declaration order, while the second snippet shows them explicitly mapped by the name of the ONNX node.}
+    \caption{A \vnnlib{} network declaration with multiple inputs/outputs.}
     \label{fig:multi-inputs-outputs}
 \end{figure}
 
+Neural network that accept multi-modal input or produce multi-modal output are becoming increasingly common~\cite{wang2021survey}. 
+For example, the network in Figure~\ref{fig:multi-inputs-outputs} shows a model that takes both an image and meta-data about that image as inputs, and outputs both a bounding box around an identified object of interest and a probability distribution over the possible class that the object belongs to. 
 
-\subsubsection{Hidden output declarations}
+The query language supports such networks by allowing a network declaration to declare an arbitrary number of input and output declarations. 
+The declared inputs and outputs are mapped to the ONNX graph's inputs and outputs by matching the order of declaration in the query to the order of nodes in the ONNX model file.
+
+
+\subsubsection{Hidden node declarations}
 \label{sec:hidden-output-declarations}
 
 In some use cases it is desirable to constrain the result of intermediate computation at the output of hidden nodes within the network. For example, when reasoning about the encodings in an encoder-decoder architecture or when reasoning about attention mechanisms. This can be achieved by declaring hidden nodes using the \texttt{declare-hidden} keyword. This declaration includes a variable name for use within the \vnnlib{} specification,  its element type, its tensor shape, and crucially, a string identifier that specifies the corresponding node name in the ONNX graph.  Multiple hidden nodes can be trivially declared within a single network declaration. Figure~\ref{fig:hidden-node} shows a \vnnlib{} network declaration with a hidden node.
