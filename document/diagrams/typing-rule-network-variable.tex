@@ -1,25 +1,25 @@
 \begin{mathpar}
             \inferrule*[Right=Input]
             {
-            	v \notin \variableCtx
+            	\nameVar \notin \variableCtx
             }
             {
-                \variableCtx \vdash \texttt{declare-input}~v~\tau~s : \variableCtx[v \rightarrow (\tau, s)]
+                \variableCtx \vdash \inputExpansion : \variableCtx[\nameVar \rightarrow (\elementTypeVar, \shapeVar)]
             }
             \\
             \inferrule*[Right=Hidden]
             {
-            	v \notin \variableCtx
+            	\nameVar \notin \variableCtx
             }
             {
-                \variableCtx \vdash \texttt{declare-hidden}~v~\tau~s~n : \variableCtx[ v \rightarrow (\tau, s)]
+                \variableCtx \vdash \hiddenExpansion : \variableCtx[\nameVar \rightarrow (\elementTypeVar, \shapeVar)]
             }
             \\
             \inferrule*[Right=Output]
             {
-            	v \notin \variableCtx
+            	\nameVar \notin \variableCtx
             }
             {
-                \variableCtx \vdash \texttt{declare-output}~v~\tau~s : \variableCtx[ v \rightarrow (\tau, s)]
+                \variableCtx \vdash \outputExpansion : \variableCtx[\nameVar \rightarrow (\elementTypeVar, \shapeVar)]
             }
 \end{mathpar}

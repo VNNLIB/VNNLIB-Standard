@@ -1,9 +1,9 @@
 \begin{mathpar}
     \inferrule*[Right=Variable]
     {
-        \assertCtx [v] = (\tau,s) \quad \forall i . \; l_i < s_i
+        \assertCtx [\nameVar] = (\elementTypeVar,\shapeVar) \quad \forall i . \; l_i < \shapeVar_i
     }
     {
-        \assertCtx \vdash v~l : \tau
+        \assertCtx \vdash \nameVar~[l_1, ..., l_n] : \tau
     }
 \end{mathpar}
