@@ -42,7 +42,7 @@ This chapter describes the syntax, scoping, typing and semantics of the query la
 	\alt (\texttt{!=} <arith> <arith>)
 	
 	<arith> ::= <element>$\networkTheoryVarParam$
-	\alt <name> <indices>
+	\alt <name> <indices>$^?$
 	\alt (\texttt{-} <arith>)
 	\alt (\texttt{+} <arith> <arith>$^+$)
 	\alt (\texttt{*} <arith> <arith>$^+$)
@@ -289,6 +289,20 @@ Due to the transitivity of equality and isomorphism, these restrictions do not r
 
 While a solver may make use of the \texttt{equal-to} and \texttt{isomorphic-to} declarations internally to optimise its representation and reasoning about the provided networks, it is not required to.
 
+\subsubsection{Networks that use zero-dimensional tensors}
+
+It is permitted for network declarations to contain nodes that are declared to have zero dimensions.
+In this case, the variables can be referenced without any indices, as shown in Line 8 below:
+\begin{lstlisting}[style=lbnf]
+(declare-network f
+    (declare-input  X float32 [1,2])
+    (declare-output Y float32 [])
+)
+
+(assert (>= X[0,0] 0.0))
+(assert (<= X[0,1] 1.0))
+(assert (<= Y 0.5))
+\end{lstlisting}
 
 
 \subsection{Comments and Whitespace}
@@ -301,7 +315,16 @@ Comments in \vnnlib{} are denoted by a semicolon (\texttt{;}) and extend to the 
 
 This section describes the typing rules for \vnnlib{} queries. The rules provide a formal description of the constraints on the syntax described informally in Section~\ref{sec:syntax}, e.g. all variable names must be unique, variables of different types cannot appear in the same assertion. 
 
-Crucial to the typing rules is the notion of the current \emph{context} $\assertCtx = (\networkCtx, \variableCtx)$ which consists of two parts. The first is the \emph{network context}, $\networkCtx : \mgrammar{<name>} \rightarrow \mgrammar{<network>}$, which is a mapping from network names to the corresponding network declarations. The second is the \emph{variable context}, $\variableCtx : \mgrammar{<name>} \rightarrow \mgrammar{<tensorType>}\networkTheoryVarParam$, which is a mapping from the decared input/hidden/output variables to their shape and type.
+Crucial to the typing rules is the notion of the current \emph{context} $\assertCtx = (\networkCtx, \variableCtx)$ which consists of two parts. The first is the \emph{network context}:
+\begin{equation*}
+\networkCtx : \mgrammar{<name>} \rightarrow \mgrammar{<network>}
+\end{equation*}
+which is a mapping from network names to the corresponding network declarations. 
+The second is the \emph{variable context}:
+\begin{equation*}
+\variableCtx : \mgrammar{<name>} \rightarrow \mgrammar{<tensorType>}\networkTheoryVarParam
+\end{equation*}
+which is a mapping from the decared input/hidden/output variables to their shape and type.
 
 As one would expect, queries are typed  by first constructing the context $\assertCtx$ by iterating over the network declarations, and then using that context to type the globally-scoped assertions:
 \input{diagrams/typing-rule-query.tex}
