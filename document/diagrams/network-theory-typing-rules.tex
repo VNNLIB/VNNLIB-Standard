@@ -1,22 +1,35 @@
-	% This minipage exists to force left-alignment
-	\begin{minipage}[t]{0.5\textwidth}
+% This minipage exists to force left-alignment
+\begin{minipage}[t]{0.5\textwidth}
 	\begin{flalign*}
-		&\inferrule*[Right=(Element)]{
+		\inferrule*[Right=(Element)]{
             \missing
         }{
             \vdash \elementVar : \elementTypeVar
         }
-        \hspace{8em}
+        \hspace{8.3em}
         \inferrule*[Right=(Tensor)]{
             \missing 
         }{
             \vdash \tensorVar : \tensorTypeVar
         }
-        \hspace{8em}
+        \hspace{7.8em}
 	    \inferrule*[Right=(Model)]{
             \missing
         }{
             \vdash \modelVar : \modelTypeVar 
         }
-    \end{flalign*}	
-	\end{minipage}
+        \\
+        \inferrule*[Right=(ModelHidden)]{
+            \missing
+        }{
+            \vdash \modelVar.\nameVar : \tensorTypeVar
+        }
+        \hspace{11em}
+        \inferrule*[Right=(Iso)]{
+            \missing
+        }{
+            \vdash \modelVar_1 \cong \modelVar_2
+        }
+        \hspace{5.5em}
+    \end{flalign*}
+\end{minipage}

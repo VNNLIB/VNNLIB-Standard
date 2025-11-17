@@ -291,8 +291,8 @@ Flatten
 
 \clOutputOption
 {--hidden-node-theories}
-{Which \hiddenNodes{} theories described in Section~\ref{sec:hidden-nodes} does the solver support?}
-{A newline-seperated list of theories}
+{Which of the \hiddenNodes{} theories described in Section~\ref{sec:hidden-nodes} does the solver support?}
+{A newline-separated list of theories}
 \begin{lstlisting}[style=bash]
 %*\exampleSolver* supports --hidden-node-theories
 NH
@@ -300,8 +300,8 @@ NH
 
 \clOutputOption
 {--multiple-input-output-theories}
-{Which \multiIO{} theories described in Section~\ref{sec:multiple-inputs-outputs} does the solver support?}
-{A newline-seperated list of theories}
+{Which of the \multiIO{} theories described in Section~\ref{sec:multiple-inputs-outputs} does the solver support?}
+{A newline-separated list of theories}
 \begin{lstlisting}[style=bash]
 %*\exampleSolver* supports --multiple-inputs-output-theories
 SNET
@@ -310,8 +310,8 @@ MENET
 
 \clOutputOption
 {--multiple-network-theories}
-{Which \multiNetwork{} theories described in Section~\ref{sec:multiple-networks} does the solver support?}
-{A newline-seperated list of theories}
+{Which of the \multiNetwork{} theories described in Section~\ref{sec:multiple-networks} does the solver support?}
+{A newline-separated list of theories}
 \begin{lstlisting}[style=bash]
 %*\exampleSolver* supports --multiple-network-theories
 SIO
@@ -319,8 +319,8 @@ SIO
 
 \clOutputOption
 {--multiple-node-comparison-theories}
-{Which \multiComparison{} theories described in Section~\ref{sec:multi-node-comparisons} does the solver support?}
-{A newline-seperated list of theories}
+{Which of the \multiComparison{} theories described in Section~\ref{sec:multi-node-comparisons} does the solver support?}
+{A newline-separated list of theories}
 \begin{lstlisting}[style=bash]
 %*\exampleSolver* supports --multiple-node-comparison-theories
 MNC
@@ -328,9 +328,9 @@ MNC
 
 \clOutputOption
 {--arithmetic-complexity-theories}
-{Which \arithComplexity{} theories described in Section~\ref{sec:arithmetic-complexity} does the solver support?
+{Which of the \arithComplexity{} theories described in Section~\ref{sec:arithmetic-complexity} does the solver support?
 }
-{A newline-seperated list of theories.}
+{A newline-separated list of theories.}
 \begin{lstlisting}[style=bash]
 %*\exampleSolver* supports --arithmetic-complexity-theories
 LIN
@@ -338,7 +338,7 @@ LIN
 
 \clOutputOption
 {--optimised-disjunctive-reasoning}
-{Does the solver uses an intelligent strategy for handling queries involving \texttt{(or ...)} statements or simply translates them to disjunctive normal form? If the latter, then higher-level tools can use this flag to decide whether to perform the conversion to DNF themselves and hence get a better indication of progress.
+{Does the solver use an intelligent strategy for handling queries involving \texttt{(or ...)} statements or simply translates them to disjunctive normal form? If the latter, then higher-level tools can use this flag to decide whether to perform the conversion to DNF themselves and hence get a better indication of progress.
 }
 {A boolean (\texttt{true} or \texttt{false})}
 \begin{lstlisting}[style=bash]

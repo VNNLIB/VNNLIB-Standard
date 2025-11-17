@@ -1,0 +1,11 @@
+\begin{equation*}
+    \inferrule*[Right=Model-Cons]
+    {
+        \vdash_\networkTheoryVar \networkImplementation : \networkDeclType(\networkDeclVar_n)
+        \\
+        \newImplementationCtx[\nameVar \rightarrow \networkImplementation] \vdash \networkImplementationSet : \networkDeclSet  
+    }
+    {
+        \newImplementationCtx \vdash (\consList{\networkImplementation}{\networkImplementationSet}) : (\consList{\networkExpansion}{\networkDeclSet})
+    }
+\end{equation*}

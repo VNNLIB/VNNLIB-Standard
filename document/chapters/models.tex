@@ -59,12 +59,12 @@ All tensors processed by ONNX models are strongly typed. The basic properties of
 
 Each node in the ONNX graph is an \emph{operator} which takes some number of input tensors and creates some number of output tensors. Each operator has the following meta-data: a name, a list of expected input tensors, a list of expected output tensors, and a list of attributes for configuring the operation (e.g. kernel size and stride for a convolution-based operator). The full list of ONNX operators can be found in the specification, but commonly used ones include:
 \begin{itemize}
-\item \textit{Gemm} (General Matrix Multiplication)
-\item \textit{Conv} (Convolutional)
-\item \textit{MaxPool} (Maximum pooling)
-\item \textit{ReLU} (Rectified Linear Unit)
-\item  \textit{Sigmoid} (Logistic Unit)
-\item \textit{Softmax} (Softmax Unit)
+\item Gemm (General Matrix Multiplication)
+\item Conv (Convolutional)
+\item MaxPool (Maximum pooling)
+\item ReLU (Rectified Linear Unit)
+\item Sigmoid (Logistic Unit)
+\item Softmax (Softmax Unit)
 \end{itemize}
 ONNX uses a versioning system called \emph{opsets} to manage the evolution of the list of supported operators. Each opset supports a given set of operators, and the semantics of existing operators may change between opset versions.
 This ensures that the definition and behaviour of each operator can evolve over time without breaking existing models. The ONNX model file declares the opset version it uses in its metadata.
@@ -95,15 +95,11 @@ This dependence on the ONNX standard has two immediate consequences for \vnnlib{
 It would be undesirable to tie the \vnnlib{} standard to a specific version of ONNX, as that would require new versions of the \vnnlib{} standard to be released in lockstep with the ONNX standard.
 \end{enumerate}
 The solution to these problems is define the syntax and semantics of \vnnlib{} \emph{relative} to some abstract theory of neural networks.
-In practice, this means the \vnnlib{} query language will be parameterised by an abstract signature $\networkTheoryVar$ containing the minimal set of syntax, typing judgments and semantics for neural networks necessary to define the syntax and semantics of the query language.
+In practice, this means the \vnnlib{} query language will be parameterised by an abstract signature, $\networkTheoryVar$, containing the minimal set of syntax, typing judgments and semantics for neural networks necessary to define the syntax and semantics of the query language.
 We will call the signature $\networkTheoryVar$ a \emph{network theory} . 
 
-Therefore, although each new version of the ONNX standard will define a new network theory, complete with its own operators, element types and semantics, the \vnnlib{} standard will remain constant relative to an abstract theory $\networkTheoryVar$.
-This allows the ONNX standard to evolve independently without requiring the explicit redefinition of the syntax and semantics of \vnnlib{}\footnote{
-Note that nothing in the definition of a network theory is explicitly dependent on ONNX. 
-The same mechanism could be used to define the syntax and semantics relative to other frameworks e.g. PyTorch. 
-However, for the reasons outlined at the start of this chapter, in practice the \vnnlib{} standard assumes the use of the ONNX format.
-}.
+Therefore, although each new version of the ONNX standard will define a new network theory, complete with its own operators, element types and semantics, the \vnnlib{} standard will remain constant relative to an abstract network theory $\networkTheoryVar$.
+This allows the ONNX standard to evolve independently without requiring the explicit redefinition of the syntax and semantics of \vnnlib{}.
 
 \begin{figure}
 	\newcommand{\tensorOpOneSem}[2]{ 
@@ -138,28 +134,29 @@ However, for the reasons outlined at the start of this chapter, in practice the 
 	
 	\begin{subfigure}{\textwidth}
 		\input{diagrams/network-theory-types.tex}
-		\caption{Abstract grammar for network types}
+		\vspace{-0.7em}
+		\caption{Abstract grammar for network model types}
 		\label{fig:onnx-type-syntax}
 	\end{subfigure}
+	\\
 	\\
 	\\
 	\begin{subfigure}{\textwidth}
 	\centering
 		\input{diagrams/network-theory-expr.tex}
-		\vspace{0.8em}
-		\caption{Abstract grammar for network expressions}
+		\caption{Abstract grammar for network model expressions}
 		\label{fig:onnx-expr-syntax}
 	\end{subfigure}
 	\\
 	\begin{subfigure}{\textwidth}
 		\input{diagrams/network-theory-typing-rules.tex}
-		\caption{Abstract type system}
+		\caption{Abstract type system for network models}
 		\label{fig:onnx-types}
 	\end{subfigure}
 	\\
 	\begin{subfigure}{\textwidth}
 		\input{diagrams/network-theory-semantics.tex}
-		\caption{Abstract semantics}
+		\caption{Abstract semantics for network models}
 		\label{fig:onnx-semantics}
 	\end{subfigure}
 	\caption{The definition of a network theory $\networkTheoryVar$, i.e. the minimal signature for an abstract implementation of ONNX that allows the syntax and semantics of VNN-LIB to be defined. The \missing{} symbol indicates what needs to be defined by the ONNX standard to instantiate the theory.}
@@ -176,15 +173,22 @@ Figures~\ref{fig:onnx-type-syntax}~\&~\ref{fig:onnx-expr-syntax} define the synt
 \end{enumerate}
 Figure~\ref{fig:onnx-types} defines the required typing judgments over the syntax:
 \begin{enumerate}
-\item \textsc{(Element)} - a judgement that a given numeric string is a valid element of a provided element type. For instance, it would be expected that the number `1' would be judged as of type \texttt{float64} and \texttt{int32}, and `1.0' would be judged as of type \texttt{float64} but not \texttt{int32}.
-\item \textsc{(Tensor)} - a judgement that a given tensor is of a given element type and shape.
-\item \textsc{(Model)} - a judgment that a given model takes in a list of tensors of the provided shape and produces a list of output tensors of the required shapes.
+\item \textsc{(Element)} - a judgement that a numeric string~$\elementVar$ is a valid element of a provided element type~$\elementTypeVar$. For instance, it would be expected that the number `1' would be judged as of type \texttt{float64} and \texttt{int32}, and `1.0' would be judged as of type \texttt{float64} but not \texttt{int32}.
+\item \textsc{(Tensor)} - a judgement that a tensor~$\tensorVar$ is of a given element type and shape~$\tensorTypeVar$.
+\item \textsc{(Model)} - a judgment that a model~$\modelVar$ is of a given type~$\modelTypeVar$, i.e takes in a list of tensors of the provided shape and produces a list of output tensors of the required shapes.
+\item \textsc{(ModelHidden)} - a judgment that a model~$\modelVar$ has a hidden node called~$\nameVar$ whose output is a tensor of type~$\tensorTypeVar$.
+\item \textsc{(Iso)} - a judgment that the graph structure of two models are isomorphic to each other. This judgement does not constrain other properties of the two networks, (i.e. they may use different datatypes and have different weights). See Section~\ref{sec:multiple-network}.
 \end{enumerate}
 Finally~\ref{fig:onnx-semantics} defines the semantics over the well-typed syntactic constructs:
 \begin{enumerate}
 \item $\semElementTypeAbs$ - a function mapping each syntactic element type to a mathematical set of values.
-\item $\semTensorAbs$ - a function mapping each syntactic tensor to a mathematical tensor of the required type and shape.
-\item $\semModelAbs$ - a function mapping each syntactic model to an executable function from a list of input mathematical tensors of the required shape to a list of output mathematical tensors of the required shape.
+\item $\semTensorAbs$ - a function mapping a syntactic tensor $\tensorVar$ of type $\tensorTypeVar$ to the mathematical tensor that it represents.
+\item $\semModelAbs$ - a function mapping a syntactic model $\tensorVar$ of type $\modelTypeVar$ to the mathematical function that it represents, that maps a list of input mathematical tensors to a list of output mathematical tensors.
+\item $\semModelHiddenAbs$ - a function mapping a syntactic model $\tensorVar$ of type $\modelTypeVar$ and the name of a hidden node $\nameVar$ of type $\tensorVar$ to the mathematical function that maps a list of input mathematical tensors to a single output mathematical tensor that represents the output of that hidden node.
 \item $\sem{\leq}$, ..., $\sem{\times}$ - a list of functions that perform basic pointwise comparison and arithemetic operations over tensors.
 \end{enumerate}
-Note that one of the consequences of this parameterisation is that when discussing the semantics of a particular \vnnlib{} query, it is necessary to state the versions of both the ONNX standard and the \vnnlib{} standard being used.
+One of the consequences of this parameterisation is that when discussing the semantics of a particular \vnnlib{} query, it is necessary to state the versions of both the ONNX standard and the \vnnlib{} standard being used.
+
+Note that nothing in the definition of a network theory is explicitly dependent on ONNX. 
+The same mechanism could be used to define the syntax and semantics relative to other frameworks e.g. PyTorch. 
+However, for the reasons outlined at the start of this chapter, in practice the \vnnlib{} standard assumes the use of the ONNX format.
