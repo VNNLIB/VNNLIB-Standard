@@ -324,7 +324,7 @@ The second is the \emph{variable context}:
 \begin{equation*}
 \variableCtx : \mgrammar{<name>} \rightarrow \mgrammar{<tensorType>}\networkTheoryVarParam
 \end{equation*}
-which is a mapping from the decared input/hidden/output variables to their shape and type.
+which is a mapping from the declared input/hidden/output variables to their shape and type.
 
 As one would expect, queries are typed  by first constructing the context $\assertCtx$ by iterating over the network declarations, and then using that context to type the globally-scoped assertions:
 \input{diagrams/typing-rule-query.tex}
