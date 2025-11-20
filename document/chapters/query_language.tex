@@ -292,7 +292,7 @@ While a solver may make use of the \texttt{equal-to} and \texttt{isomorphic-to} 
 \subsubsection{Networks that use zero-dimensional tensors}
 
 It is permitted for network declarations to contain nodes that are declared to have zero dimensions.
-In this case, the variables can be referenced without any indices, as shown in Line 8 below:
+In this case, the variables should be referenced without any indices, as shown in Line 8 below:
 \begin{lstlisting}[style=lbnf]
 (declare-network f
     (declare-input  X float32 [1,2])
