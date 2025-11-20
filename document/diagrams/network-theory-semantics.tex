@@ -10,17 +10,34 @@
 	&= \missing 
 	\\
 	\semTensorAbs
-	&: (\mgrammar{<tensor>} : \tensorTypeVar )
+	&: (\tensorVar : \tensorTypeVar )
 	& \rightarrow \semTensorType{\tensorTypeVar}
 	&= \missing 
 	\\
 	\semModelAbs
-	&: (\mgrammar{<network>} : \modelTypeVar) 
+	&: (\modelVar : \modelTypeVar) 
 	& \rightarrow \semModelType{\modelTypeVar}
+	&= \missing
+	\\
+	\semModelHiddenAbs
+	&: (\modelVar : \modelTypeVar) \rightarrow (\modelVar.\onnxNameVar : \tensorTypeVar) 
+	& \rightarrow \semModelType{(\modelTypeVar.\text{inputs}, [\tensorTypeVar])} 
 	&= \missing
 	\end{array}
 	\end{equation*}
+	\vspace{-0.7em}
 	\begin{equation*}
+	\begin{array}{llll}
+	\semTensorType{(\elementTypeVar, s)}
+	&= \semElementType{\elementTypeVar}^{\prod_i s_i}
+	\\
+	\semModelType{(\tensorTypeVar^I, \tensorTypeVar^O)}
+	&= \prod_{i} \semTensorType{\tensorTypeVar^I_i}  \rightarrow
+	\prod_{i} \semTensorType{\tensorTypeVar^O_i}
+	\end{array}
+	\end{equation*}
+	\begin{equation*}
+	\vspace{0.5em}
 	\begin{array}{llll}
 	\compSem{\leq}
 	\\
@@ -39,20 +56,6 @@
 	\opTwoSem{+}
 	\\
 	\opTwoSem{\times}
-	\end{array}
-	\end{equation*}
-	\begin{equation*}
-	\begin{array}{llll}
-	\semTensorType 
-	&: ((\elementTypeVar, s))
-	& \rightarrow \set
-	&= \semElementType{\elementTypeVar}^{\prod_i s_i}
-	\\
-	\semModelType 
-	&: ((\tensorTypeVar^I, \tensorTypeVar^O))
-	& \rightarrow \set 
-	&= \prod_{i} \semTensorType{\tensorTypeVar^I_i}  \rightarrow
-	\prod_{i} \semTensorType{\tensorTypeVar^O_i}
 	\end{array}
 	\end{equation*}
 \end{minipage}

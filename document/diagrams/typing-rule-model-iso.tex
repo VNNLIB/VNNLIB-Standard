@@ -1,0 +1,20 @@
+\begin{align*}
+    \inferrule*[Right=ModelIso]
+    {
+        \networkImplementation \cong_\networkTheoryVar \Gamma[\nameVar]
+    }
+    {
+        \newImplementationCtx \vdash \networkImplementation : \texttt{isomorphic-to }\nameVar
+    }
+    \qquad\qquad\qquad
+    \inferrule*[Right=ModelEqual]
+    {
+        \networkImplementation = \Gamma[\nameVar]
+    }
+    {
+        \newImplementationCtx \vdash \networkImplementation : \texttt{equal-to }\nameVar
+    }
+    \qquad
+    \qquad
+    \qquad
+\end{align*}

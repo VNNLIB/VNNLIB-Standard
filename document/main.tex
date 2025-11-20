@@ -105,10 +105,12 @@
 \newcommand{\semTensor}[1]{\semApp{tensor}{#1}}
 \newcommand{\semModelType}[1]{\semApp{modelType}{#1}}
 \newcommand{\semModel}[1]{\semApp{model}{#1}}
+\newcommand{\semModelHidden}[1]{\semApp{modelHidden}{#1}}
 
 \newcommand{\semElementTypeAbs}{\semApp{elementType}{\cdot}}
 \newcommand{\semTensorAbs}{\semApp{tensor}{\cdot}}
 \newcommand{\semModelAbs}{\semApp{model}{\cdot}}
+\newcommand{\semModelHiddenAbs}{\semApp{modelHidden}{\cdot}}
 
 \newcommand{\networkTheoryVarParam}{^\networkTheoryVar}
 \newcommand{\semElementTypeTheory}[1]{\semElementType{#1}\networkTheoryVarParam}
@@ -116,6 +118,7 @@
 \newcommand{\semTensorTheory}[1]{\semTensor{#1}\networkTheoryVarParam}
 \newcommand{\semModelTypeTheory}[1]{\semModelType{#1}\networkTheoryVarParam}
 \newcommand{\semModelTheory}[1]{\semModel{#1}\networkTheoryVarParam}
+\newcommand{\semModelHiddenTheory}[1]{\semModelHidden{#1}\networkTheoryVarParam}
 
 \newcommand{\real}{\ensuremath{\mathbb{R}}
 }
@@ -127,6 +130,7 @@
 \newcommand{\versionVar}{v}
 \newcommand{\nameVar}{v}
 \newcommand{\equivVar}{e}
+\newcommand{\onnxNameVar}{u}
 
 \newcommand{\networkDeclVar}{n}
 \newcommand{\networkDeclSet}{N}
@@ -160,6 +164,30 @@
 \assertionSet
 }
 
+\newcommand{\inputExpansion}
+{
+\texttt{declare-input} ~
+\nameVar ~
+\elementTypeVar ~
+\shapeVar
+}
+
+\newcommand{\hiddenExpansion}
+{
+\texttt{declare-hidden} ~
+\nameVar ~
+\elementTypeVar ~
+\shapeVar ~
+\onnxNameVar
+}
+
+\newcommand{\outputExpansion}
+{
+\texttt{declare-output} ~
+\nameVar ~
+\elementTypeVar ~
+\shapeVar
+}
 \newcommand{\assertCtx}{\Gamma}
 \newcommand{\networkCtx}{\assertCtx^N}
 \newcommand{\variableCtx}{\assertCtx^V}
@@ -185,6 +213,8 @@
 \newcommand{\networkInput}{x}
 \newcommand{\networkInputSet}{X}
 \newcommand{\networkInputs}{[\networkInput_1 \ldots \networkInput_n]}
+
+\newcommand{\newImplementationCtx}{\Gamma}
 
 %%%%%%%%%%%%
 % Theories %
@@ -228,7 +258,6 @@
 %%%%%%%%%%%%%%%%%%%%%
 
 \usepackage{listings}
-
 \renewcommand{\lstlistingname}{Example}
 
 % Listings style for BNFC commands
@@ -282,14 +311,16 @@
 % Stops code splitting over multiple pages
 \lstnewenvironment{code}[1][]%
 {
-   \noindent
-   \minipage{\linewidth} 
-   \vspace{0.5\baselineskip}
-   \lstset{basicstyle=\ttfamily\footnotesize,frame=single,#1}}
-{\endminipage}
+    \noindent
+    \minipage{\linewidth} 
+    \vspace{0.5\baselineskip}
+    \lstset{basicstyle=\ttfamily\footnotesize,frame=single,#1}
+}
+{
+    \endminipage
+}
 
 \newcommand{\inlinevnn}[1]{\texttt{#1}}
-
 
 %%%%%%%%%%%%
 % Metadata %

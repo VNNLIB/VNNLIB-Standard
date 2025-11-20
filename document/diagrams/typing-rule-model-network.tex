@@ -1,0 +1,16 @@
+\begin{equation*}
+    \inferrule*[Right=ModelNetwork]
+    {
+        \newImplementationCtx \vdash f : \equivVar 
+        \\
+        \vdash_\networkTheoryVar \networkImplementation : \networkDeclType(\inputDeclSet, \outputDeclSet)
+        \\
+        \vdash \networkImplementation : \hiddenDeclSet
+    }
+    {
+        \newImplementationCtx \vdash \networkImplementation : \networkExpansion
+    }
+    \qquad
+    \qquad
+    \qquad
+\end{equation*}

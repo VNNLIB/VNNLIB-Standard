@@ -32,21 +32,21 @@
 \chapter{Theories and Logics}
 \label{sec:theories-logics}
 
-The query language described in Chapter~\ref{sec:specification_language} is is relatively expressive. However, in practice very few solvers are capable of handling the full range of queries it permits.  To address this, the \vnnlib{} standard takes a similar approach to SMTLib by using the notion of \emph{logics} and \emph{theories} to define subsets of the language.
+The query language described in Chapter~\ref{sec:specification_language} is relatively expressive. However, in practice very few solvers are capable of handling the full set of definable queries.  To address this, the \vnnlib{} standard takes a similar approach to SMT-LIB by using the notion of \emph{theories}, \emph{theory sets} and \emph{logics} to define subsets of the language.
 
-Each \emph{theory} represents a particular syntactic restriction on the query language, and a \emph{theory set} represents a set of related restrictions that are partially ordered under the inclusion relation. A \emph{logic} represents a subset of the query language and is constructed by selecting exactly one theory from the list of orthogonal theory sets. 
+Each theory represents a particular syntactic restriction on the query language, while a theory set represents a set of related theories that are partially ordered under the inclusion relation. A logic is constructed by selecting exactly one theory from each theory set, and therefore represents a particular subset of the query language supported by a particular verifier. 
 By reporting the theories supported, a solver can precisely describe the subset of the query language it supports. The formal reporting mechanism is introduced in Chapter~\ref{sec:global_capabilities}.
 
-\section{Theories}
+\section{Theories and Theory Sets}
 
-The currently supported theory sets are:
+There are 6 theory sets in total:
 \begin{enumerate}
-\item \textbf{Hidden nodes}: Are queries with hidden node declarations  are supported.
-\item \textbf{Multiple networks}: Are queries with more than one network declaration are supported.
-\item \textbf{Multiple input/output nodes}: Are queries with network declarations that declare more than one input/output node  are supported.
-\item \textbf{Multi-node comparisons}: Are queries that contain constraints relating variables from more than one ONNX node are supported.
-\item \textbf{Arithmetic complexity}: What level of mathematical complexity of constraints are supported (e.g. bounds, linear, polynomial). 
-\item \textbf{Datatypes}: What datatypes are supported (e.g. 32-bit floats, reals).
+\item \textbf{Hidden nodes}: Are queries with hidden node declarations  are supported?
+\item \textbf{Multiple networks}: Are queries with more than one network declaration are supported?
+\item \textbf{Multiple input/output nodes}: Are queries with network declarations that declare more than one input/output node  are supported?
+\item \textbf{Multi-node comparisons}: Are queries that contain constraints relating variables from more than one ONNX node are supported?
+\item \textbf{Arithmetic complexity}: What level of mathematical complexity of constraints are supported (e.g. bounds, linear, polynomial)?
+\item \textbf{Datatypes}: What datatypes are supported (e.g. 32-bit floats, reals)?
 \end{enumerate}
 The following sections examine each of these theory sets in more detail.
 
@@ -65,7 +65,7 @@ The following sections examine each of these theory sets in more detail.
 \label{fig:hidden-nodes-theory-set}
 \end{figure}
 
-Some solvers do not support reasoning about hidden nodes. The \hiddenNodes{} theory set therefore contains two theories \nh{} and \h{}, representing queries that contain networks that do not declare hidden nodes, and queries that contain networks that declare hidden nodes. Therefore \nh{} is a subset of \h{}. For example the following query is a member of both \nh{} and \h{}:
+Some solvers do not support reasoning about hidden nodes. The \hiddenNodes{} theory set therefore contains two theories \nh{} and \h{}, representing respectively queries that do not hidden nodes declarations, and queries that may contain hidden node declarations. Therefore \nh{} is a subset of \h{}. For example the following query is a member of both \nh{} and \h{}:
 
 \begin{code}[style=lbnf]
 (declare-network f
@@ -74,7 +74,7 @@ Some solvers do not support reasoning about hidden nodes. The \hiddenNodes{} the
 )
 \end{code}
 
-but the following query is only a member of \h{}:
+while the following is only a member of \h{}:
 
 \begin{code}[style=lbnf]
 (declare-network f
@@ -323,7 +323,8 @@ Logics are therefore composed by the combination of theories from each of the ab
 represents the class of queries that contain hidden nodes declarations, a single network declaration with a single input and output using the 32-bit floats, with linear comparisons between arbitrary declared variables.
 The set of logics is referred to as $\logicSet$. 
 
-Concretely, given a network theory $\networkTheoryVar$ and a logic $\logicVar \in \logicSet$, a solver for that logic is a function with the following type:
+Concretely, given a network theory $\networkTheoryVar$ and a logic $\logicVar \in \logicSet$, a solver $s$ for that logic is a function with the following type:
 \begin{equation*}
-\text{Solver}^{\logicVar}_{\networkTheoryVar} = \forall \queryVar \in \logicVar, \networkImplementationSet . \semQuery(\queryVar, \networkImplementationSet)
+s : \mgrammar{<query>} \rightarrow [\mgrammar{<model>}] \rightarrow \mathbb{B}
 \end{equation*}
+where $\forall \queryVar, \networkImplementationSet . \:\: (\queryVar \in \logicVar) \wedge (\vdash \networkImplementationSet : \queryVar) \implies s(\queryVar, \networkImplementationSet) = \semQuery{\queryVar, \networkImplementationSet}$
