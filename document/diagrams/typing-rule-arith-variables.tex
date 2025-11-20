@@ -1,7 +1,12 @@
 \begin{mathpar}
-    \inferrule*[Right=Variable]
+    \inferrule*[Right=Variable, vskip=1ex]
     {
-        \assertCtx [\nameVar] = (\elementTypeVar,\shapeVar) \quad \forall i . \; l_i < \shapeVar_i
+        \exists \nameVar' . \; \assertCtx[\nameVar'] = \namedNetworkExpansion{\nameVar'}
+        \\
+        \exists d \in \inputDeclSet \cup \hiddenDeclSet \cup \outputDeclSet . \;\;
+        \field{d}{name} = v \wedge \field{d}{shape} = \shapeVar \wedge \field{d}{type} = \elementTypeVar  
+        \\\\
+        \forall i . \; l_i < \shapeVar_i
     }
     {
         \assertCtx \vdash \nameVar~[l_1, ..., l_n] : \tau

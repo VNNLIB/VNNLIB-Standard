@@ -78,6 +78,7 @@
 
 \newcommand{\mgrammar}[1]{\text{\small \textit{#1}}}
 \newcommand{\set}{\text{Set}}
+\newcommand{\field}[2]{#1.\text{#2}}
 
 \newcommand{\sem}[1]{\llbracket #1 \rrbracket}
 \newcommand{\semenv}[1]{\llbracket #1 \rrbracket^{\Delta_N,\Delta_A}}
@@ -120,8 +121,7 @@
 \newcommand{\semModelTheory}[1]{\semModel{#1}\networkTheoryVarParam}
 \newcommand{\semModelHiddenTheory}[1]{\semModelHidden{#1}\networkTheoryVarParam}
 
-\newcommand{\real}{\ensuremath{\mathbb{R}}
-}
+\newcommand{\real}{\ensuremath{\mathbb{R}}}
 %%%%%%%%%%
 % VNNLIB %
 %%%%%%%%%%
@@ -147,15 +147,17 @@
 \newcommand{\assertionVar}{a}
 \newcommand{\assertionSet}{A}
 
-\newcommand{\networkExpansion}
+\newcommand{\namedNetworkExpansion}[1]
 {
 \texttt{declare-network} ~
-\nameVar ~
+#1 ~
 \equivVar ~
 \inputDeclSet ~
 \hiddenDeclSet ~
 \outputDeclSet
 }
+
+\newcommand{\networkExpansion}{\namedNetworkExpansion{\nameVar}}
 
 \newcommand{\queryExpansion}
 {

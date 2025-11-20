@@ -2,27 +2,9 @@
     \hspace{-3em}
     \inferrule*[Right=Network]
     {
-        \nameVar \notin \networkCtx
-        \\
-        {
-            \color{red} \networkCtx \vdash e
-        } 
-        \\
-        {
-            \variableCtx_1 \vdash \inputDeclSet : \variableCtx_2
-        }
-        \\
-        {
-            \variableCtx_2 \vdash \hiddenDeclSet : \variableCtx_3
-        }       
-        \\ 
-        {
-            \variableCtx_3 \vdash \outputDeclSet : \variableCtx_4
-        }
+        \assertCtx, \inputDeclSet, \hiddenDeclSet, \outputDeclSet \vdash e
     }
     {
-        \networkCtx, \variableCtx_1 
-        \vdash \networkExpansion : 
-        \networkCtx[\nameVar \rightarrow ..], \variableCtx_{4}
+        \assertCtx \vdash \networkExpansion
     }
 \end{mathpar}
