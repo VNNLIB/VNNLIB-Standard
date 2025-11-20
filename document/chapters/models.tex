@@ -168,6 +168,7 @@ The definition of a network theory is shown in Figure~\ref{fig:onnx-signature}, 
 Figures~\ref{fig:onnx-type-syntax}~\&~\ref{fig:onnx-expr-syntax} define the syntax of the types and expressions:
 \begin{enumerate}
 \item $\mgrammar{<elementType>}$ - a set of numeric element types, e.g. the element types \texttt{float64}, \texttt{int32} in ONNX.
+\item $\mgrammar{<tensorName>}$ - a set of allowable names for tensors in the network models, which will permit the referencing the output of hidden nodes.
 \item $\mgrammar{<tensor>}$ - the format used to represent tensors, e.g. the \texttt{TensorProto} object in ONNX.
 \item $\mgrammar{<model>}$ - the format used to represent neural network models, e.g. the \texttt{ModelProto} object in ONNX.
 \end{enumerate}
@@ -176,7 +177,7 @@ Figure~\ref{fig:onnx-types} defines the required typing judgments over the synta
 \item \textsc{(Element)} - a judgement that a numeric string~$\elementVar$ is a valid element of a provided element type~$\elementTypeVar$. For instance, it would be expected that the number `1' would be judged as of type \texttt{float64} and \texttt{int32}, and `1.0' would be judged as of type \texttt{float64} but not \texttt{int32}.
 \item \textsc{(Tensor)} - a judgement that a tensor~$\tensorVar$ is of a given element type and shape~$\tensorTypeVar$.
 \item \textsc{(Model)} - a judgment that a model~$\modelVar$ is of a given type~$\modelTypeVar$, i.e takes in a list of tensors of the provided shape and produces a list of output tensors of the required shapes.
-\item \textsc{(ModelHidden)} - a judgment that a model~$\modelVar$ has a hidden node called~$\nameVar$ whose output is a tensor of type~$\tensorTypeVar$.
+\item \textsc{(ModelHidden)} - a judgment that a model~$\modelVar$ has a node that produces some tensor called~$\onnxNameVar$ of type~$\tensorTypeVar$ as output.
 \item \textsc{(Iso)} - a judgment that the graph structure of two models are isomorphic to each other. This judgement does not constrain other properties of the two networks, (i.e. they may use different datatypes and have different weights). See Section~\ref{sec:multiple-network}.
 \end{enumerate}
 Finally~\ref{fig:onnx-semantics} defines the semantics over the well-typed syntactic constructs:
@@ -184,7 +185,7 @@ Finally~\ref{fig:onnx-semantics} defines the semantics over the well-typed synta
 \item $\semElementTypeAbs$ - a function mapping each syntactic element type to a mathematical set of values.
 \item $\semTensorAbs$ - a function mapping a syntactic tensor $\tensorVar$ of type $\tensorTypeVar$ to the mathematical tensor that it represents.
 \item $\semModelAbs$ - a function mapping a syntactic model $\tensorVar$ of type $\modelTypeVar$ to the mathematical function that it represents, that maps a list of input mathematical tensors to a list of output mathematical tensors.
-\item $\semModelHiddenAbs$ - a function mapping a syntactic model $\tensorVar$ of type $\modelTypeVar$ and the name of a hidden node $\nameVar$ of type $\tensorVar$ to the mathematical function that maps a list of input mathematical tensors to a single output mathematical tensor that represents the output of that hidden node.
+\item $\semModelHiddenAbs$ - a function mapping a syntactic model $\tensorVar$ of type $\modelTypeVar$ and the name $\onnxNameVar$ of the output a hidden node of type $\tensorVar$ to the mathematical function that maps a list of input mathematical tensors to a single output mathematical tensor that represents the output of that hidden node.
 \item $\sem{\leq}$, ..., $\sem{\times}$ - a list of functions that perform basic pointwise comparison and arithemetic operations over tensors.
 \end{enumerate}
 One of the consequences of this parameterisation is that when discussing the semantics of a particular \vnnlib{} query, it is necessary to state the versions of both the ONNX standard and the \vnnlib{} standard being used.

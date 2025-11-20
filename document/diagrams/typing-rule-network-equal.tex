@@ -1,0 +1,15 @@
+\begin{mathpar}
+    \inferrule*[Right=NetworkEq, vskip=1ex]
+    {
+        \assertCtx[v] = \networkExpansion \qquad e = ''''
+        \\
+        \forall i . \: \field{\inputDeclSet_i}{shape} = \field{\inputDeclSet'_i}{shape} \wedge \field{\inputDeclSet_i}{type} = \field{\inputDeclSet'_i}{type}
+        \\
+        \forall i . \: \field{\outputDeclSet_i}{shape} = \field{\outputDeclSet'_i}{shape} \wedge \field{\outputDeclSet_i}{type} = \field{\outputDeclSet'_i}{type}
+        \\
+        \forall i, j . \: \field{\hiddenDeclSet_i}{name} = \field{\hiddenDeclSet'_j}{name} \Rightarrow \field{\hiddenDeclSet_i}{shape} = \field{\hiddenDeclSet'_j}{shape} \wedge \field{\hiddenDeclSet_i}{type} = \field{\hiddenDeclSet'_j}{type}
+    }
+    {
+        \assertCtx, \inputDeclSet', \hiddenDeclSet', \outputDeclSet' \vdash \texttt{equal-to }\nameVar
+    }
+\end{mathpar}

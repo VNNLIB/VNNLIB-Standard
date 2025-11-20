@@ -25,7 +25,7 @@ This chapter describes the syntax, scoping, typing and semantics of the query la
 	
 	<input> ::= (\texttt{declare-input} <name> <elementType>$\networkTheoryVarParam$ <shape>)
 	
-	<hidden> ::= (\texttt{declare-hidden} <name> <elementType>$\networkTheoryVarParam$ <shape> <name>)
+	<hidden> ::= (\texttt{declare-hidden} <name> <elementType>$\networkTheoryVarParam$ <shape> <tensorName>$\networkTheoryVarParam$)
 	
 	<output> ::= (\texttt{declare-output} <name> <elementType>$\networkTheoryVarParam$ <shape>)
 	
@@ -51,7 +51,7 @@ This chapter describes the syntax, scoping, typing and semantics of the query la
 	<indices> ::= [i, ..., i] for $i \in \mathbb{N}$
 	\end{grammar}
 	\vspace{-1em}
-    \caption{The syntax of \vnnlib{} queries, parameterised by the syntax of the underlying network theory $\networkTheoryVar$ described in Figures~\ref{fig:onnx-type-syntax}~\&~\ref{fig:onnx-expr-syntax}. As is convention, $^*$ means zero or more, $^+$ means one or more, and $^?$ means optional.}
+    \caption{The syntax of \vnnlib{} queries, parameterised by the syntax of the underlying network theory $\networkTheoryVar$ described in Figures~\ref{fig:onnx-type-syntax}~\&~\ref{fig:onnx-expr-syntax}. The superscript $^*$ means zero or more, $^+$ means one or more, and $^?$ means optional.}
     \label{fig:vnnlib-syntax}
 \end{figure}
 
@@ -91,7 +91,7 @@ and the shape of the tensor. Similarly, an output variable uses the \texttt{decl
 \end{figure}
 
 
-All variable names follow the same syntax conventions: they are case-sensitive, must start with a letter, and may only contain letters, digits and underscores. All variable names must be unique within the query (see Section~\ref{sec:scoping_and_typing} for more detailed scoping rules). 
+All variable names follow the same syntax conventions: they are case-sensitive, must start with a letter, and may only contain letters, digits and underscores. 
 
 It is important to emphasise that a network declaration only declares an \emph{interface} and does not reference any particular ONNX network model. 
 When passing a query and a network model to the verifier, the name of the network does not need to match the name of the ONNX model file. 
@@ -126,10 +126,10 @@ One forms arithmetic expressions by recursively combining constant and variable 
     \item \inlinevnn{(* a b ...)}: Multiplication of two or more terms. 
     \item \inlinevnn{(- a b ...)}: Subtraction of two or more terms. The operation associates to the left, e.g. \inlinevnn{(- 1 2 3 4)} is the same as \inlinevnn{(- (- (- 1 2) 3) 4)} .
 \end{itemize}
-Arithmetic operations only operate over individual elements of tensors and do not operate over multi-dimensional tensors (see Section~\ref{sec:scoping_and_typing} for detailed typing rules). 
+Arithmetic operations only operate over individual elements of tensors and do not operate over multi-dimensional tensors (see Section~\ref{sec:typing} for detailed typing rules). 
 
 Although some ONNX types can be safely coerced between in certain cases (e.g. a \inlinevnn{float16} can be added safely to a \inlinevnn{float32} if the expected type of evaluated expression is a \inlinevnn{float32}), the \vnnlib{} standard does not permit such coercions.
-All variables within an arithmetic expression must have the same type (see Section~\ref{sec:scoping_and_typing} for formal typing rules). 
+All variables within an arithmetic expression must have the same type (see Section~\ref{sec:typing} for formal typing rules). 
 
 \paragraph{Comparisons}
 
@@ -290,9 +290,9 @@ Due to the transitivity of equality and isomorphism, these restrictions do not r
 
 While a solver may make use of the \texttt{equal-to} and \texttt{isomorphic-to} declarations internally to optimise its representation and reasoning about the provided networks, it is not required to.
 
-\subsubsection{Networks that use zero-dimensional tensors}
+\subsubsection{Zero-dimensional tensors}
 
-It is permitted for network declarations to contain nodes that are declared to have zero dimensions.
+It is permitted to declare zero-dimensional network nodes, i.e. a node that takes scalar values. 
 In this case, the variables should be referenced without any indices, as shown in Line 8 below:
 \begin{lstlisting}[style=lbnf]
 (declare-network f
@@ -310,60 +310,64 @@ In this case, the variables should be referenced without any indices, as shown i
 
 Comments in \vnnlib{} are denoted by a semicolon (\texttt{;}) and extend to the end of the line. They are used for annotation, explaining logic, or providing additional context. Whitespace in \vnnlib{} is used to separate tokens and improve readability and can include spaces, tabs, and newlines. Additional whitespace beyond the minimal necessary to separate tokens is ignored.
 
+\section{Scoping}
+\label{sec:scoping}
+
+The scoping of variables in \vnnlib{} is extremely simple:
+\begin{enumerate}
+    \item All variables must be declared by a network declaration before they are used.
+    \item All variable names for networks and nodes must be unique.
+\end{enumerate}
 
 \section{Typing}
-\label{sec:scoping_and_typing}
+\label{sec:typing}
 
-This section describes the typing rules for \vnnlib{} queries. The rules provide a formal description of the constraints on the syntax described informally in Section~\ref{sec:syntax}, e.g. all variable names must be unique, variables of different types cannot appear in the same assertion. 
+This section describes the typing judgements for \vnnlib{} queries. The rules provide a formal description of the constraints on the syntax that were described informally in Section~\ref{sec:syntax}. 
 
-Crucial to the typing rules is the notion of the current \emph{context} $\assertCtx = (\networkCtx, \variableCtx)$ which consists of two parts. The first is the \emph{network context}:
-\begin{equation*}
-\networkCtx : \mgrammar{<name>} \rightarrow \mgrammar{<network>}
-\end{equation*}
-which is a mapping from network names to the corresponding network declarations. 
-The second is the \emph{variable context}:
-\begin{equation*}
-\variableCtx : \mgrammar{<name>} \rightarrow \mgrammar{<tensorType>}\networkTheoryVarParam
-\end{equation*}
-which is a mapping from the declared input/hidden/output variables to their shape and type.
-
-As one would expect, queries are typed  by first constructing the context $\assertCtx$ by iterating over the network declarations, and then using that context to type the globally-scoped assertions:
-\input{diagrams/typing-rule-query.tex}
-The following sections now describe the typing rules for network declarations and assertions.
+Crucial to the typing judgements is the notion of the \emph{typing context} $\assertCtx$ which is a mapping from network names to the corresponding network declarations.
+As one would expect, queries are typed by first constructing the context $\assertCtx$ by iterating over the network declarations, and then using that context to type the globally-scoped assertions:
+\input{diagrams/typing-rule-query.tex}\unskip
+The following sections describe the typing judgements for network declarations and assertions.
 
 \subsection{Networks}
 
-Lists of network declarations $\networkDeclSet$ are typed as:
-\input{diagrams/typing-rule-networks.tex}
-where $\nilList$ and $::$ represent the standard nil and cons constructors for building up a list recursively.
+A judgement that a list of network declarations $\networkDeclSet$ are well-typed in context $\assertCtx_1$ and produces a final context $\assertCtx_2$ is written as $\assertCtx_1 \vdash \networkDeclSet : \assertCtx_2$ and is defined recursively as follows:
+\input{diagrams/typing-rule-networks.tex}\unskip
+where $\nilList$ and $::$ represent the standard nil and cons constructors for building up a list.
+In particular, the empty list of the networks is always well-typed under any context and returns that very same context. A non-empty list of networks is well-typed if the head of the list can be typed under the current context, and the tail is well-typed under the current context extended by the head of the list.
 
-The rule for typing a network declaration is as follows:
-\input{diagrams/typing-rule-network.tex}
-First it is checked that the network name is unique, next the variable context is updated by iterating sequentially through the input, hidden and output node declarations. 
+A judgement that a network is well-typed is defined as follows:
+\input{diagrams/typing-rule-network.tex}\unskip
+where the only requirement is that the equivalence statement is well-typed. 
+There are three possibilities for the equivalence statement. Firstly, if there is no equivalence statement then it can be judged to be trivially well-typed. 
 
-The corresponding nil and cons rules for lists of node declarations are omitted for brevity, but are analagous to \textsc{Network-Nil} and \textsc{Network-Cons}. 
-The rules for typing individual input, hidden and output declarations are as follows:
-\input{diagrams/typing-rule-network-variable.tex}
-i.e. as long as the name of the variable has not already been seen and is therefore unique, then each declaration  adds a corresponding entry to the $\variableCtx$.
+Next, if the network is marked as equal to some other network in the context then both the element types and shapes of the input and output declarations for the two networks have to match:
+\input{diagrams/typing-rule-network-equal.tex}\unskip
+Equal networks do not necessarily need to declare the same set of hidden nodes, however the element types and shape of any hidden node declarations that do share a common name must match. The last constraint is that the matching network in the context must not contain an equivalence statement.
+
+Finally, if the network is marked as isomorphic to some other network in the context then the shapes, not the element types, of the input and output declarations for the two network have to match:
+\input{diagrams/typing-rule-network-iso.tex}\unskip
+However, there are no constraints on hidden node declarations as although there must necessarily be a one-to-one mapping between the internal nodes of the two networks, in practice those pairs of nodes may be assigned a different name in the underlying model.
+As with equal networks, the matching isomorphic network in the context must not contain an equivalence statement.
 
 \subsection{Assertions}
 
 Assertions are type-checked within some variable context.
-\input{diagrams/typing-rule-assertion.tex}
+\input{diagrams/typing-rule-assertion.tex}\unskip
 which simply defers to the typing of boolean expressions.
 
 The boolean expressions consist of the n-ary operations \texttt{and} and \texttt{or}, and the six comparison operators which can be type-checked as follows:
-\input{diagrams/typing-rule-boolExpr.tex}
+\input{diagrams/typing-rule-boolExpr.tex}\unskip
 Crucially, the comparison operator rule requires that the arithmetic expressions being compared must of the same type $\elementTypeVar$.
 
 Arithmetic expressions consisting of the basic arithmetic operations can be type-checked as follows:
-\input{diagrams/typing-rule-arith-ops.tex}
+\input{diagrams/typing-rule-arith-ops.tex}\unskip
 The typing rules for constants defers to the typing rule provided by the underlying network theory~$\networkTheoryVar$:
-\input{diagrams/typing-rule-arith-constants.tex}
+\input{diagrams/typing-rule-arith-constants.tex}\unskip
 For example, one might expect that the constant \texttt{0.5} would be a member of the ONNX \texttt{float32} element type, but not of the ONNX \texttt{int32} element type.
 
 Finally, the typing rules for variables ensure that the variable is of the correct type and the indices provided fit within the declared shape of the variable:
-\input{diagrams/typing-rule-arith-variables.tex}
+\input{diagrams/typing-rule-arith-variables.tex}\unskip
 Crucially, therefore variables provide the source of typing for the whole arithmetic expression. 
 One consequence of this is that comparisons that contain no variables (e.g. \texttt{(<= 0.0 1.0)}) have no canonical type and therefore are not typable.
 
@@ -375,26 +379,26 @@ This section describes a series of judgements that formalise the notion of $\net
 The context, $\newImplementationCtx$, used in these judgments is a map from network declaration names to network models.
 
 To start with, a list of ONNX models $\networkImplementationSet$ are compatible with a query $\queryVar$ if they can be judged to be compatible with the list of network declarations in the empty context. 
-\input{diagrams/typing-rule-model-query.tex}
+\input{diagrams/typing-rule-model-query.tex}\unskip
 A list of models is judged to be compatible with a list of network declarations if each model is compatible with the corresponding network declaration, with the models progressively being added to the context.
-\input{diagrams/typing-rule-model-nil-cons.tex}
+\input{diagrams/typing-rule-model-nil-cons.tex}\unskip
 An individual model $\modelVar$ is compatible with a network declaration $\networkDeclVar$ if (i) it is compatible with the equivalence statement, (ii) it can be typed according according to the network declaration and (iii) it has hidden nodes of the correct type: 
-\input{diagrams/typing-rule-model-network.tex}
+\input{diagrams/typing-rule-model-network.tex}\unskip
 where the function $\networkDeclType : [\mgrammar{<input>}] \times [\mgrammar{<output>}] \rightarrow \mgrammar{<modelType>}\networkTheoryVarParam$ maps the list of input and output declarations to the overall type of the model in the obvious way.
 
 A network model is compatible with $\texttt{isomorphic-to }\nameVar$ and $\texttt{equal-to }\nameVar$ statements if it related to the network model provided for the earlier referenced network declaration $\nameVar$ in the appropriate way:
-\input{diagrams/typing-rule-model-iso.tex}
+\input{diagrams/typing-rule-model-iso.tex}\unskip
 If no equivalence statement is provided, then any network implementation is compatible. Note that the equality judgment `$=$' in the $\texttt{equal-to }\nameVar$ case is \emph{not} parameterised by $\networkTheoryVar$ as it refers to absolute equality, i.e. the network models must actually be the \emph{same} model file. 
 
 Finally a network model is compatible with a list of hidden node declarations if each hidden node declaration corresponds to a hidden node in the model of the correct type:
-\input{diagrams/typing-rule-model-hidden.tex}
+\input{diagrams/typing-rule-model-hidden.tex}\unskip
 
 \subsection{Input Assignments}
 \label{sec:input-assignment-typing}
 
 As output, verifiers will produce either a judgement that the query $q$ is unsatisfiable or a concrete assignment of input tensors, $\networkInputSet \in [[\mgrammar{<tensor>}\networkTheoryVarParam]]$, that causes the query to be satisfied. 
 Using the typing judgement \textsc{Tensor} from the underlying network theory in Figure~\ref{fig:onnx-signature}, the following typing judgment $\vdash \networkInputSet : \queryVar$ ensures that the input assignment $\networkInputSet$ is well typed with respect to the network declarations in the query~$\queryVar$:
-\input{diagrams/typing-rule-inputAssignment.tex}
+\input{diagrams/typing-rule-inputAssignment.tex}\unskip
 where the function $\networkInputsType : \mgrammar{<network>} \rightarrow [\mgrammar{<tensorType>}\networkTheoryVarParam]$ that maps a network declaration to the types of the input tensors that it expects is defined in the obvious way.
 
 \section{Semantics}
@@ -448,13 +452,13 @@ where
 \subsection{Assertions}
 
 Given an environment $\assertEnv$ calculated as described in Section~\ref{sec:semantic-context}, we can calculate the semantics of assertions as: 
-\input{diagrams/semantics-assertion.tex}
+\input{diagrams/semantics-assertion.tex}\unskip
 There is nothing particularly surprising about the semantics of boolean expressions which are interpreted as boolean values:
-\input{diagrams/semantics-boolExpr.tex}
+\input{diagrams/semantics-boolExpr.tex}\unskip
 The only thing to note is that the exact semantics of comparisons is delegated to that of the underlying network theory $\networkTheoryVar$ to ensure that the correct behaviour for e.g. floating point comparisons.
 
 The semantics of arithmetic expressions, which are intepreted as zero-dimensional tensors, is defined as follows:
-\input{diagrams/semantics-arithExpr.tex}
+\input{diagrams/semantics-arithExpr.tex}\unskip
 where $\sem{\prod}\networkTheoryVarParam$ and $\sem{\sum}\networkTheoryVarParam$ are defined in the obvious way in terms of $\sem{+}\networkTheoryVarParam$ and $\sem{\times}\networkTheoryVarParam$. As with comparisons, the actual mathematical operations are delegated to the underlying network theory $\networkTheoryVar$. Constants are interpreted as zero-dimensional tensors and the values of variables are looked up in the environment $\assertEnv$ and then indexed into appropriately.
 
 

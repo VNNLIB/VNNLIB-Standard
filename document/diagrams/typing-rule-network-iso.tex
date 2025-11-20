@@ -1,0 +1,13 @@
+\begin{mathpar}
+    \inferrule*[Right=NetworkIso, vskip=1ex]
+    {
+        \assertCtx[v] = \networkExpansion \qquad e = ''''
+        \\
+        \forall i . \: \field{\inputDeclSet_i}{shape} = \field{\inputDeclSet'_i}{shape}
+        \\
+        \forall i . \: \field{\outputDeclSet_i}{shape} = \field{\outputDeclSet'_i}{shape}
+    }
+    {
+        \assertCtx, \inputDeclSet', \hiddenDeclSet', \outputDeclSet' \vdash \texttt{equal-to }\nameVar
+    }
+\end{mathpar}
