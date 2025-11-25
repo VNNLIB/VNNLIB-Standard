@@ -1,0 +1,38 @@
+\begin{grammar}
+	<query> ::= <version> <network>$^+$ <assert>$^*$
+	
+	<version> ::= (\texttt{vnnlib-version} [0-9]$^+$.[0-9]$^+$)
+	
+	<name> ::= [A-Za-z][\_A-Za-z0-9]*
+		
+	<network> ::= (\texttt{declare-network} <name> <equiv>$^?$ <input>$^+$ <hidden>* <output>$^+$)
+	
+	<equiv> ::= (\texttt{equal-to} <name>) | (\texttt{isomorphic-to} <name>)
+	
+	<input> ::= (\texttt{declare-input} <name> <elementType>$\networkTheoryVarParam$ <shape>)
+	
+	<hidden> ::= (\texttt{declare-hidden} <name> <elementType>$\networkTheoryVarParam$ <shape> <nodeOutput>$\networkTheoryVarParam$)
+	
+	<output> ::= (\texttt{declare-output} <name> <elementType>$\networkTheoryVarParam$ <shape>)
+	
+	<assert> ::= (\texttt{assert} <bool>)
+	
+	<bool> ::= (\texttt{and} <bool> <bool>$^+$)
+	\alt (\texttt{or} <bool> <bool>$^+$)
+	\alt (\texttt{+} <arith> <arith>)
+	\alt (\texttt{\textless} <arith> <arith>)
+	\alt (\texttt{\textless=} <arith> <arith>)
+	\alt (\texttt{\textgreater} <arith> <arith>)
+	\alt (\texttt{\textgreater=} <arith> <arith>)
+	\alt (\texttt{==} <arith> <arith>)
+	\alt (\texttt{!=} <arith> <arith>)
+	
+	<arith> ::= <element>$\networkTheoryVarParam$
+	\alt <name> <indices>$^?$
+	\alt (\texttt{-} <arith>)
+	\alt (\texttt{+} <arith> <arith>$^+$)
+	\alt (\texttt{*} <arith> <arith>$^+$)
+	\alt (\texttt{-} <arith> <arith>$^+$)
+	
+	<indices> ::= [i, ..., i] for $i \in \mathbb{N}$
+\end{grammar}

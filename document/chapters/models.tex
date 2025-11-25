@@ -1,20 +1,21 @@
-\chapter{Models of Neural Networks}
+\chapter{Neural Network Models}
 \label{sec:models}
 %
-A neural network can be viewed as a directed computation graph, where nodes correspond to operations (e.g., addition, multiplication, activation functions) over tensors, and edges represent the flow of data between these operations. Inference is performed by applying these operations sequentially to one or more input tensors, propagating values through the graph, and producing one or more output tensors.
+A neural network is a directed computation graph, where nodes correspond to operations (e.g., addition, multiplication, activation functions) over tensors, and edges represent the flow of data between these operations.
+Inference is performed by applying these operations to one or more input tensors, propagating values through the graph, and producing one or more output tensors.
 
-Many formats exist for modelling neural networks, each serving different use cases. 
-Formats such as TensorFlow’s \texttt{.ckpt}~\cite{Abadi_TensorFlow_Large_scale_machine_2015} or PyTorch’s \texttt{.pth}~\cite{Ansel_PyTorch_2_Faster_2024} files are used within their own specific ecosystems, aimed at providing representations that allow the model to be trained. 
+To formally reason about whether a query about a neural network is satisfiable, agreeing upon a standardised representation for neural network models is essential.
+There are many such formats for modelling neural networks, often specialised to particular use cases. 
+Formats such as TensorFlow’s \texttt{.ckpt}~\cite{Abadi_TensorFlow_Large_scale_machine_2015} or PyTorch’s \texttt{.pth}~\cite{Ansel_PyTorch_2_Faster_2024} are used within their own specific ecosystems, aimed at providing representations that facilitate the training of the model. 
 In contrast, interoperable formats aim to decouple model representation from a particular framework or hardware backend, enabling broader reuse and tool support. 
 Notable examples include ONNX (Open Neural Network Exchange)~\cite{onnxruntime}, NNEF (Neural Network Exchange Format)~\cite{nnef}, GGUF (GPT-Generated Unified Format)~\cite{gguf} and Safetensors~\cite{safetensors}.
 
 \section{ONNX}
 \label{sec:onnx}
 
-To formally reason about whether a query about a neural network is satisfiable, agreeing upon a standardised representation for neural network models is essential.
-The \vnnlib{} standard uses ONNX~\cite{onnxruntime} as the standard format for representing neural network models, for the following reasons:
+The \vnnlib{} standard uses ONNX~\cite{onnxruntime} as the standard format for representing neural network models. This choice was motivated by the following reasons:
 \begin{itemize}
-\item \textbf{Community owned}: ONNX is a community-driven rather than a proprietary project. This reduces the risk of the discontinuation of the standard and ensures greater neutrality and transparency in its governance.
+\item \textbf{Community Owned}: ONNX is a community-driven rather than a proprietary project. This reduces the risk of the discontinuation of the standard and ensures greater neutrality and transparency in its governance.
 \item \textbf{Framework and Hardware Agnostic}: ONNX is designed to be independent of both training frameworks and deployment environments. This makes it well-suited to serve as a common exchange format across diverse toolchains and platforms.
 \item \textbf{Widespread Adoption}: ONNX is widely supported by major frameworks, including PyTorch and TensorFlow, which provide tooling for exporting to and importing from the ONNX format. This facilitates model sharing and conversion.
 \item \textbf{Rich and Extensible Operator Set}: ONNX includes a comprehensive set of standardised operators, enabling it to express a wide variety of neural network architectures. Its extensibility also allows new operators to be proposed and adopted by the community as needed.
@@ -29,18 +30,17 @@ We will now describe ONNX's syntax (i.e. the format of ONNX models) and ONNX's s
 \label{sec:onnx_overview}
 
 The ONNX format provides a standardised syntax for specifying the computations performed by a neural network.
-We will now give a brief overview of the ONNX format. For a more detailed description suitable for implementators of neural network solvers, the full ONNX specification should be consulted. 
+For a more detailed description suitable for implementators of neural network solvers, the full ONNX specification should be consulted. 
 
 \paragraph{Model structure} 
 
 An ONNX network is serialised as a single binary file with the \texttt{.onnx} file extension. Serialisation of \texttt{.onnx} files is performed using Protobuf (Protocol Buffers), a language and platform-neutral mechanism for serializing structured data. 
-
-Key data stored includes:
+Key data within a \texttt{.onnx} file includes:
 \begin{itemize}
-	\item \textbf{Metadata}: This describes attributes of the model such as model version, author, and description.
+	\item \textbf{Metadata}: This describes attributes of the model such as ONNX version, author, and description.
 	\item \textbf{Initializers}: A list of constant tensors that are used by the model, such as weights and biases.
 	\item \textbf{Inputs}: A list of descriptions of the one or more tensors that the model expects as input. This includes a name, the type of data stored in the tensor, and the shape of the tensor.
-	\item \textbf{Nodes}: A list of nodes in the graph each representing a single operation on  tensors (e.g., convolution, activation functions). Each node has a list of input tensors and a list of output tensors representing its connections in the graph.
+	\item \textbf{Nodes}: A list of nodes in the graph each representing a single operation on tensors (e.g., convolution, activation functions). Each node has a list of named input tensors and a list of named output tensors representing its connections in the graph.
 	\item \textbf{Outputs}: A list of descriptions of the one or more tensors that the model produces as output. This includes a name, the type of data stored in the tensor, and the shape of the tensor.
 \end{itemize}
 
@@ -57,7 +57,14 @@ All tensors processed by ONNX models are strongly typed. The basic properties of
 
 \paragraph{Operators and Opsets}
 
-Each node in the ONNX graph is an \emph{operator} which takes some number of input tensors and creates some number of output tensors. Each operator has the following meta-data: a name, a list of expected input tensors, a list of expected output tensors, and a list of attributes for configuring the operation (e.g. kernel size and stride for a convolution-based operator). The full list of ONNX operators can be found in the specification, but commonly used ones include:
+An ONNX \emph{operator} represents a mathematical operation which takes some number of input tensors and creates some number of output tensors. Each operator is defined to have the following meta-data: 
+\begin{itemize}
+	\item a name.
+	\item a list of expected input tensors.
+	\item a list of expected output tensors.
+	\item a list of attributes that affect the operation performed (e.g. kernel size and stride for a convolution-based operator).
+\end{itemize}
+The full list of ONNX operators can be found in the ONNX specification, but common ones include:
 \begin{itemize}
 \item Gemm (General Matrix Multiplication)
 \item Conv (Convolutional)
@@ -72,124 +79,110 @@ This ensures that the definition and behaviour of each operator can evolve over 
 \subsection{Semantics}
 \label{sec:onnx-semantics}
 
-As described above, the ONNX standard provides a syntax for specifying a neural network mdoel. However, to formally define a satisfiability query over such a model, requires a precise, mathematical description of the semantics of the model, i.e. the computation that the model represents. 
+The ONNX standard provides a syntax for specifying a neural network mdoel. However, to formally define a satisfiability query over such a model, requires a precise, mathematical description of the semantics of the model, i.e. the computation that the model represents. 
 
 Unfortunately, like most other mainstream neural network formats, ONNX has no formal mathematical semantics. 
-Instead, the intended behavior of each operator is described informally in natural language by the ONNX documentation, in varying levels of detail and clarity. 
-As a result, the exact computation may differ across implementations or hardware platforms.
+Instead, the intended behavior of each operator is described informally in natural language by the ONNX documentation in varying levels of detail and clarity. 
+As a result, the exact computation has been observed to differ across implementations or hardware platforms.
 
 Encouragingly, progress is being made: since 2024, the \emph{ONNX Safety-Related Profile} working group has been developing a restricted subset of ONNX with formal semantics. 
-Work on this is currently ongoing.
+As of 2025, work on this is currently ongoing.
 
 \section{Network Theories}
 \label{sec:network-theory}
 
-In Chapter~\ref{sec:specification_language}, we will define the syntax and semantics of the \vnnlib{} query language for describing satisfiability problems over ONNX models of neural networks.
+Chapter~\ref{sec:specification_language} will define the syntax and semantics of the \vnnlib{} query language for describing satisfiability problems over ONNX models of neural networks.
 The goal of a satisfiability query is to reason about the behaviour of the function that the ONNX model represents (i.e. its semantics).
-Therefore, clearly it is unavoidable that the syntax and semantics of a query will depend on the syntax and semantics of the ONNX models.
-
-This dependence on the ONNX standard has two immediate consequences for \vnnlib{}:
+Therefore, the syntax and semantics of a query will unavoidably depend on the syntax and semantics of the ONNX models.
+This dependency has two immediate consequences for \vnnlib{}:
 \begin{enumerate}
-\item The current absence of a formal semantics for ONNX described in Section~\ref{sec:onnx-semantics}, means that it is not currently possible to define the semantics of \vnnlib{} concretely.
+\item The current absence of a formal semantics for ONNX described in Section~\ref{sec:onnx-semantics}, means that it is not currently possible to concretely define the semantics of \vnnlib{}.
 \item Even if there was a formal semantics for ONNX available, both the syntax and semantics of the ONNX standard will continue to evolve. 
-It would be undesirable to tie the \vnnlib{} standard to a specific version of ONNX, as that would require new versions of the \vnnlib{} standard to be released in lockstep with the ONNX standard.
+It would be undesirable to tie the \vnnlib{} standard to a specific version of ONNX, as that would require new versions of the \vnnlib{} standard to be released in lockstep with each new version of the ONNX standard.
 \end{enumerate}
 The solution to these problems is define the syntax and semantics of \vnnlib{} \emph{relative} to some abstract theory of neural networks.
 In practice, this means the \vnnlib{} query language will be parameterised by an abstract signature, $\networkTheoryVar$, containing the minimal set of syntax, typing judgments and semantics for neural networks necessary to define the syntax and semantics of the query language.
 We will call the signature $\networkTheoryVar$ a \emph{network theory} . 
 
-Therefore, although each new version of the ONNX standard will define a new network theory, complete with its own operators, element types and semantics, the \vnnlib{} standard will remain constant relative to an abstract network theory $\networkTheoryVar$.
-This allows the ONNX standard to evolve independently without requiring the explicit redefinition of the syntax and semantics of \vnnlib{}.
+Therefore, although each new version of the ONNX standard will define a new network theory, complete with its own operators, element types and semantics, the \vnnlib{} standard will remain constant relative to an abstract network theory~$\networkTheoryVar$.
+This allows the ONNX standard to evolve independently without requiring the explicit redefinition of the syntax and semantics of \vnnlib{}. 
+One of the consequences of this parameterisation is that when discussing the semantics of a particular \vnnlib{} query, it is necessary to state the versions of both the ONNX standard and the \vnnlib{} standard being used.
 
-\begin{figure}
-	\newcommand{\tensorOpOneSem}[2]{ 
-		\semTensorType{#1} \rightarrow 
-		\semTensorType{#2}
-	}
-	\newcommand{\tensorOpTwoSem}[3]{
-		\semTensorType{#1} \rightarrow 
-		\semTensorType{#2} \rightarrow 
-		\semTensorType{#3} 
-	}
-	\newcommand{\compSem}[1]{
-	\sem{#1} 
-	&: \forall \tensorTypeVar. \; 
-			\semTensorType{\tensorTypeVar} \rightarrow
-			\semTensorType{\tensorTypeVar} \rightarrow
-			\mathbb{B}
-	&= \missing 
-	}
-	\newcommand{\opOneSem}[1]{
-	\sem{#1}
-	&: \forall \tensorTypeVar. \; 
-			\tensorOpOneSem{\tensorTypeVar}{\tensorTypeVar}
-	&= \missing 
-	}
-	\newcommand{\opTwoSem}[1]{
-	\sem{#1} 
-	&: \forall \tensorTypeVar. \; 
-			\tensorOpTwoSem{\tensorTypeVar}{\tensorTypeVar}{\tensorTypeVar}
-	&= \missing 
-	}
+
+\begin{figure}	
+	\newcommand{\grammarShrink}{\vspace{-0.4em}}
 	
 	\begin{subfigure}{\textwidth}
 		\input{diagrams/network-theory-types.tex}
 		\vspace{-0.7em}
-		\caption{Abstract grammar for network model types}
+		\caption{Abstract grammar for network model types.}
 		\label{fig:onnx-type-syntax}
 	\end{subfigure}
 	\\
 	\\
 	\\
 	\begin{subfigure}{\textwidth}
-	\centering
 		\input{diagrams/network-theory-expr.tex}
-		\caption{Abstract grammar for network model expressions}
+		\vspace{0.3em}
+		\caption{Abstract grammar and functions for network models.}
 		\label{fig:onnx-expr-syntax}
 	\end{subfigure}
 	\\
 	\begin{subfigure}{\textwidth}
 		\input{diagrams/network-theory-typing-rules.tex}
-		\caption{Abstract type system for network models}
+		\caption{Abstract type system for network models.}
 		\label{fig:onnx-types}
 	\end{subfigure}
 	\\
 	\begin{subfigure}{\textwidth}
 		\input{diagrams/network-theory-semantics.tex}
-		\caption{Abstract semantics for network models}
+		\caption{Abstract semantics for network models.}
 		\label{fig:onnx-semantics}
 	\end{subfigure}
-	\caption{The definition of a network theory $\networkTheoryVar$, i.e. the minimal signature for an abstract implementation of ONNX that allows the syntax and semantics of VNN-LIB to be defined. The \missing{} symbol indicates what needs to be defined by the ONNX standard to instantiate the theory.}
+	\caption{The definition of a network theory $\networkTheoryVar$, i.e. the minimal signature for an abstract implementation of ONNX that allows the syntax and semantics of VNN-LIB to be defined. The \missing{} symbol indicates what needs to be defined by the ONNX standard to instantiate the theory. Superscript $^+$ indicates a list of one or more.}
 	\label{fig:onnx-signature}
 \end{figure}
 
 
 The definition of a network theory is shown in Figure~\ref{fig:onnx-signature}, with the missing components to be instantiated represented using the \missing{} symbol.
-Figures~\ref{fig:onnx-type-syntax}~\&~\ref{fig:onnx-expr-syntax} define the syntax of the types and expressions:
+Figures~\ref{fig:onnx-type-syntax}~\&~\ref{fig:onnx-expr-syntax} describe the syntax of the types and expressions, with the interface requiring the definition of:
 \begin{enumerate}
-\item $\mgrammar{<elementType>}$ - a set of numeric element types, e.g. the element types \texttt{float64}, \texttt{int32} in ONNX.
-\item $\mgrammar{<tensorName>}$ - a set of allowable names for tensors in the network models, which will permit the referencing the output of hidden nodes.
-\item $\mgrammar{<tensor>}$ - the format used to represent tensors, e.g. the \texttt{TensorProto} object in ONNX.
-\item $\mgrammar{<model>}$ - the format used to represent neural network models, e.g. the \texttt{ModelProto} object in ONNX.
+\item $\mgrammar{<elementType>}$ - a set of numeric element types
+\begin{itemize}
+\item In ONNX: types such as \texttt{float64}, \texttt{int32}.
+\end{itemize}
+\item $\mgrammar{<tensor>}$ - the format used to represent tensors 
+\begin{itemize}
+\item In ONNX: the \texttt{TensorProto} object.
+\end{itemize}
+\item $\mgrammar{<model>}$ - the format used to represent neural network models
+\begin{itemize}
+\item In ONNX: the \texttt{ModelProto} object.
+\end{itemize}
+\item $\mgrammar{<nodeOutput>}$ - the format used to reference the outputs of nodes
+\begin{itemize}
+	\item In ONNX: any string compliant with the C90 identifier syntax rules.
+\end{itemize}
+\item $\outputNodesFn$ - a function that maps a model to its list of its final outputs
+\begin{itemize}
+	\item In ONNX: the accessor \texttt{model.graph.output}.
+\end{itemize}
 \end{enumerate}
-Figure~\ref{fig:onnx-types} defines the required typing judgments over the syntax:
+Figure~\ref{fig:onnx-types} describe the required typing judgments over the syntax, with the interface requiring the definition of:
 \begin{enumerate}
-\item \textsc{(Element)} - a judgement that a numeric string~$\elementVar$ is a valid element of a provided element type~$\elementTypeVar$. For instance, it would be expected that the number `1' would be judged as of type \texttt{float64} and \texttt{int32}, and `1.0' would be judged as of type \texttt{float64} but not \texttt{int32}.
+\item \textsc{(Element)} - a judgement that a numeric string~$\elementVar$ is a valid element of a provided element type~$\elementTypeVar$. For example, it would be expected that the number~`1' could be judged as of type \texttt{float64} and \texttt{int32}, and `1.0' could be judged as of type \texttt{float64} but not \texttt{int32}.
 \item \textsc{(Tensor)} - a judgement that a tensor~$\tensorVar$ is of a given element type and shape~$\tensorTypeVar$.
 \item \textsc{(Model)} - a judgment that a model~$\modelVar$ is of a given type~$\modelTypeVar$, i.e takes in a list of tensors of the provided shape and produces a list of output tensors of the required shapes.
-\item \textsc{(ModelHidden)} - a judgment that a model~$\modelVar$ has a node that produces some tensor called~$\onnxNameVar$ of type~$\tensorTypeVar$ as output.
-\item \textsc{(Iso)} - a judgment that the graph structure of two models are isomorphic to each other. This judgement does not constrain other properties of the two networks, (i.e. they may use different datatypes and have different weights). See Section~\ref{sec:multiple-network}.
+\item \textsc{(NodeOutput)} - a judgment that a model~$\modelVar$ has a node that produces some tensor called~$\onnxNameVar$ of type~$\tensorTypeVar$ as output.
+\item \textsc{(Isomorphic)} - a judgment that the graph structure of two models are isomorphic to each other. See Section~\ref{sec:multiple-network} for details.
 \end{enumerate}
-Finally~\ref{fig:onnx-semantics} defines the semantics over the well-typed syntactic constructs:
+Finally~\ref{fig:onnx-semantics} describe the semantics over the well-typed syntactic models, with the interface requiring the definition of:
 \begin{enumerate}
 \item $\semElementTypeAbs$ - a function mapping each syntactic element type to a mathematical set of values.
 \item $\semTensorAbs$ - a function mapping a syntactic tensor $\tensorVar$ of type $\tensorTypeVar$ to the mathematical tensor that it represents.
-\item $\semModelAbs$ - a function mapping a syntactic model $\tensorVar$ of type $\modelTypeVar$ to the mathematical function that it represents, that maps a list of input mathematical tensors to a list of output mathematical tensors.
-\item $\semModelHiddenAbs$ - a function mapping a syntactic model $\tensorVar$ of type $\modelTypeVar$ and the name $\onnxNameVar$ of the output a hidden node of type $\tensorVar$ to the mathematical function that maps a list of input mathematical tensors to a single output mathematical tensor that represents the output of that hidden node.
-\item $\sem{\leq}$, ..., $\sem{\times}$ - a list of functions that perform basic pointwise comparison and arithemetic operations over tensors.
+\item $\semModelAbs$ - a function that takes a syntactic model $\modelVar$ that expects inputs of type~$\tensorTypeVar^I$ as its input and as its output returns another function. The returned function takes (i) a list of input tensors of type $\tensorTypeVar^I$ and (ii) an output of a node $\onnxNameVar$ of type $\tensorTypeVar$ and produces the value computed at that node output.
+\item $\sem{\leq}$, ..., $\sem{\times}$ - the semantics of a list of basic operations that perform pointwise comparison and arithemetic over tensors.
 \end{enumerate}
-One of the consequences of this parameterisation is that when discussing the semantics of a particular \vnnlib{} query, it is necessary to state the versions of both the ONNX standard and the \vnnlib{} standard being used.
-
 Note that nothing in the definition of a network theory is explicitly dependent on ONNX. 
-The same mechanism could be used to define the syntax and semantics relative to other frameworks e.g. PyTorch. 
-However, for the reasons outlined at the start of this chapter, in practice the \vnnlib{} standard assumes the use of the ONNX format.
+The same mechanism could be used to define the syntax and semantics of the \vnnlib{} query language relative to other neural network modelling frameworks e.g. PyTorch. 
+However, for the reasons outlined at the start of this chapter, in practice \vnnlib{} assumes the use of the ONNX format.

@@ -1,7 +1,37 @@
 
-	% This minipage exists to force left-alignment
-	\begin{minipage}[t]{0.5\textwidth}
+% This minipage exists to force left-alignment
+\begin{minipage}[t]{0.3\textwidth}
 	\setlength{\arraycolsep}{2pt}
+		\newcommand{\tensorOpOneSem}[2]{ 
+		\semTensorType{#1} \rightarrow 
+		\semTensorType{#2}
+	}
+	\newcommand{\tensorOpTwoSem}[3]{
+		\semTensorType{#1} \rightarrow 
+		\semTensorType{#2} \rightarrow 
+		\semTensorType{#3} 
+	}
+	\newcommand{\compSem}[1]{
+	\sem{#1} 
+	&: \forall \tensorTypeVar. \; 
+			\semTensorType{\tensorTypeVar} \rightarrow
+			\semTensorType{\tensorTypeVar} \rightarrow
+			\mathbb{B}
+	&= \missing 
+	}
+	\newcommand{\opOneSem}[1]{
+	\sem{#1}
+	&: \forall \tensorTypeVar. \; 
+			\tensorOpOneSem{\tensorTypeVar}{\tensorTypeVar}
+	&= \missing 
+	}
+	\newcommand{\opTwoSem}[1]{
+	\sem{#1} 
+	&: \forall \tensorTypeVar. \; 
+			\tensorOpTwoSem{\tensorTypeVar}{\tensorTypeVar}{\tensorTypeVar}
+	&= \missing 
+	}
+	
 	\begin{equation*}
 	\begin{array}{llll}
 	\semElementTypeAbs
@@ -15,13 +45,10 @@
 	&= \missing 
 	\\
 	\semModelAbs
-	&: (\modelVar : \modelTypeVar) 
-	& \rightarrow \semModelType{\modelTypeVar}
-	&= \missing
-	\\
-	\semModelHiddenAbs
-	&: (\modelVar : \modelTypeVar) \rightarrow (\modelVar.\onnxNameVar : \tensorTypeVar) 
-	& \rightarrow \semModelType{(\modelTypeVar.\text{inputs}, [\tensorTypeVar])} 
+	&: (\modelVar : (\tensorTypeVar^I, \tensorTypeVar^O))
+	& \rightarrow \prod_{i} \semTensorType{\tensorTypeVar^I_i} 
+	\rightarrow (\onnxNameVar : \tensorTypeVar) 
+	\rightarrow \semTensorType{\tensorTypeVar} 
 	&= \missing
 	\end{array}
 	\end{equation*}
@@ -30,10 +57,6 @@
 	\begin{array}{llll}
 	\semTensorType{(\elementTypeVar, s)}
 	&= \semElementType{\elementTypeVar}^{\prod_i s_i}
-	\\
-	\semModelType{(\tensorTypeVar^I, \tensorTypeVar^O)}
-	&= \prod_{i} \semTensorType{\tensorTypeVar^I_i}  \rightarrow
-	\prod_{i} \semTensorType{\tensorTypeVar^O_i}
 	\end{array}
 	\end{equation*}
 	\begin{equation*}

@@ -1,14 +1,14 @@
 \begin{equation*}
     \inferrule*[Right=ModelNetwork]
     {
-        \newImplementationCtx \vdash f : \equivVar 
+        \networkImplementationSet \vdash \equivVar : \networkImplementation
         \\
         \vdash_\networkTheoryVar \networkImplementation : \networkDeclType(\inputDeclSet, \outputDeclSet)
         \\
-        \vdash \networkImplementation : \hiddenDeclSet
+        \vdash \hiddenDeclSet : \networkImplementation
     }
     {
-        \newImplementationCtx \vdash \networkImplementation : \networkExpansion
+        \networkImplementationSet \vdash \networkExpansion : \networkImplementation
     }
     \qquad
     \qquad

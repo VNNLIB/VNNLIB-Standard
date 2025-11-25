@@ -1,18 +1,18 @@
 \begin{align*}
     \inferrule*[Right=ModelIso]
     {
-        \networkImplementation \cong_\networkTheoryVar \Gamma[\nameVar]
+        \networkImplementationSet[\nameVar] \cong_\networkTheoryVar \networkImplementation
     }
     {
-        \newImplementationCtx \vdash \networkImplementation : \texttt{isomorphic-to }\nameVar
+        \newImplementationCtx \vdash \texttt{isomorphic-to }\nameVar : \networkImplementation
     }
-    \qquad\qquad\qquad
+    \qquad\qquad\qquad\quad
     \inferrule*[Right=ModelEqual]
     {
-        \networkImplementation = \Gamma[\nameVar]
+        \networkImplementationSet[\nameVar] = \networkImplementation
     }
     {
-        \newImplementationCtx \vdash \networkImplementation : \texttt{equal-to }\nameVar
+        \networkImplementationSet \vdash \texttt{equal-to }\nameVar : \networkImplementation  
     }
     \qquad
     \qquad

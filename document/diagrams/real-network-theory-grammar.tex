@@ -1,0 +1,50 @@
+\begin{minipage}{0.2\textwidth}
+    \newcommand{\spacing}{\vspace{0.1em}}
+    \begin{equation*}
+        \inferrule*[Right=(Element$^\real$)]
+        {
+            r \in \real
+        }
+        {
+            \vdash r : \mathtt{real}
+        }
+    \end{equation*}
+    \spacing
+    \begin{equation*}
+        \inferrule*[Right=(Tensor$^\real$)]
+        {
+        }
+        {
+            \vdash (\shapeVar, \tensorVar) : (\texttt{real}, \shapeVar)
+        }
+    \end{equation*}
+    \spacing
+    \begin{equation*}
+        \inferrule*[Right=(Model$^\real$)]
+        {
+            \vdash\networkTheoryVarParam \modelVar : \modelTypeVar' \\
+            \text{shapes}(\modelTypeVar') = \text{shapes}(\modelTypeVar)
+        }
+        {
+            \vdash \modelVar : \modelTypeVar 
+        }
+    \end{equation*}
+    \spacing
+    \begin{equation*}
+        \inferrule*[Right=(NodeOutput$^\real$)]{
+            \modelVar \vdash\networkTheoryVarParam \onnxNameVar : \tensorTypeVar'
+            \\
+            \text{shape}(\tensorTypeVar') = \text{shape}(\tensorTypeVar)
+        }{
+            \modelVar \vdash \onnxNameVar : \tensorTypeVar
+        }
+    \end{equation*}
+    \spacing
+    \begin{equation*}
+        \inferrule*[Right=(Isomorphic$^\real$)]{
+            \vdash \modelVar_1 \cong\networkTheoryVarParam \modelVar_2
+        }{
+            \vdash \modelVar_1 \cong \modelVar_2
+        }
+    \end{equation*}
+\end{minipage}
