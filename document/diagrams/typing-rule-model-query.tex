@@ -1,9 +1,9 @@
 \begin{equation*}
     \inferrule*[Right=ModelQuery]
     {
-        \emptyset \vdash \networkImplementationSet : \networkDeclSet
+        \networkImplementationSet \vdash \networkDeclSet
     }
     {
-        \networkImplementationSet : \queryExpansion
+        \networkImplementationSet \vdash \queryExpansion
     }
 \end{equation*}

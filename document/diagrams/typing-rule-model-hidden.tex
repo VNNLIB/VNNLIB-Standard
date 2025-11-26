@@ -1,10 +1,10 @@
 \begin{equation*}
     \inferrule*[Right=ModelHidden]
     {
-        \vdash_\networkTheoryVar \networkImplementation.\onnxNameVar : (\elementTypeVar, \shapeVar)
+        \networkImplementation \vdash_\networkTheoryVar \onnxNameVar : (\elementTypeVar, \shapeVar)
     }
     {
-        \vdash \networkImplementation : \hiddenExpansion
+        \vdash \hiddenExpansion : \networkImplementation
     }
     \qquad
     \qquad

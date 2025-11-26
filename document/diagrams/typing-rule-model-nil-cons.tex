@@ -3,7 +3,7 @@
     {
     }
     {
-        \newImplementationCtx \vdash \nilList : \nilList
+        \networkImplementationSet \vdash \nilList 
     }
     \qquad
     \qquad
@@ -11,12 +11,12 @@
     \qquad
     \inferrule*[Right=ModelCons]
     {
-        \newImplementationCtx \vdash \networkDeclVar : f 
+        \networkImplementationSet \vdash \networkDeclVar : \networkImplementationSet[\networkDeclVar.\text{name}]
         \\
-        \newImplementationCtx[\networkDeclVar.\text{name} \rightarrow \networkImplementation] \vdash \networkImplementationSet : \networkDeclSet
+        \networkImplementationSet \vdash \networkDeclSet  
     }
     {
-        \newImplementationCtx \vdash (\consList{\networkImplementation}{\networkImplementationSet}) : (\consList{\networkDeclVar}{\networkDeclSet})
+        \networkImplementationSet \vdash \consList{\networkDeclVar}{\networkDeclSet}  
     }
     \qquad
     \qquad

@@ -322,9 +322,3 @@ Logics are therefore composed by the combination of theories from each of the ab
 \end{center}
 represents the class of queries that contain hidden nodes declarations, a single network declaration with a single input and output using the 32-bit floats, with linear comparisons between arbitrary declared variables.
 The set of logics is referred to as $\logicSet$. 
-
-Concretely, given a network theory $\networkTheoryVar$ and a logic $\logicVar \in \logicSet$, a solver $s$ for that logic is a function with the following type:
-\begin{equation*}
-s : \mgrammar{<query>} \rightarrow [\mgrammar{<model>}] \rightarrow \mathbb{B}
-\end{equation*}
-where $\forall \queryVar, \networkImplementationSet . \:\: (\queryVar \in \logicVar) \wedge (\vdash \networkImplementationSet : \queryVar) \implies s(\queryVar, \networkImplementationSet) = \semQuery{\queryVar, \networkImplementationSet}$

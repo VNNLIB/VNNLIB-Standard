@@ -83,6 +83,8 @@
 \newcommand{\sem}[1]{\llbracket #1 \rrbracket}
 \newcommand{\semenv}[1]{\llbracket #1 \rrbracket^{\Delta_N,\Delta_A}}
 
+\newcommand{\real}{\ensuremath{\mathbb{R}}}
+
 %%%%%%%%%%%%%%%%%%
 % Network theory %
 %%%%%%%%%%%%%%%%%%
@@ -100,18 +102,19 @@
 \newcommand{\tensorTypeVar}{\delta}
 \newcommand{\modelTypeVar}{\gamma}
 
+\newcommand{\inputNodesFn}{inputs}
+\newcommand{\outputNodesFn}{\text{networkOutputs}}
+
 \newcommand{\semApp}[2]{\sem{#2}_\text{#1}}
 \newcommand{\semElementType}[1]{\semApp{elementType}{#1}}
 \newcommand{\semTensorType}[1]{\semApp{tensorType}{#1}}
 \newcommand{\semTensor}[1]{\semApp{tensor}{#1}}
 \newcommand{\semModelType}[1]{\semApp{modelType}{#1}}
 \newcommand{\semModel}[1]{\semApp{model}{#1}}
-\newcommand{\semModelHidden}[1]{\semApp{modelHidden}{#1}}
 
 \newcommand{\semElementTypeAbs}{\semApp{elementType}{\cdot}}
 \newcommand{\semTensorAbs}{\semApp{tensor}{\cdot}}
 \newcommand{\semModelAbs}{\semApp{model}{\cdot}}
-\newcommand{\semModelHiddenAbs}{\semApp{modelHidden}{\cdot}}
 
 \newcommand{\networkTheoryVarParam}{^\networkTheoryVar}
 \newcommand{\semElementTypeTheory}[1]{\semElementType{#1}\networkTheoryVarParam}
@@ -119,9 +122,7 @@
 \newcommand{\semTensorTheory}[1]{\semTensor{#1}\networkTheoryVarParam}
 \newcommand{\semModelTypeTheory}[1]{\semModelType{#1}\networkTheoryVarParam}
 \newcommand{\semModelTheory}[1]{\semModel{#1}\networkTheoryVarParam}
-\newcommand{\semModelHiddenTheory}[1]{\semModelHidden{#1}\networkTheoryVarParam}
 
-\newcommand{\real}{\ensuremath{\mathbb{R}}}
 %%%%%%%%%%
 % VNNLIB %
 %%%%%%%%%%
@@ -131,6 +132,7 @@
 \newcommand{\nameVar}{v}
 \newcommand{\equivVar}{e}
 \newcommand{\onnxNameVar}{u}
+\newcommand{\nodeVar}{z}
 
 \newcommand{\networkDeclVar}{n}
 \newcommand{\networkDeclSet}{N}
@@ -205,16 +207,15 @@
 \newcommand{\networkInputsType}{\text{inputTypes}}
 
 
-\newcommand{\networkImplementation}{f}
-\newcommand{\networkImplementationSet}{F}
-\newcommand{\networkImplementations}{[\networkImplementation_1 \ldots \networkImplementation_n]}
+\newcommand{\networkImplementation}{\modelVar}
+\newcommand{\networkImplementationSet}{M}
 
 \newcommand{\networkInputTensor}{t}
 \newcommand{\networkInputTensors}{[\networkInputTensor_1 \ldots \networkInputTensor_n]}
 
 \newcommand{\networkInput}{x}
 \newcommand{\networkInputSet}{X}
-\newcommand{\networkInputs}{[\networkInput_1 \ldots \networkInput_n]}
+\newcommand{\networkInputSets}{\mathcal{X}}
 
 \newcommand{\newImplementationCtx}{\Gamma}
 
@@ -355,10 +356,9 @@
 \maketitle
 
 \begin{abstract}
-This document presents \vnnlib{}, a standard for solving satisfiability problems over neural networks. \vnnlib{} uses the 
-Open Neural Network Exchange (ONNX) format for neural network model description and the \vnnlib{} language for satisfiability query description. 
-The document provides a formally defined syntax and semantics for the \vnnlib{} language, and a command-line interface for solvers. 
-The goal is to foster greater robustness and interoperability in the neural network verification landscape.
+This document presents \vnnlib{} -- an open-source standard for automated solvers of satisfiability problems over neural networks. 
+The goal of the standard is to foster greater robustness and interoperability in the neural network verification landscape.
+To this end, the standard defines: i) a formal syntax for defining satisfiabilty queries over neural networks, ii) a formal semantics for that syntax and iii) and a command-line interface for solvers.
 \end{abstract}
 
 \tableofcontents

@@ -1,10 +1,13 @@
 \setlength{\grammarindent}{9em}
-	\begin{grammar}	
-	<elementType> $\ni \elementTypeVar$ ::= \missing \qquad\qquad	<tensorName> $\ni \onnxNameVar$ ::= \missing
-	
-	<shape> $\ni \shapeVar$ ::= [$n_1$,...,$n_k$] \hspace{1em} for $n_i \in \mathbb{N}$ 
-	
+\begin{grammar}	
+	<elementType> $\ni \elementTypeVar$ ::= \missing
+	\grammarShrink
+
+	<shape> $\ni \shapeVar$ ::= [$n$,...,$n$] \hspace{5em} where $n \in \mathbb{N}$ 
+	\grammarShrink
+
 	<tensorType> $\ni \tensorTypeVar$ ::= <elementType>  $\times$ <shape>
+	\grammarShrink
 	
-	<modelType> $\ni \modelTypeVar$ ::= [<tensorType>]$^+$ $\times$ [<tensor-type>]$^+$
+	<modelType> $\ni \modelTypeVar$ ::= <tensorType>$^+$ $\times$ <tensor-type>$^+$
 \end{grammar}

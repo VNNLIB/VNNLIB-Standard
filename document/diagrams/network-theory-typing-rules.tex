@@ -19,17 +19,17 @@
             \vdash \modelVar : \modelTypeVar 
         }
         \\
-        \inferrule*[Right=(ModelHidden)]{
+        \inferrule*[Right=(NodeOutput)]{
             \missing
         }{
-            \vdash \modelVar.\onnxNameVar : \tensorTypeVar
+            \modelVar \vdash \onnxNameVar : \tensorTypeVar
         }
-        \hspace{11em}
-        \inferrule*[Right=(Iso)]{
+        \hspace{9em}
+        \inferrule*[Right=(Isomorphic)]{
             \missing
         }{
             \vdash \modelVar_1 \cong \modelVar_2
         }
-        \hspace{5.5em}
+        \hspace{5em}
     \end{flalign*}
 \end{minipage}
