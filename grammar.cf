@@ -7,6 +7,8 @@ position token VersionToken '<' digit+ '.' digit+ '>' ;
 position token Number '-'? digit+ ('.' digit+)? ;
 -- The regular expression for allowed Variable names - tensors, or networks
 position token VariableName letter (letter|digit|'_')* ;
+-- The ONNX name associated with a tensor. Bounded by double quotes
+token OnnxString '"' ((char - ["\"\\"]) | ('\\' ["\"\\nt"]))* '"';
 
 -- Sequence of integers to represent Tensor shape/indices
 separator nonempty Number "," ;
@@ -51,7 +53,7 @@ separator nonempty Assertion "" ;
 -- https://github.com/onnx/onnx/blob/main/docs/IR.md#tensor-element-types
 DType.          ElementType ::= VariableName ; 
 -- The ONNX name associated with a tensor. Bounded by double quotes
-NodeName.       OnnxName    ::= String ;
+NodeName.       OnnxName    ::= OnnxString ;
 
 -- A tensor definition consists of the variable name, element type, and shape
 InputDef.       InputDefinition  ::= "(declare-input" VariableName ElementType TensorShape ")" ;
