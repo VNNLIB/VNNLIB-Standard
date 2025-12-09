@@ -11,7 +11,7 @@
 )
 
 (declare-network AcasZu
-	(isomorphic-to AcasYu)
+	(isomorphic-to AcasXu)
 	(declare-input E Real [5])
 	(declare-output F Real [5])
 )
