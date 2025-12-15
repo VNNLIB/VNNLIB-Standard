@@ -9,7 +9,7 @@ document/**/*.log
 document/**/*.out
 document/**/*.err
 document/**/*.aux
-document/**/main.pdf
+document/**/*.pdf
 document/**/*.synctex.gz
 document/**/*.blg
 document/**/*.toc
