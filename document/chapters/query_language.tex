@@ -479,32 +479,32 @@ Using the \inlinevnn{real} type gives the solver explicit permission to interpre
 
 \begin{figure}[t]
     \newcommand{\realParam}{\hspace{-0.25em}$^\real$}
+    \centering
 	\begin{subfigure}{\textwidth}
 		\input{diagrams/real-network-theory-syntax-types.tex}
-		\vspace{-0.7em}
+        \vspace{-0.75em}
 		\caption{Grammar for real network model types.}
 		\label{fig:real-theory-type-syntax}
 	\end{subfigure}
-	\\
-	\\
-	\\
+    \vspace{0.5em}
+
     \begin{subfigure}{\textwidth}
 		\input{diagrams/real-network-theory-syntax-expr.tex}
-		\vspace{-0.7em}
+        \vspace{-0.55em}
 		\caption{Grammar and functions for real network model expressions.}
 		\label{fig:real-theory-expr-syntax}
 	\end{subfigure}
-    \\
+    
     \begin{subfigure}{\textwidth}
 		\input{diagrams/real-network-theory-grammar.tex}
 		\caption{Type-system for real network model expressions.}
 		\label{fig:real-theory-grammar}
 	\end{subfigure}
-    \\
-    \\
+    \vspace{0.5em}
+    
     \begin{subfigure}{\textwidth}
 		\input{diagrams/real-network-theory-semantics.tex}
-		\caption{Semantics for real network model expressions.}
+		\caption{Semantics for real network model expressions. The semantics for the comparison and arithmetic operations are simply their real-valued interpretations.}
 		\label{fig:real-theory-semantics}
 	\end{subfigure}
     \caption{Construction of a real-valued network theory $\networkTheoryVar_\real$ from an abstract network theory $\networkTheoryVar$ and additional functions $\semApp{realModel}{\cdot}\networkTheoryVarParam$ that returns the semantics of a network model as a function over real numbers.}
