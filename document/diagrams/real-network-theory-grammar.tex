@@ -1,5 +1,4 @@
-\begin{minipage}{0.2\textwidth}
-    \newcommand{\spacing}{\vspace{0.1em}}
+    \newcommand{\spacing}{\hspace{0.1em}}
     \begin{equation*}
         \inferrule*[Right=(Element$^\real$)]
         {
@@ -18,7 +17,7 @@
             \vdash (\shapeVar, \tensorVar) : (\texttt{real}, \shapeVar)
         }
     \end{equation*}
-    \spacing
+    \vspace{0.1em}
     \begin{equation*}
         \inferrule*[Right=(Model$^\real$)]
         {
@@ -39,7 +38,7 @@
             \modelVar \vdash \onnxNameVar : \tensorTypeVar
         }
     \end{equation*}
-    \spacing
+    \vspace{0.1em}
     \begin{equation*}
         \inferrule*[Right=(Isomorphic$^\real$)]{
             \vdash \modelVar_1 \cong\networkTheoryVarParam \modelVar_2
@@ -47,4 +46,3 @@
             \vdash \modelVar_1 \cong \modelVar_2
         }
     \end{equation*}
-\end{minipage}
