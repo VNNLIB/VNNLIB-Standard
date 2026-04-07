@@ -168,7 +168,7 @@ Figures~\ref{fig:onnx-type-syntax}~\&~\ref{fig:onnx-expr-syntax} describe the sy
 	\item In ONNX: the accessor \texttt{model.graph.output}.
 \end{itemize}
 \end{enumerate}
-Figure~\ref{fig:onnx-types} describe the required typing judgments over the syntax, with the interface requiring the definition of:
+Figure~\ref{fig:onnx-types} describes the required typing judgments over the syntax, with the interface requiring the definition of:
 \begin{enumerate}
 \item \textsc{(Element)} - a judgement that a numeric string~$\elementVar$ is a valid element of a provided element type~$\elementTypeVar$. For example, it would be expected that the number~`1' could be judged as of type \texttt{float64} and \texttt{int32}, and `1.0' could be judged as of type \texttt{float64} but not \texttt{int32}.
 \item \textsc{(Tensor)} - a judgement that a tensor~$\tensorVar$ is of a given element type and shape~$\tensorTypeVar$.
@@ -176,12 +176,12 @@ Figure~\ref{fig:onnx-types} describe the required typing judgments over the synt
 \item \textsc{(NodeOutput)} - a judgment that a model~$\modelVar$ has a node that produces some tensor called~$\onnxNameVar$ of type~$\tensorTypeVar$ as output.
 \item \textsc{(Isomorphic)} - a judgment that the graph structure of two models are isomorphic to each other. See Section~\ref{sec:multiple-network} for details.
 \end{enumerate}
-Finally~\ref{fig:onnx-semantics} describe the semantics over the well-typed syntactic models, with the interface requiring the definition of:
+Finally, Figure~\ref{fig:onnx-semantics} describes the semantics over the well-typed syntactic models, with the interface requiring the definition of:
 \begin{enumerate}
 \item $\semElementTypeAbs$ - a function mapping each syntactic element type to a mathematical set of values.
 \item $\semTensorAbs$ - a function mapping a syntactic tensor $\tensorVar$ of type $\tensorTypeVar$ to the mathematical tensor that it represents.
 \item $\semModelAbs$ - a function that takes a syntactic model $\modelVar$ that expects inputs of type~$\tensorTypeVar^I$ as its input and as its output returns another function. The returned function takes (i) a list of input tensors of type $\tensorTypeVar^I$ and (ii) an output of a node $\onnxNameVar$ of type $\tensorTypeVar$ and produces the value computed at that node output.
-\item $\sem{\leq}$, ..., $\sem{\times}$ - the semantics of a list of basic operations that perform pointwise comparison and arithemetic over tensors.
+\item $\sem{\leq}$, ..., $\sem{\times}$ - the semantics of operations that perform basic pointwise comparison and arithmetic over tensors.
 \end{enumerate}
 Note that nothing in the definition of a network theory is explicitly dependent on ONNX. 
 The same mechanism could be used to define the syntax and semantics of the \vnnlib{} query language relative to other neural network modelling frameworks e.g. PyTorch. 
