@@ -6,5 +6,5 @@ See the official [VNNLIB website](https://www.vnnlib.org/) for more details, inc
 ### Contents
 
 This repository contains:
-- `document/main.tex` - the standard document 
+- `document/standard.tex` - the standard document 
 - `grammar.cf` - a formal grammar for VNNLIB queries written in Labelled Backus-Naur Form.
