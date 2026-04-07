@@ -36,6 +36,8 @@ and the shape of the tensor. Similarly, an output variable uses the \texttt{decl
 \begin{figure}[t]
     \begin{minipage}[c]{0.62\textwidth}
         \begin{lstlisting}[style=lbnf]
+(vnnlib-version <2.0>)
+
 (declare-network myNetwork
     (declare-input  X float32 [1,10])
     (declare-output Y float32 [1,2])
@@ -67,8 +69,8 @@ The network declarations also do not constrain the internal architecture of the 
 \subsection{Assertions}
 
 The list of assertions constrain the variables introduced by the network declarations. \vnnlib{} assertions are quantifier-free logical formulas and are defined using parenthesized \texttt{(assert\ldots)} expressions. 
-They use an SMT-LIB-like reverse Polish notation syntax with the operator preceding its operands.
-An assertion is a logical formula that may include logical connectives, relational comparisons, and arithmetic expressions over declared tensors and constants.
+They use an SMT-LIB-like reverse Polish notation with the operator preceding its operands.
+An assertion is a logical formula that may include logical connectives, relational comparisons, and arithmetic expressions over declared variables and constants.
 The final satisfiability problem is then the conjunction of all the assertions.
  
 \paragraph{Constants}
@@ -88,10 +90,7 @@ One forms arithmetic expressions by recursively combining constant and variable 
     \item \inlinevnn{(* a b ...)}: Multiplication of two or more terms. 
     \item \inlinevnn{(- a b ...)}: Subtraction of two or more terms. The operation associates to the left, e.g. \inlinevnn{(- 1 2 3 4)} is the same as \inlinevnn{(- (- (- 1 2) 3) 4)} which is the same as \inlinevnn{(- 1 (+ 2 3 4))}.
 \end{itemize}
-Arithmetic operations only operate over individual elements of tensors rather than multi-dimensional tensors (see Section~\ref{sec:typing} for detailed typing rules).
-
-Although some ONNX types can be safely coerced between in certain cases (e.g. a \inlinevnn{float16} can be added safely to a \inlinevnn{float32} if the expected type of evaluated expression is a \inlinevnn{float32}), the standard does not permit such coercions.
-All variables within an arithmetic expression must have the same type (see Section~\ref{sec:typing} for formal typing rules). 
+Arithmetic operations only operate over individual elements of tensors rather than multi-dimensional tensors. See Section~\ref{sec:typing} for detailed typing rules.
 
 \paragraph{Comparisons}
 
@@ -166,7 +165,7 @@ The hidden node declaration crucially refers to the uniquely identified outputs 
 
 Often you may want to relate the behaviour of one neural network to that of another. Classic examples include: teacher-student networks where you try to train a smaller, more efficient network to mimic the output of the larger network, or observer-controller architectures.
 
-\vnnlib{} supports defining multiple networks in by including multiple network declarations in the same query. Figure~\ref{fig:multiple-networks} 
+\vnnlib{} supports defining multiple networks by including multiple network declarations in the same query. Figure~\ref{fig:multiple-networks} 
 shows an example which declares two networks representing a teacher and a student network.
 
 \begin{figure}[ht]
@@ -309,7 +308,7 @@ Equal networks do not necessarily need to declare the same set of hidden nodes, 
 
 Finally, if the network is marked as isomorphic to some other network in the context then the shapes, but not the element types, of the input and output declarations for the two network have to match:
 \input{diagrams/typing-rule-network-iso.tex}\unskip
-However, there are no constraints on hidden node declarations as although there must necessarily be a one-to-one mapping between the internal nodes of the two networks, in practice those pairs of nodes may be assigned a different name in the underlying model.
+However, there are no constraints on hidden node declarations as although there must necessarily be a one-to-one mapping between the internal nodes of the two networks, in practice those pairs of nodes may be assigned different names in the two models.
 As with equal networks, the matching isomorphic network in the context must not contain an equivalence statement.
 
 \subsection{Assertions}
@@ -324,6 +323,9 @@ Crucially, the comparison operator rule requires that the arithmetic expressions
 
 Arithmetic expressions consisting of the basic arithmetic operations can be type-checked as follows:
 \input{diagrams/typing-rule-arith-ops.tex}\unskip
+Note that although some ONNX types can be safely coerced between in certain cases (e.g. a \inlinevnn{float16} can be added safely to a \inlinevnn{float32} if the expected type of evaluated expression is a \inlinevnn{float32}), the standard does not permit such coercions.
+All sub-expressions within an arithmetic expression must have the same type. 
+
 The typing rules for constants defers to the typing rule provided by the underlying network theory~$\networkTheoryVar$:
 \input{diagrams/typing-rule-arith-constants.tex}\unskip
 For example, one might expect that the constant \texttt{0.5} would be a member of the ONNX \texttt{float32} element type, but not of the ONNX \texttt{int32} element type.
@@ -347,7 +349,7 @@ To start with, a mapping~$\networkImplementationSet$ is well-formed with respect
 \input{diagrams/typing-rule-model-query.tex}\unskip
 A list of models is judged to be compatible with a list of network declarations if each model is compatible with the corresponding network declaration:
 \input{diagrams/typing-rule-model-nil-cons.tex}\unskip
-An individual model $\networkImplementation$ is compatible with a network declaration $\networkDeclVar$ if (i) it is compatible with the equivalence statement, (ii) it can be typed according according to the network declaration and (iii) it has hidden nodes of the correct type: 
+An individual model $\networkImplementation$ is compatible with a network declaration $\networkDeclVar$ if (i) it is compatible with the equivalence statement, (ii) it can be typed according to the network declaration and (iii) it has hidden nodes of the correct type: 
 \input{diagrams/typing-rule-model-network.tex}\unskip
 where the function $\networkDeclType : [\mgrammar{<input>}] \times [\mgrammar{<output>}] \rightarrow \mgrammar{<modelType>}\networkTheoryVarParam$ maps the list of input and output declarations to the overall type of the model in the obvious way.
 
@@ -361,7 +363,7 @@ Finally a network model is compatible with a list of hidden node declarations if
 \subsection{Input Assignments}
 \label{sec:input-assignment-typing}
 
-As output, verifiers will produce either a judgement that the query $\queryVar$ is unsatisfiable or a satisfying assignment consisting of a mapping:
+As output, solvers will produce either a judgement that the query $\queryVar$ is unsatisfiable or a satisfying assignment consisting of a mapping:
 \begin{equation*}
 \networkInputSet : \mgrammar{<name>} \rightarrow \mgrammar{<tensor>}\networkTheoryVarParam
 \end{equation*}  
@@ -430,9 +432,9 @@ Given an environment $\assertEnv$ calculated as described in Section~\ref{sec:se
 \input{diagrams/semantics-assertion.tex}\unskip
 There is nothing particularly surprising about the semantics of boolean expressions which are interpreted as boolean values:
 \input{diagrams/semantics-boolExpr.tex}\unskip
-The only thing to note is that the exact semantics of comparisons is delegated to that of the underlying network theory $\networkTheoryVar$ to ensure that the correct behaviour for e.g. floating point comparisons.
+The only thing to note is that the exact semantics of comparisons is delegated to that of the underlying network theory $\networkTheoryVar$ to ensure correct behaviour for e.g. floating point comparisons.
 
-The semantics of arithmetic expressions, which are intepreted as zero-dimensional tensors, is defined as follows:
+The semantics of arithmetic expressions, which are interpreted as zero-dimensional tensors, is defined as follows:
 \input{diagrams/semantics-arithExpr.tex}\unskip
 where $\sem{\prod}\networkTheoryVarParam$ and $\sem{\sum}\networkTheoryVarParam$ are defined in the obvious way in terms of $\sem{+}\networkTheoryVarParam$ and $\sem{\times}\networkTheoryVarParam$. As with comparisons, the actual mathematical operations are delegated to the underlying network theory $\networkTheoryVar$. Constants are interpreted as zero-dimensional tensors and the values of variables are looked up in the environment $\assertEnv$ and then indexed into appropriately.
 
@@ -507,7 +509,7 @@ Using the \inlinevnn{real} type gives the solver explicit permission to interpre
 		\caption{Semantics for real network model expressions. The semantics for the comparison and arithmetic operations are simply their real-valued interpretations.}
 		\label{fig:real-theory-semantics}
 	\end{subfigure}
-    \caption{Construction of a real-valued network theory $\networkTheoryVar_\real$ from an abstract network theory $\networkTheoryVar$ and additional functions $\semApp{realModel}{\cdot}\networkTheoryVarParam$ that returns the semantics of a network model as a function over real numbers.}
+    \caption{Construction of a real-valued network theory $\networkTheoryVar_\real$ from an abstract network theory $\networkTheoryVar$ and additional function $\semApp{realModel}{\cdot}\networkTheoryVarParam$ that returns the semantics of a network model as a function over real numbers.}
     \label{fig:real-network-theory}
 \end{figure}
 
