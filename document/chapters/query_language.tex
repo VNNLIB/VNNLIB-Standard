@@ -125,21 +125,32 @@ Although queries often relate the input of a single network to its output in som
 
     \vspace{0.5cm}
     \includegraphics[width=\textwidth]{imgs/multi_io_net.onnx.pdf}
-    \caption{A \vnnlib{} network declaration with multiple inputs/outputs.}
+    \caption{A network declaration with multiple inputs/outputs.}
     \label{fig:multi-inputs-outputs}
 \end{figure}
 
 Neural network that accept multi-modal input or produce multi-modal output are becoming increasingly common~\cite{wang2021survey}. 
 For example, the network in Figure~\ref{fig:multi-inputs-outputs} shows a model that takes both an image and meta-data about that image as inputs, and outputs both a bounding box around an identified object of interest and a probability distribution over the possible class that the object belongs to. 
 
-The query language supports such networks by allowing a network declaration to declare an arbitrary number of input and output declarations. 
-The declared inputs and outputs are mapped to the ONNX graph's inputs and outputs by matching the order of declaration in the query to the order of nodes in the ONNX model file.
+The query language supports such networks by allowing a network declaration to contain an arbitrary number of input and output declarations. 
+As will be described more formally in Section~\ref{sec:model-typing}, the declared inputs and outputs must exactly match the provided ONNX model's inputs and outputs. Concretely, this means:
+\begin{enumerate}
+    \item the network declaration must include all inputs and outputs present in the model even if a particular input or output is not constrained by assertions later in the query.
+    \item the inputs and outputs must appear in the same order as they declared in the model.
+\end{enumerate}
+Note that there has been extensive discussion about extending the standard to allow network inputs and outputs to be referred to by the textual name given to them in the ONNX model. 
+If implemented, this would allow inputs and outputs to be omitted from the network declaration if the user did not wish to constrain them. 
+This feature is not currently planned as it (a) would not increase the expressive power of the query language, (b) would complicate the implementation of the solver, (c) would complicate the semantics of the query language and (d) would make it possible for the user to unintentionally omit inputs from the network declaration.
+
+\subsubsection{Inputs with initializers}
+
+Inputs must still be listed even if the model has a corresponding initializer containing a default value for that input. Currently there is no way to specify that the input should use that default value, and instead the input must be constrained to equal that value using standard equality assertions.
 
 
 \subsubsection{Hidden node declarations}
 \label{sec:hidden-output-declarations}
 
-In some use cases it is desirable to constrain the result of intermediate computation at the output of hidden nodes within the network. For example, when reasoning about the encodings in an encoder-decoder architecture or when reasoning about attention mechanisms. This can be achieved by declaring hidden nodes using the \texttt{declare-hidden} keyword. This declaration includes a variable name for use within the \vnnlib{} specification,  its element type, its tensor shape, and crucially, a string identifier that specifies the corresponding node name in the ONNX graph.  Multiple hidden nodes can be trivially declared within a single network declaration. Figure~\ref{fig:hidden-node} shows a \vnnlib{} network declaration with a hidden node.
+In some use cases it is desirable to constrain the result of intermediate computation at the output of hidden nodes within the network. For example, when reasoning about the encodings in an encoder-decoder architecture or when reasoning about attention mechanisms. This can be achieved by declaring hidden nodes using the \texttt{declare-hidden} keyword. This declaration includes a variable name for use within the \vnnlib{} specification,  its element type, its tensor shape, and crucially, a string identifier that specifies the corresponding node name in the ONNX graph.  Multiple hidden nodes can be trivially declared within a single network declaration. Figure~\ref{fig:hidden-node} shows a \vnnlib{} network declaration with a hidden node. 
 
 \begin{figure}[h!]
     \begin{minipage}[c]{0.76\textwidth}
@@ -339,9 +350,9 @@ One consequence of this is that comparisons that contain no variables (e.g. \tex
 \label{sec:model-typing}
 
 The input to a solver consists of a query~$\queryVar$ and a mapping:
-\begin{equation}
+\begin{equation*}
     \networkImplementationSet : \mgrammar{<name>} \rightarrow \mgrammar{<model>}\networkTheoryVarParam
-\end{equation}
+\end{equation*}
 which associates the name of each network declaration in $\queryVar$ with a corresponding model. 
 This section describes a series of judgements that formalise the notion of the mapping~$\networkImplementationSet$ being well-formed with respect to the networks declared by~$\queryVar$. 
 
