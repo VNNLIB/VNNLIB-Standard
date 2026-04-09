@@ -143,8 +143,34 @@ If implemented, this would allow inputs and outputs to be omitted from the netwo
 This feature is not currently planned as it (a) would not increase the expressive power of the query language, (b) would complicate the implementation of the solver, (c) would complicate the semantics of the query language and (d) would make it possible for the user to unintentionally omit inputs from the network declaration.
 
 \subsubsection{Inputs with initializers}
+\label{sec:inputs-with-initializers}
 
-Inputs must still be listed even if the model has a corresponding initializer containing a default value for that input. Currently there is no way to specify that the input should use that default value, and instead the input must be constrained to equal that value using standard equality assertions.
+In an ONNX model, an input may have a corresponding initializer that provides a default value for that input (see the \href{https://onnx.ai/onnx/repo-docs/IR.html}{ONNX IR specification}).
+Inputs with initializers must still be listed in the network declaration.
+
+By default, an input with an ONNX initializer is treated like any other input: the solver will not automatically assign it the initializer value, and instead the user must manually constrain it to the initializer value using standard equality assertions if desired.
+
+The \texttt{initialized} keyword may optionally be appended to an input declaration to indicate that the solver should automatically set that input to the value specified by the corresponding initializer in the ONNX model.
+Figure~\ref{fig:initialized-input} shows an example of a network declaration with an initialized input.
+
+\begin{figure}[h!]
+    \begin{lstlisting}[style=lbnf]
+(declare-network multi_io_net
+    (declare-input  image    float32 [1,3,224,224])
+    (declare-input  metadata float32 [1,10] initialized)
+    (declare-output bbox     int16   [1,4])
+    (declare-output logits   float32 [1,1000])
+)\end{lstlisting}
+    \caption{A network declaration where the \texttt{metadata} input is set to the value of its ONNX initializer.}
+    \label{fig:initialized-input}
+\end{figure}
+
+It is important to note that:
+\begin{enumerate}
+    \item The \texttt{initialized} keyword is only valid for inputs that have a corresponding initializer in the ONNX model. It is the responsibility of the solver to report an error if no such initializer exists.
+    \item An initialized input variable may still be referenced in assertions. This allows the user to express constraints that relate the concrete initializer value to other variables.
+    \item The \texttt{initialized} keyword does not affect the order in which inputs are matched to the ONNX model's inputs. The matching is still determined by declaration order.
+\end{enumerate}
 
 
 \subsubsection{Hidden node declarations}

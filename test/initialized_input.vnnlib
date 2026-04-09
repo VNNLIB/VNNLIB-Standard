@@ -1,0 +1,11 @@
+(vnnlib-version <2.0>)
+(declare-network multi_io_net
+    (declare-input  image    float32 [1,3,224,224])
+    (declare-input  metadata float32 [1,10] initialized)
+    (declare-output bbox     int16   [1,4])
+    (declare-output logits   float32 [1,1000])
+)
+
+(assert (>= image[0,0,0,0] 0.0))
+(assert (<= image[0,0,0,0] 1.0))
+(assert (>= logits[0,0] 0.5))
