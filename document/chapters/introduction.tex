@@ -27,12 +27,13 @@ This document uses semantic versioning of the form \texttt{major.minor}. Minor v
 
 \subsection*{Changelog for v2.1}
 
-\paragraph{Contributors:} Matthew Daggitt
+\paragraph{Contributors:} Matthew Daggitt, David Shriver
 
 \paragraph{Clarifications and bug fixes:}
 \begin{itemize}
 \item Added missing semantics for arithmetic and comparison operations in the definition of the real-valued theory transformation.
 \item Removed erroneous addition expression in the <bool> class in the VNN-LIB grammar and added missing triangle braces around the version number.
+\item Clarified that all model inputs and outputs must be declared in a network declaration, even if the query does not constrain their value.
 \item Renamed `networkOutputs' function in the definition of a network theory to the more appropriate `modelOutputs'.
 \end{itemize}
 
