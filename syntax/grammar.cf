@@ -55,8 +55,13 @@ DType.          ElementType ::= VariableName ;
 -- The ONNX name associated with a tensor. Bounded by double quotes
 NodeName.       OnnxName    ::= OnnxString ;
 
+-- Declares that an input should be initalised
+Initialised. InputOption ::= "initialized";
+-- An input should only have zero/one of these statements, but is not enforced here for brevity
+separator InputOption "" ;
+
 -- A tensor definition consists of the variable name, element type, and shape
-InputDef.       InputDefinition  ::= "(declare-input" VariableName ElementType TensorShape ")" ;
+InputDef.       InputDefinition  ::= "(declare-input" VariableName ElementType TensorShape [InputOption] ")" ;
 OutputDef.      OutputDefinition ::= "(declare-output" VariableName ElementType TensorShape ")" ;
 
 -- Hidden definitions have a mandatory ONNX name
@@ -70,7 +75,7 @@ separator nonempty OutputDefinition "" ;
 IsomorphicTo.   NetworkEquivalence ::= "(isomorphic-to" VariableName ")" ;
 -- This statement declares that two networks have identical structures and weights.
 EqualTo.        NetworkEquivalence ::= "(equal-to" VariableName ")" ;
--- A network should have only one of these statements, but this is not enforced here for brevity
+-- A network should have only zero/one of these statements, but this is not enforced here for brevity
 separator NetworkEquivalence "" ;
 
 -- A network definition declares a neural network with an associated name, optional congruence statement/s, and input, hidden and output tensor definitions
