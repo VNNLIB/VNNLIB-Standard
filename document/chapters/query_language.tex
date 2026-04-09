@@ -264,8 +264,8 @@ While a solver may make use of the \texttt{equal-to} and \texttt{isomorphic-to} 
 
 \subsubsection{Tensors with zero dimensions}
 
-It is permitted to declare zero-dimensional input, output and hidden variables, i.e. a node that processes scalar values. 
-In this case, the variables should be referenced without any indices, as shown in Line 8 below:
+It is permitted to declare zero-dimensional input, output and hidden variables that represent scalar values. 
+In this case, such variables should be referenced without any indices, as shown in Line 8 below:
 \begin{lstlisting}[style=lbnf]
 (declare-network f
     (declare-input  X float32 [1,2])
