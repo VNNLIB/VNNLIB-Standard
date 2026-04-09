@@ -262,9 +262,9 @@ Due to the transitivity of equality and isomorphism, these restrictions do not r
 
 While a solver may make use of the \texttt{equal-to} and \texttt{isomorphic-to} declarations internally to optimise its representation and reasoning about the provided networks, it is not required to.
 
-\subsubsection{Zero-dimensional tensors}
+\subsubsection{Tensors with zero dimensions}
 
-It is permitted to declare zero-dimensional network nodes, i.e. a node that processes scalar values. 
+It is permitted to declare zero-dimensional input, output and hidden variables, i.e. a node that processes scalar values. 
 In this case, the variables should be referenced without any indices, as shown in Line 8 below:
 \begin{lstlisting}[style=lbnf]
 (declare-network f
@@ -277,6 +277,22 @@ In this case, the variables should be referenced without any indices, as shown i
 (assert (<= Y 0.5))
 \end{lstlisting}
 
+\subsubsection{Tensors with dynamic dimensions}
+
+The ONNX standard supports tensors with dynamic dimensions. 
+Named dimensions are stored as a string in the model, while unnamed dimensions are stored as a null value in the model but are often written as ``-1'' for clarity. 
+For example, a model with an input tensor with dimensions $[batch, -1, 28, 28]$ accepts any 4-D tensor where the last two dimensions must be $[28, 28]$ but the first two dimensions can be any size.
+
+It is not currently possible to explicitly write dynamic dimensions in a \vnnlib{} query. 
+Instead, the query must instantiate the dynamic dimensions to concrete values. 
+For example, if the ONNX model has an input with the dimensions $[batch, -1, 28, 28]$ then the corresponding network declaration could be:
+\begin{lstlisting}[style=lbnf]
+(declare-network f
+  (declare-input X float32 [1, 3, 28, 28])
+  ...
+)
+\end{lstlisting}
+where first dynamic dimension named $batch$ has been set to 1, and second unnamed dynamic dimension has been set to 3.
 
 \subsection{Comments and Whitespace}
 
