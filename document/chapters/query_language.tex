@@ -136,7 +136,7 @@ The query language supports such networks by allowing a network declaration to c
 As will be described more formally in Section~\ref{sec:model-typing}, the declared inputs and outputs must exactly match the provided ONNX model's inputs and outputs. Concretely, this means:
 \begin{enumerate}
     \item the network declaration must include all inputs and outputs present in the model even if a particular input or output is not constrained by assertions later in the query.
-    \item the inputs and outputs must appear in the same order as they declared in the model.
+    \item the inputs and outputs must appear in the same order they are declared in the model.
 \end{enumerate}
 Note that there has been extensive discussion about extending the standard to allow network inputs and outputs to be referred to by the textual name given to them in the ONNX model. 
 If implemented, this would allow inputs and outputs to be omitted from the network declaration if the user did not wish to constrain them. 
