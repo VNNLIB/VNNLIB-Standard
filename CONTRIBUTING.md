@@ -7,35 +7,43 @@ Thanks for your interest in improving the VNNLIB project! This guide explains ho
 ## Repository layout
 ```
 .
-├── grammar.cf           # LBNF grammar for VNNLIB 2.0
 ├── document/           # .tex files for VNNLIB specification document
-├── test.sh             # Test harness for grammar
-└── CONTRIBUTING.md     # This guide
+└── syntax/             # official formal syntax for the VNNLIB query language
+  ├── grammar.cf          # LBNF grammar for VNNLIB 2.0
+  ├── test.sh             # Test harness for grammar
+  ├── tests/              # Test cases
+  └── CONTRIBUTING.md     # This guide
 ```
 
 ## Syntax
-The formal syntax of the VNNLIB-2.0 language is located in `grammar.cf`. This syntax uses the Labelled Backus Neur Formalism (LBNF), which is compiled by BNFC to produce a parser and lexer.
-To compile the grammar, [BNFC](https://hackage.haskell.org/package/BNFC) must be installed
 
-### 1. Build the Haskell-based parser
+The formal syntax of the VNNLIB language is located in `syntax/grammar.cf`. This syntax uses the Labelled Backus-Naur Formalism (LBNF), which is compiled by BNFC to produce a parser and lexer.
+To compile the grammar, [BNFC](https://hackage.haskell.org/package/BNFC), Alex and Happy must be installed (see `Installing bnfc and dependencies` command in `.github/workflows/` file for the exact command to install these.)
+
+### 1. Enter the Syntax folder
 ```bash
-$ bnfc -d -m grammar.cf  &&  make
+cd syntax
 ```
 
-### 2. Run tests against example queries
+### 2. Build the Haskell-based parser
+```bash
+bnfc -d -m grammar.cf  &&  make
+```
+
+### 3. Run tests against example queries
 A set of example queries are located in the `test/` folder.
 These examples are adapted from the [VNNLIB Benchmarks Repository](https://github.com/VNNLIB/Benchmarks/) or composed manually as valid queries.
 
 To run tests with the Haskell-based parser:
 ```bash
-$ Syntax/Test <path-to-test-file>
+Grammar/Test <path-to-test-file>
 ```
 
 Example `.vnnlib` files live under `test/` (sourced from the VNNLIB Benchmarks repo or hand-written). Run the generated test driver:
 
 ```bash
-$ chmod +x test.sh
-$ ./test.sh
+chmod +x test.sh
+./test.sh
 ```
 
 ## Issue filing convention
