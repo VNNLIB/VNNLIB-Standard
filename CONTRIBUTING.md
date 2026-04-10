@@ -1,7 +1,5 @@
 # Contributing to VNNLIB
 
-⚠️ Work-in-Progress: This repository contains an early-stage proposal for VNNLIB-2.0, that is constantly being refined.
-
 Thanks for your interest in improving the VNNLIB project! This guide explains how the repo is structured, and how to build and test the grammar.
 
 ## Repository layout
@@ -9,7 +7,7 @@ Thanks for your interest in improving the VNNLIB project! This guide explains ho
 .
 ├── document/           # .tex files for VNNLIB specification document
 └── syntax/             # official formal syntax for the VNNLIB query language
-  ├── grammar.cf          # LBNF grammar for VNNLIB 2.0
+  ├── grammar.cf          # LBNF grammar for VNNLIB 2
   ├── test.sh             # Test harness for grammar
   ├── tests/              # Test cases
   └── CONTRIBUTING.md     # This guide
