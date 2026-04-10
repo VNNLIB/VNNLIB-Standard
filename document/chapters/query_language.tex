@@ -36,7 +36,7 @@ and the shape of the tensor. Similarly, an output variable uses the \texttt{decl
 \begin{figure}[t]
     \begin{minipage}[c]{0.62\textwidth}
         \begin{lstlisting}[style=lbnf]
-(vnnlib-version <2.0>)
+(vnnlib-version <2.1>)
 
 (declare-network myNetwork
     (declare-input  X float32 [1,10])
@@ -288,7 +288,7 @@ Instead, the query must instantiate the dynamic dimensions to concrete values.
 For example, if the ONNX model has an input with the dimensions $[batch, -1, 28, 28]$ then the corresponding network declaration could be:
 \begin{lstlisting}[style=lbnf]
 (declare-network f
-  (declare-input X float32 [1, 3, 28, 28])
+  (declare-input X float32 [1,3,28,28])
   ...
 )
 \end{lstlisting}
