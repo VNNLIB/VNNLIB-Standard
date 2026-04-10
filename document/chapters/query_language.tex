@@ -280,7 +280,7 @@ In this case, such variables should be referenced without any indices, as shown 
 \subsubsection{Tensors with dynamic dimensions}
 
 The ONNX standard supports tensors with dynamic dimensions. 
-Named dimensions are stored as a string in the model, while unnamed dimensions are stored as a null value in the model but are often written as ``-1'' for clarity. 
+Named dimensions are stored as a string in the model, while unnamed dimensions are stored as a null value in the model but are often written as ``-1'' in mathematics for clarity\footnote{If you actually set a dimension size to ``-1'' in the model it is treated as named dimension.}. 
 For example, a model with an input tensor with dimensions $[batch, -1, 28, 28]$ accepts any 4-D tensor where the last two dimensions must be $[28, 28]$ but the first two dimensions can be any size.
 
 It is not currently possible to explicitly write dynamic dimensions in a \vnnlib{} query. 
