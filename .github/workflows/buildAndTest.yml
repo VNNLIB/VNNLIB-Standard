@@ -16,11 +16,10 @@ jobs:
         - name: Installing bnfc and dependencies
           run: cabal update && cabal install alex && cabal install happy && cabal install BNFC
 
-        - name: Navigate to syntax folder
-          run: cd syntax/
-          
         - name: Build the parser
+          working-directory: syntax
           run: bnfc -d -m grammar.cf && make
         
         - name: Test the parser
+          working-directory: syntax
           run: chmod +x test.sh && ./test.sh

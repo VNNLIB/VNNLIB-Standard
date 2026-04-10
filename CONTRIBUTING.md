@@ -11,13 +11,13 @@ Thanks for your interest in improving the VNNLIB project! This guide explains ho
 └── syntax/             # official formal syntax for the VNNLIB query language
   ├── grammar.cf          # LBNF grammar for VNNLIB 2.0
   ├── test.sh             # Test harness for grammar
-  ├── tests/              # Tests cases
+  ├── tests/              # Test cases
   └── CONTRIBUTING.md     # This guide
 ```
 
 ## Syntax
 
-The formal syntax of the VNNLIB language is located in `grammar/grammar.cf`. This syntax uses the Labelled Backus Neur Formalism (LBNF), which is compiled by BNFC to produce a parser and lexer.
+The formal syntax of the VNNLIB language is located in `syntax/grammar.cf`. This syntax uses the Labelled Backus-Naur Formalism (LBNF), which is compiled by BNFC to produce a parser and lexer.
 To compile the grammar, [BNFC](https://hackage.haskell.org/package/BNFC), Alex and Happy must be installed (see `Installing bnfc and dependencies` command in `.github/workflows/` file for the exact command to install these.)
 
 ### 1. Enter the Syntax folder
@@ -36,7 +36,7 @@ These examples are adapted from the [VNNLIB Benchmarks Repository](https://githu
 
 To run tests with the Haskell-based parser:
 ```bash
-Syntax/Test <path-to-test-file>
+Grammar/Test <path-to-test-file>
 ```
 
 Example `.vnnlib` files live under `test/` (sourced from the VNNLIB Benchmarks repo or hand-written). Run the generated test driver:
