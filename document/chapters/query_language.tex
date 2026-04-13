@@ -144,7 +144,24 @@ This feature is not currently planned as it (a) would not increase the expressiv
 
 \subsubsection{Inputs with initializers}
 
-Inputs must still be listed even if the model has a corresponding initializer containing a default value for that input. Currently there is no way to specify that the input should use that default value, and instead the input must be constrained to equal that value using standard equality assertions.
+In the ONNX IR specification, an initializer with the same name as an input acts as a default value for that input. In VNNLIB inputs must be listed even if the model has a corresponding initializer in the ONNX model graph. By default, a declared input is not constrained, even if an initializer exists in the model. However, the user can choose to constrain the input to be equal to the default value by including assertions that constrain the variable to be equal to the initializer value.
+
+To simplify the process of constraining an input to be equal to its initializer value, the \texttt{declare-input} declaration can be extended with an optional \texttt{initialized} tag, as shown in \ref{fig:initialized-inputs}. The \texttt{initialized} keyword indicates that a declared input variable should be constrained to be equal to the initializer value given for the corresponding input in the ONNX model graph. It is equivalent to using assertions to constrain the input to be equal to the initializer value, but offers at least 2 major benefits. First, it significantly reduces the verbosity of the specification, particularly since the default value is already specified in the ONNX model. Second, it shifts the specification of the default value to the ONNX model, where it is already defined, meaning the same specification can be used for models that use different values for the initializer, as long as their input/output interfaces are otherwise the same.
+
+\begin{figure}[t]
+    \centering
+    \begin{lstlisting}[style=lbnf]
+(declare-network multi_io_net
+    (declare-input  image    float32 [1,3,224,224])
+    (declare-input  metadata float32 [1,10] initialized)
+    (declare-output bbox     int16   [1 4])
+    (declare-output logits   float32 [1,1000])
+)\end{lstlisting}
+    \caption{A network declaration that specifies that an input should be constrained to its default value.}
+    \label{fig:initialized-inputs}
+\end{figure}
+
+The \texttt{initialized} keyword should only be applied to input declarations and restricts the model interface to ONNX models which specify default values for the corresponding input.
 
 
 \subsubsection{Hidden node declarations}
