@@ -25,7 +25,7 @@ cd syntax
 
 ### 2. Build the Haskell-based parser
 ```bash
-bnfc -d -m grammar.cf  &&  make
+bnfc -d -m grammar.cf && make
 ```
 
 ### 3. Run tests against example queries
