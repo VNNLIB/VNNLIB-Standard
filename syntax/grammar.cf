@@ -1,14 +1,21 @@
 -- This is the LBNF grammar for the VNNLib language
 
+-- A token for the initialized option so that we can track its location.
+position token Initialized {"initialized"} ;
+
 -- Defines the version number of VNNLIB. 
 -- The '<' and '>' characters are used so it doesn't clash with the Number token
 position token VersionToken '<' digit+ '.' digit+ '>' ;
+
 -- Defines a numeric literal
 position token Number '-'? digit+ ('.' digit+)? ;
--- The regular expression for allowed Variable names - tensors, or networks
-position token VariableName letter (letter|digit|'_')* ;
+
 -- The ONNX name associated with a tensor. Bounded by double quotes
 token OnnxString '"' ((char - ["\"\\"]) | ('\\' ["\"\\nt"]))* '"';
+
+-- The regular expression for allowed Variable names - tensors, or networks
+-- Variable name tokens must be declared last so that they don't override other tokens.
+position token VariableName letter (letter|digit|'_')* ;
 
 -- Sequence of integers to represent Tensor shape/indices
 separator nonempty Number "," ;
@@ -55,8 +62,8 @@ DType.          ElementType ::= VariableName ;
 -- The ONNX name associated with a tensor. Bounded by double quotes
 NodeName.       OnnxName    ::= OnnxString ;
 
--- Declares that an input should be initalised
-Initialised. InputOption ::= "initialized";
+-- Declares that an input should be initialized with a default value.
+InitializedOption. InputOption ::= Initialized;
 -- An input should only have zero/one of these statements, but is not enforced here for brevity
 separator InputOption "" ;
 
