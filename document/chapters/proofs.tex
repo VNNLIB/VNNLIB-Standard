@@ -1,0 +1,548 @@
+\chapter{The \vnnlib{} Proof Format}
+\label{sec:proofs}
+\section{Introduction}
+
+Neural network verifiers, like any other software, are prone to implementation bugs and unpredictable behavior on edge cases, which can be exploited~\cite{jia2021exploiting}. This phenomenon undermines the purpose of the verification process, and calls for mechanisms that ensure the reliability of verifiers.
+
+A common practice for addressing solver reliability is the generation of \emph{proofs}: checkable mathematical objects that accompany verification results and serve as witnesses to their correctness. For satisfiable queries, correctness can be witnessed directly by a satisfying assignment. The unsatisfiable case, however, is more challenging to justify.
+
+Currently, only a few verifiers are capable of producing unsatisfiability proofs~\cite{IsBaZhKa22,DuNg25}, each using its own dedicated format, with varying levels of proof detail and different formal guarantees for their checkers~\cite{DeIsKoStPaKa25}. This chapter aims to support the unification of such proof formats into a single expressive format. The goal of this standardization is to modularly separate verifiers from proof checkers, enabling easier comparison between verifiers and checkers, and fostering the independent development of both.
+
+The \vnnlib{} proof format is based on a subset of the Alethe proof format for SMT solving~\cite{ScFlBaFo21}. Alethe is a readable, resolution-based proof format. It expresses the incremental derivation of first-order clauses from the input problem and previously derived clauses, using predefined \emph{proof rules}. An Alethe proof terminates with the derivation of the empty clause.
+
+Alethe proofs can be reconstructed as proof terms in several interactive theorem provers (ITPs)~\cite{LaFlBaJaAnReScBaTi25,EkMeTiKeKaReBa17,CoAnBaDoMe24}, and can also be checked by a standard proof checker~\cite{AnLaBa23}. Thus, using Alethe enables integration with existing state-of-the-art proof checkers.
+
+In this chapter, we elaborate on a format for unsatisfiability proofs for neural network verifiers, based on Alethe. The proof is intended to be written in a dedicated file that accompanies the files describing the verification problem, namely the \vnnlib{} specification file and the corresponding ONNX network file(s).
+\section{Proof Syntax}
+\label{sec:proof-syntax}
+
+\begin{figure}[t!]
+	\setlength{\grammarindent}{6.5em}
+	\input{diagrams/proof-syntax.tex}
+	\vspace{-1em}
+    \caption{The syntax of \vnnlib{} proofs, adapted and from the Alethe syntax in~\cite{ScFlBaFo21}, simplified and stylized for this context. The superscripts $^*$, $^+$, $^?$ and the terms <arith>,<name> are defined as in Figure~\ref{fig:vnnlib-syntax}.}
+    \label{fig:proof-syntax}
+\end{figure}
+
+The syntax of \vnnlib{} proofs is shown in Figure~\ref{fig:proof-syntax}. At the top level, a \vnnlib{} proof consists of three parts:
+\begin{enumerate}
+	\item \textbf{Assumptions}, which introduce formulas assumed to be correct. These can either be imported from the neural network or the \vnnlib{} specification being proved, or be assumed correct at a given subproof context.
+	Assumptions contain only a unique identifier name and the imported formula.
+	\item \textbf{Proof steps}, which derive new facts from assumptions and from previously derived steps, called \emph{premises}. Each proof step contains a unique identifier name, the derived clause, the name of the proof rule used to derive it, its premises, and, when needed, additional rule-specific arguments.
+	\item \textbf{Subproofs} (optional), which open a separate branch within a proof, adding assumptions $A_1 \cdots A_n$. When concluding a subproof with a conclusion $C$, then clause $\lnot A_1, \cdots, \lnot A_n, C$ is learned in the main proof branch.
+\end{enumerate}
+For simplicity, all assumptions must appear either: 
+\begin{inparaenum}[(i)]
+	\item before all proof steps to represent imported problem constraints; or
+	\item immediately after beginning a subproof, to represent its local assumptions.
+\end{inparaenum}
+
+
+\paragraph{Naming.} Formulas used in the proof can also be \emph{named} by a unique identifier, mainly for compactness and readability. Naming has the following syntax:
+
+\begin{code}[style=lbnf]
+	... !(term):named id ...
+\end{code}
+\subsection{Assumptions}
+\label{sec:proof-assumptions}
+
+\paragraph{Linear Equations}
+Linear Equations typically represent the internal linear layers of the DNN.
+For some variables defined from a layer $X_1,\cdots, X_k$, with indices vector $i_1,\cdots, i_k$, and for some constants $c_1,\cdots, c_k, d \in \mathbb{R}$, a linear equation is represented in the proof as follows:
+
+\begin{code}[style=lbnf]
+	(assume e (= d (+ (* c1 X1[i1]) ... (* ck Xk[ik]))))
+\end{code}
+
+
+\paragraph{Bounds}
+Using the notations above, the bounds $l_j \leq X_j[i_j] \leq u_j$ for $l_j,u_j \in \mathbb{R}$ are assumed as:
+
+\begin{code}[style=lbnf]
+	(assume l (>= Xj[ij] lj))
+	(assume u (<= Xj[ij] uj))
+\end{code}
+
+\paragraph{Activation Functions}
+The representation of each activation function requires its own formalization in Alethe. So far, only the ReLU activation function has been formalized, although the formalization of other piecewise-linear activation functions can be obtained by a straightforward adaptation.
+The constraint $Y_k[i_k] = \mathrm{ReLU}(X_j[i_j])$ is formulated as follows:
+
+\begin{code}[style=lbnf]
+	(assume r (ite (>= Yk[ik] 0.0) 
+	               (= Yj[ij] Yk[ik]) 
+	               (<= Yj[ij] 0.0))) 
+\end{code}
+
+With the bound:
+
+\begin{code}[style=lbnf]
+	(assume fl (>= Yk[ik] 0.0))
+\end{code}
+
+Additionally, ReLU constraints allows adding an auxiliary variable $Aux$, with the following constraints:
+
+\begin{code}[style=lbnf]
+	(assume auxe (= Yj[ij] (- Yk[ik]) (- aux)))
+	(assume auxl (>= aux 0.0))
+\end{code}
+
+
+\subsection{Proof Steps}
+ 
+\paragraph{Structure}
+Recall that in Alethe, a proof step has the following from:
+
+\noindent\makebox[\linewidth]{
+	$s.\triangleright$
+	\hfill
+	\hfill
+	$\varphi_1,\cdots,\varphi_n$
+	\hfill
+	${\mathtt{(rule\_name \: s_1\cdots s_k)}[a_1 \cdots a_m]}$
+}\\
+
+And is written as:
+
+\begin{code}[style=lbnf,escapechar=@]
+	(step s cl (@$\varphi_1 \cdots\varphi_n$@) :rule <rule_name> :premises(@$\mathtt{s_1 \cdots s_k}$@)
+	                                      :args(@$\mathtt{a_1 \cdots a_m}$@))
+\end{code}
+
+Where \texttt{t} is a unique step identifier, $\varphi_1 \cdots\varphi_n$ are terms representing a component of the derived clause, $\mathtt{s_1 \cdots s_k}$ are the identifiers of previous steps and assumptions, and  $\mathtt{a_1 \cdots a_m}$ are arguments with a specific definition per rule.
+
+We list here the subset of the Alethe proof rules that are used in the \vnnlib{} proof format. Their complete description originally appears in~\cite{ScFlBaFo21} and it is summarized here for completeness. This list is intended to be tentative, and we welcome any integration of additional proof rules, useful for verification of neural networks.
+
+\paragraph{\texttt{false}:} A trivial rule introducing the negation of $\bot$.
+
+\noindent\makebox[\linewidth]{
+	$s.\triangleright$
+	\hfill
+	$\lnot \bot$
+	\hfill
+	${\mathtt{false}}$
+}\\
+
+\paragraph{\texttt{not\_not}:} Enabling elimination of double negation.
+
+\noindent\makebox[\linewidth]{
+	$s.\triangleright$
+	\hfill
+	$\lnot(\lnot\lnot\varphi),\varphi$
+	\hfill
+	${\mathtt{not\_not}}$
+}\\
+
+\paragraph{\texttt{resolution}:} This rules applies Boolean resolution, and can be applied for multiple premises at once.
+
+\noindent\makebox[\linewidth]{
+	$s.\triangleright$
+	\hfill
+	\hfill
+	$\varphi_1,\cdots,\varphi_n$
+	\hfill
+	${\mathtt{(resolution \: s_1\cdots s_k)}}$
+}\\
+
+\paragraph{\texttt{or}:} The rule transform a disjunction of the form $\varphi_1\lor\cdots\lor\varphi_n$ to the clause $\mathtt{cl(\varphi_1 \: \cdots \: \varphi_n)}$.
+
+
+\noindent\makebox[\linewidth]{
+	
+	$s.\triangleright$
+	\hfill
+	$\varphi_1\lor\cdots\lor\varphi_n$
+	\hfill
+	$(\cdots)$
+}\\
+\noindent\makebox[\linewidth]{
+	
+	$s.\triangleright$
+	\hfill
+	$\varphi_1,\cdots,\varphi_n$
+	\hfill
+	${\mathtt{(or \: s)}}$
+}\\
+
+\paragraph{\texttt{and\_pos} and \texttt{and\_neg}:} These two rules eliminate a conjunction or its negation.
+A conjunction can be used to learn any one of its conjuncts, by using 
+\texttt{and\_pos}:
+
+\noindent\makebox[\linewidth]{
+	
+	$s.\triangleright$
+	\hfill
+	$\lnot(\varphi_1\wedge\cdots\wedge\varphi_n),\varphi_k$
+	\hfill
+	$\mathtt{and\_pos}[k]$
+}\\
+
+Where $k\in[n]$.
+Conversely, a from a sequence of formulas we can establish their conjunction, by using \texttt{and\_neg}:
+
+\noindent\makebox[\linewidth]{
+	
+	$s.\triangleright$
+	\hfill
+	$(\varphi_1\wedge\cdots\wedge\varphi_n),\lnot\varphi_1,\cdots,\lnot\varphi_n$
+	\hfill
+	$\mathtt{and\_neg}$
+}\\
+
+\paragraph{\texttt{ite1} and \texttt{ite2}:}
+These two rules break an \texttt{ite} statement into two clauses, alternating the truth value of the condition.
+
+\noindent\makebox[\linewidth]{
+	
+	$s.\triangleright$
+	\hfill
+	$\mathtt{ite \: \varphi_1 \: \varphi_2 \: \varphi_3}$
+	\hfill
+	$(\cdots)$
+}\\
+\noindent\makebox[\linewidth]{
+	
+	$s1.\triangleright$
+	\hfill
+	$\lnot\varphi_1, \: \varphi_2$
+	\hfill
+	${\mathtt{(ite1 \: s)}}$
+}\\
+\noindent\makebox[\linewidth]{
+	
+	$s2.\triangleright$
+	\hfill
+	$\varphi_1, \: \varphi_3$
+	\hfill
+	${\mathtt{(ite2 \: s)}}$
+}\\
+
+\paragraph{\texttt{la\textunderscore totality}:} This rule represents the order totality over the reals. It is applied for \textsc{LRA} proof terms $t_1,t_2$.
+
+\noindent\makebox[\linewidth]{
+	
+	$s.\triangleright$
+	\hfill
+	\hfill
+	$t_1\leq t_2 \: \lor \: t_2\leq t_1$
+	\hfill
+	${\mathtt{(la\_totality)}}$
+}
+
+\paragraph{\texttt{la\textunderscore tautology}:} This rule handles trivial cases for bounding a linear combination of variables $L_1$ with constants $d_1,d_2$. Generally, it has the form:
+
+\noindent\makebox[\linewidth]{
+	
+	$s.\triangleright$
+	\hfill
+	$\varphi_1 \: \lor \: \varphi_2$
+	\hfill
+	${\mathtt{(la\_tautology)}}$
+}\\
+
+For example, if $d_1=d_2$ we have that $L_1\geq d_1 \lor \lnot(L_1\geq d_2)$. The complete list of cases appears in~\cite{ScFlBaFo21}.
+
+\paragraph{\texttt{la\textunderscore generic}:}
+This rule is used to establish the unsatisfiability of a conjunction of linear atoms
+$\psi_1 \wedge \cdots \wedge \psi_n$, and to derive the corresponding clause
+$\mathtt{cl \: (\lnot\psi_1 \: \cdots \: \lnot\psi_n)}$.
+The rule is parameterized by auxiliary arguments
+$a_1,\ldots,a_n \in \mathbb{Q}$.
+
+
+\noindent\makebox[\linewidth]{
+	$s.\triangleright$
+	\hfill
+	\hfill
+	$\lnot\psi_1,\cdots,\lnot\psi_n$
+	\hfill
+	${\mathtt{(la\_generic)}[a_1 \: \cdots \: a_n]}$
+}\\
+
+To check an application of the rule, each atom $\psi_i$ is first normalized, and the checker should compute a linear combination of the normalized atoms. The coefficient used for $\psi_i$ is $a_i$ when $\psi_i$ is an equality, and $|a_i|$ when $\psi_i$ is an inequality. The rule is valid if this linear combination simplifies to either $d \geq 0$ for some negative constant $d$, or to $d' > 0$ for some non-positive constant $d'$. In both cases, the resulting arithmetic contradiction certifies that the conjunction $\psi_1 \wedge \cdots \wedge \psi_n$ is unsatisfiable.
+The complete checking procedure for this rule is given in~\cite{ScFlBaFo21}.
+
+
+
+\paragraph{\texttt{hole}:} This rule indicates that the corresponding proof step has been left unproved by the verifier, and therefore marks a possible error or incompleteness in the proof.
+
+\noindent\makebox[\linewidth]{
+	$s.\triangleright$
+	\hfill
+	\hfill
+	$\varphi_1,\cdots,\varphi_n$
+	\hfill
+	${\mathtt{(hole \: s_1,\:\cdots\: s_k)}[a_1 \: \cdots \: a_m]}$
+}\\
+
+A proof checker may either reject any proof containing such a step, or return a dedicated status indicating that all other proof steps are valid, while the proof as a whole remains incomplete.
+The arguments and premises of this rule must be syntactically well formed, but they can be disregarded.
+ 
+\paragraph{\texttt{bounded\textunderscore farkas} (optional):}
+In addition to the rules above, we include optional support for the novel
+\texttt{bounded\textunderscore farkas} rule, which formalizes the proof vectors
+used in~\cite{IsBaZhKa22}. This rule provides a compact representation of
+\texttt{la\textunderscore generic} for a particular class of cases, and can
+therefore be reduced to an equivalent \texttt{la\textunderscore generic} step.
+
+The rule derives the unsatisfiability of a sequence of linear equations
+$\Theta_1,\ldots,\Theta_n$, followed by a sequence of simple linear inequalities
+$\psi_1,\ldots,\psi_m$, where each inequality is of the form
+$\psi_i := (x_i \bowtie c_i)$, with
+$\bowtie \in \{<,>,\leq,\geq\}$, $c_i \in \mathbb{R}$, and $x_i$ a variable.
+Using the above, the \texttt{bounded\textunderscore farkas} rule has the structure:
+
+\noindent\makebox[\linewidth]{
+	$s.\triangleright$
+	\hfill
+	\hfill
+	$\lnot\Theta_1,\cdots,\lnot\Theta_n,\lnot\psi_1\cdots\lnot\psi_m$
+	\hfill
+	${\mathtt{(bounded\_farkas)}[a_1 \: \cdots \: a_n]}$
+}\\
+
+Observe that, unlike \texttt{la\textunderscore generic}, only the equations are associated with auxiliary arguments. The checking procedure for this rule follows from the variant of Farkas' lemma proved in~\cite{IsBaZhKa22}.
+
+First, the checker computes the linear combination
+$\sum_{i=1}^{n} a_i \cdot \Theta_i$, which yields an equation involving the variables that appear in the inequalities, say
+$\sum_{j=1}^{m} c_j \cdot x_j = c$,
+where $c_j \in \mathbb{R}\setminus\{0\}$. Then, for each variable $x_j$, the checker selects an inequality $\psi_{j'}$ containing $x_j$ and assigns it the coefficient $|c_j|$. Finally, the checker computes the combined expression
+\[
+\sum_{i=1}^{n} a_i \cdot \Theta_i
++
+\sum_{j=1}^{m} |c_j| \cdot \psi_{j'} .
+\]
+For valid auxiliary arguments and selected inequalities, this expression should reduce to either $d \geq 0$ for some negative constant $d$, or to $d' > 0$ for some non-positive constant $d'$, as in \texttt{la\textunderscore generic}. In both cases, the result is an arithmetic contradiction, certifying the unsatisfiability of the original conjunction.
+An additional form of this rule is as follows:
+
+
+\noindent\makebox[\linewidth]{
+	$s.\triangleright$
+	\hfill
+	\hfill
+	$\tau,\lnot\Theta_1,\cdots,\lnot\Theta_n,\lnot\psi_1\cdots\lnot\psi_m$
+	\hfill
+	${\mathtt{(bounded\_farkas)}[b,a_1 \: \cdots \: a_n]}$
+}\\
+
+This form applies when the clause also contains a single simple inequality $\tau$, which is added to the linear combination with coefficient $b \in \mathbb{R}$. The checking procedure is analogous to the first form of the rule: the checker computes the linear combination of the equations using the coefficients $a_1,\ldots,a_n$, adds the contribution of $\tau$ with coefficient $b$, and then maps the remaining simple inequalities to coefficients as before. The resulting combination must again reduce to an arithmetic contradiction of the form $d \geq 0$ for some negative constant $d$, or $d' > 0$ for some non-positive constant $d'$.
+
+\subsection{Subproofs}
+A subproof opens a separate branch within a proof and is typically used to derive implications of the form $\varphi \rightarrow \psi$. A complete description of subproofs can be found in~\cite{ScFlBaFo21}.
+
+A subproof begins with a sequence of assumptions that are valid only within its local context. It is introduced by an \texttt{anchor} command, which marks the start of the branch and specifies the identifier of the concluding step. The anchor is followed by one or more assumptions. Illustratively, this looks as:
+
+\begin{code}[style=lbnf,escapechar=@]
+	(anchor :step s)
+	(assume a A)
+\end{code}
+
+
+The subproof is closed by a step using the \texttt{subproof} rule, which derives a conclusion clause of the form $\lnot\varphi_1,\ldots,\lnot\varphi_n,\psi$. At this point, the assumptions are said to be \emph{discharged}. Since the step applying the \texttt{subproof} rule terminates the subproof, its identifier must match the one specified in the corresponding \texttt{anchor}. The rule takes the concluding step $t$ of the subproof as a premise and explicitly lists the discharged assumptions.
+
+\noindent\makebox[\linewidth]{
+	$s_1.\triangleright$
+	\hfill
+	$\varphi_1$
+	\hfill
+	${\mathtt{assume}}$
+}\\
+\noindent\makebox[\linewidth]{
+$\cdots$
+}\\
+\noindent\makebox[\linewidth]{
+	$s_n.\triangleright$
+	\hfill
+	$\varphi_n$
+	\hfill
+	${\mathtt{assume}}$
+}\\
+\noindent\makebox[\linewidth]{
+	$t.\triangleright$
+	\hfill
+	$\psi$
+	\hfill
+	${\mathtt{(...)}}$
+}\\
+\noindent\makebox[\linewidth]{
+	$s.\triangleright$
+	\hfill
+	\hfill
+	$\lnot\varphi_1,\cdots,\lnot\varphi_n,\psi$
+	\hfill
+	${\mathtt{(subproof \: t)}[s_1 \: \cdots \: s_n]}$
+}\\
+
+Therefore, concluding the above subproof anchor would have the form:
+
+\begin{code}[style=lbnf,escapechar=@]
+	...
+	(step t (cl C ) :rule (...))
+	(step s (cl (not A) C):rule subproof :premises(t)
+                                      :discharge(a))
+\end{code}
+
+Nesting subproofs is possible, though if subproof $P$ is nested within $P'$, then $P$ must be completed before $P'$. 
+
+
+
+\subsection{Comments and Whitespace}
+Comments and Whitespace are used as in Section~\ref{sec:comments}.
+
+
+\section{CLI Extension for Proofs}
+We define here the extension of the verifiers CLI  to support the \vnnlib{} proof format. Additionally, we define a short CLI for \vnnlib{} proof checkers. 
+
+\subsection{Verifier Commands}
+\clOption
+{--prove-unsat}
+{When provided, this argument instructs the solver to produce a proof of unsatisfiability in the \vnnlib{} proof format, whenever the query is found to be unsatisfiable. Solvers are required to support this argument only if they declare support for UNSAT proof generation.} {}
+
+\begin{lstlisting}[style=bash,escapechar=@]
+			@\exampleSolver@ verify <filepath> --prove-unsat /proof/file/path
+\end{lstlisting}
+
+\clOutputOption
+{--supports --proofs}
+{Can the verifier generate proof of unsatisfiability?} 
+{A Boolean}
+{}
+\begin{lstlisting}[style=bash,escapechar=@]
+	@\exampleSolver@ supports --proofs
+	true
+\end{lstlisting}
+
+\clOutputOption
+{--supports --activation-proofs}
+{A list of activation functions supported by the proof mechanism.} 
+{A Boolean}
+{}
+\begin{lstlisting}[style=bash,escapechar=@]
+	@\exampleSolver@ supports --activation-proofs
+	relu
+	sign
+	maxpool
+\end{lstlisting}
+
+\subsection{Checker Commands}
+
+The proof checker is an external tool, separate from the solver, that verifies proofs written in the \vnnlib{} proof format. 
+A compliant checker should support the \texttt{check} command, with the following general usage pattern:
+\begin{lstlisting}[style=bash]
+<checker> check 
+--proof <filepath> 
+--vnnlib <filepath>
+[--network name=<filepath>]
+[ --timeout <seconds>]
+\end{lstlisting}
+This command has two arguments:
+
+\clOption{--proof}{The path of the proof file to be checked}{--proof /path/to/proof.alethe}
+
+\clOption{--vnnlib}{The path of the \vnnlib{} file that defines the problem claimed to be unsatisfiable }
+{--vnnlib /path/to/query.vnnlib}
+Additionally, the proof checker should support the following additional options:
+\clOption{--network}{This option maps the name of one of the networks declared in the provided \vnnlib{} query file to its implementation as an ONNX model file. When the query file contains multiple \texttt{declare-network} declarations this option should be used multiple times -- once for each network declaration not marked with an \texttt{equal-to} declaration (see Section~\ref{sec:multiple-networks}).}{--network classifier=/a/path/to/a/model.onnx}
+
+\clOption{--timeout}{Maximum time to spend on processing on the proof in an integer number of seconds.}{--timeout 10}
+
+\section{Example}
+Lastly, this chapter is concluded with a complete example consisting of a neural network, a specification defined in \vnnlib{}, and a corresponding proof.
+
+Consider the neural network and \vnnlib{} specification illustrated in Figure~\ref{fig:proof-query}. Assume that the matrix-multiplication layers implicitly defined by the ONNX file are as follows:
+
+The input $X$ is multiplied by the matrix:
+$\begin{bmatrix} 1 & -1 & 0 
+\\
+0 & 1 & 1 
+ \end{bmatrix}$
+Resulting in $H = \begin{bmatrix} X[0,0] - X[0,1] 
+	\\
+	X[0,1] + X[0,2]
+\end{bmatrix}$.
+The output of the hidden later $H$ is multiplied by the matrix:
+$\begin{bmatrix} -1 & 1
+\end{bmatrix}$. Meaning that $Y[0,0] = H[0,1] - H[0,0]$.
+
+\begin{figure}[h!]
+	\begin{minipage}[c]{0.76\textwidth}
+		\begin{lstlisting}[style=lbnf]   
+			(declare-network encoder
+			(declare-input  X float64 [1,4])
+			(declare-hidden H float64 [1,2] "hidden")
+			(declare-output Y float64 [1,1])
+			)
+			
+			(assert (<= X[0,0] 1.0))
+			(assert (>= X[0,0] 0.0))
+			
+			(assert (<= X[0,1] 1.0))
+			(assert (>= X[0,1] 0.0))
+			
+			(assert (<= X[0,2] 1.0))
+			(assert (>= X[0,2] 0.0))
+			
+			(assert (<= X[0,3] 1.0))
+			(assert (>= X[0,3] 0.0))
+			
+			(assert (<= Y[0,0] -1.0)) \end{lstlisting}
+	\end{minipage}%
+	\begin{minipage}[c]{0.21\textwidth}
+		\centering
+		\includegraphics[height=6cm]{imgs/simple_encoder_net.onnx.pdf}
+	\end{minipage}
+	\caption{A \vnnlib{} network declaration that declares a hidden node}
+	\label{fig:proof-query}
+\end{figure}
+
+An example proof of unsatisfiability for this query is shown in Figure~\ref{fig:proof}. The proof introduces three variables for each hidden neuron in the ReLU layer \texttt{hidden}: \texttt{H[0,i]\_b}, \texttt{H[0,i]\_f}, and \texttt{H[0,i]\_a}, corresponding to the variables described in Section~\ref{sec:proof-syntax}.
+The proof begins by listing the assumption equations induced by the network. It then adds the bounds specified by the \vnnlib{} property, followed by assumptions encoding the ReLU activation bound constraints.
+Finally, the proof contains a sequence of derivation steps that lead to the empty clause, thereby establishing unsatisfiability.
+\begin{figure}[t!]
+	\begin{lstlisting}[style=lbnf,basicstyle=\ttfamily\scriptsize\bfseries,linewidth=\linewidth]
+		; Constraint matrix
+		(assume e1 (!(= (+ X[0,0] (- X[0,1]) (- H[0,0]_b)) 0.0):named e1))
+		(assume e2 (!(= (+ (* 2.0 X[0,1]) X[0,2] (- H[0,1]_b)) 0.0):named e2))
+		(assume e3 (!(= (+ H[0,1]_f (- H[0,0]_f) (- Y[0,0])) 0.0):named e3))
+		(assume e4 (!(= (+ H[0,0]_f (- H[0,0]_b) (- H[0,0]_a)) 0.0):named e4))
+		(assume e5 (!(= (+ H[0,1]_f (- H[0,1]_b) (- H[0,1]_a)) 0.0):named e5))
+		
+		;Bound Assumptions
+		(assume u0 (!(<= X[0,0] 1.0):named u0))
+		(assume l0 (!(>= X[0,0] 0.0):named l0))
+		(assume u1 (!(<= X[0,1] 1.0):named u1))
+		(assume l1 (!(>= X[0,1] 0.0):named l1))
+		(assume u2 (!(<= X[0,2] 1.0):named u2))
+		(assume l2 (!(>= X[0,2] 0.0):named l2))
+		(assume u3 (!(<= Y[0,0] -1.0):named u3))
+		
+		(assume l4 (!(>= H[0,0]_f 0.0):named l4))
+		(assume l5 (!(>= H[0,1]_f 0.0):named l5))
+		(assume l6 (!(>= H[0,0]_a 0.0):named l6))
+		(assume l7 (!(>= H[0,1]_a 0.0):named l7))
+		
+		; Relu constraints
+		(assume r1 (!(ite (>= H[0,0]_b 0.0) (= H[0,0]_b H[0,0]_f) (<= H[0,0]_f 0.0)) :named r1))
+		(assume r2 (!(ite (>= H[0,1]_b 0.0) (= H[0,1]_b H[0,1]_f) (<= H[0,1]_f 0.0)) :named r2))
+		
+		; Proof steps
+		(step ax1 (cl (>= H[0,0]_b 0.0)(<= H[0,0]_f 0.0)):rule ite1 :premises(r1))
+		(step ax2 (cl (not (>= H[0,0]_b 0.0))(= H[0,0]_b H[0,0]_f)):rule ite2        :premises(r1))
+		(step ax3 (cl (not (= H[0,0]_b H[0,0]_f))(not e4)(<= H[0,0]_a 0.0)):rule la_generic :args(1 1 1))
+		(step ax4 (cl (not (>= H[0,0]_b 0.0))(<= H[0,0]_a 0.0)):rule resolution      :premises(ax2 ax3 e4))
+	
+		(step rt1 (cl (not e1)(not e2)(not e3)(not e4)(not e5)(not l1)(not l2)(not l7)(not u0)(not u3)(not (<= H[0,0]_a 0.0))):rule la_generic :args(1 -1 -1 -1 1 3 1 1 1 1 1))                                           
+		(step rt2 (cl (not (<= H[0,0]_a 0.0))):rule resolution :premises (rt1 e1 e2 e3 e4 e5 l1 l2 l7 u0 u3 ))
+		(step rt3 (cl (not (>= H[0,0]_b 0.0))):rule resolution :premises(rt2 ax4))
+		
+
+		(step lf1 (cl (not e3)(not l5)(not u3)(not (<= H[0,0]_f 0.0))):rule la_generic :args(-1 1 1 1))		                                                             
+		(step lf2 (cl (not (<= H[0,0]_f 0.0))):rule resolution :premises(lf1 e3 l5 u3))
+		(step lf3 (cl (>= H[0,0]_b 0.0)):rule resolution :premises(ax1 lf2))
+		
+		; Finalization
+		(step final (cl):rule resolution :premises(rt3 lf3))
+	\end{lstlisting}
+	\vspace{-0.3cm}
+	\caption{An example for a \vnnlib{} proof in Alethe}
+	\label{fig:proof}
+\end{figure}

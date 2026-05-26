@@ -25,6 +25,7 @@
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}
 
+\usepackage{paralist}
 %%%%%%%%%%%%
 % Diagrams %
 %%%%%%%%%%%%
@@ -324,6 +325,36 @@
 }
 
 \newcommand{\inlinevnn}[1]{\texttt{#1}}
+
+%%%%%%%%%%%%
+% Interface %
+%%%%%%%%%%%%
+
+\newcommand{\clOutputOption}[3]{
+	\paragraph{\texttt{#1}}
+	\begin{itemize}
+		\item \textbf{Description}: #2
+		\item \textbf{Output}: #3
+		\item \textbf{Example usage}:
+	\end{itemize}
+}
+
+\newcommand{\clOption}[3]{
+	\paragraph{\texttt{#1}}
+	\begin{itemize}
+		\item \textbf{Description}: #2
+		\item \textbf{Example usage}: \texttt{#3}
+	\end{itemize}
+}
+
+\lstdefinestyle{bashcommand}{
+	style=bash,
+	numbers=none,
+	frame=none,
+	backgroundcolor=\color{white}
+}
+
+\newcommand{\exampleSolver}{checkNN}
 
 %%%%%%%%%%%%
 % Metadata %

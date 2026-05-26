@@ -1,0 +1,46 @@
+\begin{grammar}
+	<proof> ::= <proofCommand>$^*$ 
+	
+	<proofCommand> ::= <assume>
+	\alt<step>
+	\alt<subproof>
+	\alt<comment>
+	
+	%<name> ::= [A-Za-z][\_A-Za-z0-9]*
+	<assume> ::= (\texttt{assume} <name> <bool>)
+
+	<subproof> ::= (\texttt{anchor} :step <name>)
+	
+	<step> ::= (\texttt{step} <name> <clause> \texttt{:rule} <name> <premisesAnnotation>$^?$ <argsAnnotation>$^?$ )
+	
+	<clause> ::= (\texttt{cl} <bool>$^*$)
+	
+	<premisesAnnotation> ::= \texttt{:premises} (<name>$^+$)
+	
+	<argsAnnotation> ::= \texttt{:args} (<rational>$^+$)
+	
+	<rational> ::= -$^?$[0-9]$^+$/$^?$[0-9]$^+$ 
+	\alt -$^?$[0-9]$^+$(.[0-9]$^+$)$^?$
+	
+	<comment> ::= \texttt{;}<name>
+		
+	<bool> ::= (\texttt{and} <bool> <bool>$^+$)
+	\alt (\texttt{or} <bool> <bool>$^+$)
+	\alt (\texttt{not} <bool>)
+	\alt (\texttt{ite} <bool> <bool> <bool>)
+	\alt (\texttt{\textless} <arith> <arith>)
+	\alt (\texttt{\textless=} <arith> <arith>)
+	\alt (\texttt{\textgreater} <arith> <arith>)
+	\alt (\texttt{\textgreater=} <arith> <arith>)
+	\alt (\texttt{==} <arith> <arith>)
+	\alt (\texttt{!=} <arith> <arith>)
+	
+	%<arith> ::= <element>$\networkTheoryVarParam$
+	%\alt <name> <indices>$^?$
+	%\alt (\texttt{-} <arith>)
+	%\alt (\texttt{+} <arith> <arith>$^+$)
+	%\alt (\texttt{*} <arith> <arith>$^+$)
+	%\alt (\texttt{-} <arith> <arith>$^+$)
+	
+	%<indices> ::= [i, ..., i] for $i \in \mathbb{N}$
+\end{grammar}

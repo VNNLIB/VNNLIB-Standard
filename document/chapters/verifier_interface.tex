@@ -1,32 +1,6 @@
 \chapter{Command-line Interface}
 \label{sec:solver_interface}
 
-\newcommand{\clOutputOption}[3]{
-\paragraph{\texttt{#1}}
-\begin{itemize}
-    \item \textbf{Description}: #2
-    \item \textbf{Output}: #3
-    \item \textbf{Example usage}:
-\end{itemize}
-}
-
-\newcommand{\clOption}[3]{
-\paragraph{\texttt{#1}}
-\begin{itemize}
-    \item \textbf{Description}: #2
-    \item \textbf{Example usage}: \texttt{#3}
-\end{itemize}
-}
-
-\lstdefinestyle{bashcommand}{
-	style=bash,
-    numbers=none,
-    frame=none,
-    backgroundcolor=\color{white}
-}
-
-\newcommand{\exampleSolver}{checkNN}
-
 With the growing number of solvers and their increasing integration into larger toolchains, there is a clear need for a consistent and predictable way to invoke them. A standardised command-line interface (CLI) therefore enables interoperability between solvers and higher-level tools, facilitates benchmarking and automation, and reduces the burden on users adapting to multiple systems.
 
 This chapter defines the CLI for solvers that conform to the \vnnlib{} standard. The interface supports querying solver capabilities, listing supported operations, and running verification tasks with configurable options.
