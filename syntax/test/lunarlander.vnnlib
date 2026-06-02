@@ -2,8 +2,8 @@
 ; lunarlander property safe_80
 
 (declare-network lunarlander
-    (declare-input X Real [8])
-    (declare-output Y Real [4])
+    (declare-input X real [8])
+    (declare-output Y real [4])
 )
 
 
