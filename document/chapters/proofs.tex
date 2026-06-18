@@ -12,7 +12,8 @@ The \vnnlib{} proof format is based on a subset of the Alethe proof format for S
 
 Alethe proofs can be reconstructed as proof terms in several interactive theorem provers (ITPs)~\cite{LaFlBaJaAnReScBaTi25,EkMeTiKeKaReBa17,CoAnBaDoMe24}, and can also be checked by a standard proof checker~\cite{AnLaBa23}. Thus, using Alethe enables integration with existing state-of-the-art proof checkers.
 
-In this chapter, we elaborate on a format for unsatisfiability proofs for neural network verifiers, based on Alethe. The proof is intended to be written in a dedicated file that accompanies the files describing the verification problem, namely the \vnnlib{} specification file and the corresponding ONNX network file(s).
+In this chapter, we elaborate on a format for unsatisfiability proofs for neural network verifiers, based on Alethe. The proof is intended to be written in a dedicated file that accompanies the  \vnnlib{} specification and the ONNX network(s) files. The subset of Alethe rules used in this chapter is tentative, and we welcome any integration of additional rules, useful for verification of neural networks.
+
 \section{Proof Syntax}
 \label{sec:proof-syntax}
 
@@ -26,16 +27,17 @@ In this chapter, we elaborate on a format for unsatisfiability proofs for neural
 
 The syntax of \vnnlib{} proofs is shown in Figure~\ref{fig:proof-syntax}. At the top level, a \vnnlib{} proof consists of three parts:
 \begin{enumerate}
-	\item \textbf{Assumptions}, which introduce formulas assumed to be correct. These can either be imported from the neural network or the \vnnlib{} specification being proved, or be assumed correct at a given subproof context.
+	\item \textbf{Assumptions:} Introduce formulas assumed to be correct. These can either be imported from the neural network or the \vnnlib{} specification being proved, or be assumed correct at a given subproof context.
 	Assumptions contain only a unique identifier name and the imported formula.
-	\item \textbf{Proof steps}, which derive new facts from assumptions and from previously derived steps, called \emph{premises}. Each proof step contains a unique identifier name, the derived clause, the name of the proof rule used to derive it, its premises, and, when needed, additional rule-specific arguments.
-	\item \textbf{Subproofs} (optional), which open a separate branch within a proof, adding assumptions $A_1 \cdots A_n$. When concluding a subproof with a conclusion $C$, then clause $\lnot A_1, \cdots, \lnot A_n, C$ is learned in the main proof branch.
+	\item \textbf{Proof steps:} Derive new facts from assumptions and from previously derived steps, called \emph{premises}. Each proof step contains a unique identifier name, the derived clause, the name of the proof rule used to derive it, its premises, and, when needed, additional rule-specific arguments.
+	\item \textbf{Subproofs (optional):} Open a separate branch within a proof, adding assumptions $A_1 \cdots A_n$. When concluding a subproof with a conclusion $C$, then clause $\lnot A_1, \dots, \lnot A_n, C$ is learned in the main proof branch.
 \end{enumerate}
 For simplicity, all assumptions must appear either: 
 \begin{inparaenum}[(i)]
 	\item before all proof steps to represent imported problem constraints; or
 	\item immediately after beginning a subproof, to represent its local assumptions.
 \end{inparaenum}
+An example of a network, a specification defined in \vnnlib{}, and a corresponding Alethe proof appears in Section~\ref{sec:proof-example}.
 
 
 \paragraph{Naming.} Formulas used in the proof can also be \emph{named} by a unique identifier, mainly for compactness and readability. Naming has the following syntax:
@@ -47,13 +49,23 @@ For simplicity, all assumptions must appear either:
 \label{sec:proof-assumptions}
 
 \paragraph{Linear Equations}
-Linear Equations typically represent the internal linear layers of the DNN.
-For some variables defined from a layer $X_1,\cdots, X_k$, with indices vector $i_1,\cdots, i_k$, and for some constants $c_1,\cdots, c_k, d \in \mathbb{R}$, a linear equation is represented in the proof as follows:
+
+Linear equations are typically used to encode the affine transformations induced by the internal linear layers of the DNN, as well as linear constraints originating from the specification.
+A linear equation of the form $d = \overset{l}{\underset{i=1}{\sum}} c_i \cdot x_i$  is represented in the proof
+as: 
 
 \begin{code}[style=lbnf]
-	(assume e (= d (+ (* c1 X1[i1]) ... (* ck Xk[ik]))))
+	(assume e (= d (+ (* c1 x1) ... (* ck xk))))
 \end{code}
 
+In particular, consider a linear equation that computes the value of a neuron from the values of neurons in a preceding layer. Let $X_k$ be a layer and $i_k$ be an index vector such that $X_k[i_k]$ denotes a neuron in that layer. Similarly, consider $m$ neurons from a preceding layer $X_j$, identified by the index vectors $i_1,\dots,i_m$, namely
+$X_j[i_1],\dots,X_j[i_m]$.
+Then, the computation: 
+\[X_k[i_k] = c_1 \cdot X_j[i_1] + \cdots + c_m \cdot X_j[i_m] + b\] can be written as the assumption:
+
+\begin{code}[style=lbnf]
+	(assume e (= Xk[ik] (+ (* c1 Xj[i1]) ... (* cm Xj[im]) b)))
+\end{code}
 
 \paragraph{Bounds}
 Using the notations above, the bounds $l_j \leq X_j[i_j] \leq u_j$ for $l_j,u_j \in \mathbb{R}$ are assumed as:
@@ -65,12 +77,13 @@ Using the notations above, the bounds $l_j \leq X_j[i_j] \leq u_j$ for $l_j,u_j 
 
 \paragraph{Activation Functions}
 The representation of each activation function requires its own formalization in Alethe. So far, only the ReLU activation function has been formalized, although the formalization of other piecewise-linear activation functions can be obtained by a straightforward adaptation.
-The constraint $Y_k[i_k] = \mathrm{ReLU}(X_j[i_j])$ is formulated as follows:
+The constraint $Y_k[i_k] = \mathrm{ReLU}(X_j[i_j])$ is formulated as
+follows: 
 
 \begin{code}[style=lbnf]
-	(assume r (ite (>= Yk[ik] 0.0) 
-	               (= Yj[ij] Yk[ik]) 
-	               (<= Yj[ij] 0.0))) 
+	(assume r (ite (>= Xj[ij] 0.0) 
+	               (= Yk[ik] Xj[ij]) 
+	               (<= Yk[ik] 0.0))) 
 \end{code}
 
 With the bound:
@@ -82,7 +95,7 @@ With the bound:
 Additionally, ReLU constraints allows adding an auxiliary variable $Aux$, with the following constraints:
 
 \begin{code}[style=lbnf]
-	(assume auxe (= Yj[ij] (- Yk[ik]) (- aux)))
+	(assume auxe (= Xj[ij] (- Yk[ik]) aux))
 	(assume auxl (>= aux 0.0))
 \end{code}
 
@@ -95,8 +108,8 @@ Recall that in Alethe, a proof step has the following from:
 \noindent\makebox[\linewidth]{
 	$s.\triangleright$
 	\hfill
-	\hfill
-	$\varphi_1,\cdots,\varphi_n$
+	\quad
+	$\varphi_1,\dots,\varphi_n$
 	\hfill
 	${\mathtt{(rule\_name \: s_1\cdots s_k)}[a_1 \cdots a_m]}$
 }\\
@@ -108,9 +121,12 @@ And is written as:
 	                                      :args(@$\mathtt{a_1 \cdots a_m}$@))
 \end{code}
 
-Where \texttt{t} is a unique step identifier, $\varphi_1 \cdots\varphi_n$ are terms representing a component of the derived clause, $\mathtt{s_1 \cdots s_k}$ are the identifiers of previous steps and assumptions, and  $\mathtt{a_1 \cdots a_m}$ are arguments with a specific definition per rule.
+Where \texttt{s} 
+is a unique step identifier, $\varphi_1 \cdots\varphi_n$ are terms representing a component of the derived clause, $\mathtt{s_1 \cdots s_k}$ are the identifiers of previous steps and assumptions, and  $\mathtt{a_1 \cdots a_m}$ are arguments with a specific definition per rule.
 
-We list here the subset of the Alethe proof rules that are used in the \vnnlib{} proof format. Their complete description originally appears in~\cite{ScFlBaFo21} and it is summarized here for completeness. This list is intended to be tentative, and we welcome any integration of additional proof rules, useful for verification of neural networks.
+We list here the subset of the Alethe proof rules that are used in the
+\vnnlib{} proof format. Their complete description originally appears
+in~\cite{ScFlBaFo21} and it is summarized here for completeness.
 
 \paragraph{\texttt{false}:} A trivial rule introducing the negation of $\bot$.
 
@@ -138,7 +154,7 @@ We list here the subset of the Alethe proof rules that are used in the \vnnlib{}
 	$s.\triangleright$
 	\hfill
 	\hfill
-	$\varphi_1,\cdots,\varphi_n$
+	$\varphi_1,\dots,\varphi_n$
 	\hfill
 	${\mathtt{(resolution \: s_1\cdots s_k)}}$
 }\\
@@ -158,7 +174,7 @@ We list here the subset of the Alethe proof rules that are used in the \vnnlib{}
 	
 	$s.\triangleright$
 	\hfill
-	$\varphi_1,\cdots,\varphi_n$
+	$\varphi_1,\dots,\varphi_n$
 	\hfill
 	${\mathtt{(or \: s)}}$
 }\\
@@ -183,7 +199,7 @@ Conversely, a from a sequence of formulas we can establish their conjunction, by
 	
 	$s.\triangleright$
 	\hfill
-	$(\varphi_1\wedge\cdots\wedge\varphi_n),\lnot\varphi_1,\cdots,\lnot\varphi_n$
+	$(\varphi_1\wedge\cdots\wedge\varphi_n),\lnot\varphi_1,\dots,\lnot\varphi_n$
 	\hfill
 	$\mathtt{and\_neg}$
 }\\
@@ -253,7 +269,7 @@ $a_1,\ldots,a_n \in \mathbb{Q}$.
 	$s.\triangleright$
 	\hfill
 	\hfill
-	$\lnot\psi_1,\cdots,\lnot\psi_n$
+	$\lnot\psi_1,\dots,\lnot\psi_n$
 	\hfill
 	${\mathtt{(la\_generic)}[a_1 \: \cdots \: a_n]}$
 }\\
@@ -269,7 +285,7 @@ The complete checking procedure for this rule is given in~\cite{ScFlBaFo21}.
 	$s.\triangleright$
 	\hfill
 	\hfill
-	$\varphi_1,\cdots,\varphi_n$
+	$\varphi_1,\dots,\varphi_n$
 	\hfill
 	${\mathtt{(hole \: s_1,\:\cdots\: s_k)}[a_1 \: \cdots \: a_m]}$
 }\\
@@ -295,7 +311,7 @@ Using the above, the \texttt{bounded\textunderscore farkas} rule has the structu
 	$s.\triangleright$
 	\hfill
 	\hfill
-	$\lnot\Theta_1,\cdots,\lnot\Theta_n,\lnot\psi_1\cdots\lnot\psi_m$
+	$\lnot\Theta_1,\dots,\lnot\Theta_n,\lnot\psi_1\cdots\lnot\psi_m$
 	\hfill
 	${\mathtt{(bounded\_farkas)}[a_1 \: \cdots \: a_n]}$
 }\\
@@ -319,7 +335,7 @@ An additional form of this rule is as follows:
 	$s.\triangleright$
 	\hfill
 	\hfill
-	$\tau,\lnot\Theta_1,\cdots,\lnot\Theta_n,\lnot\psi_1\cdots\lnot\psi_m$
+	$\tau,\lnot\Theta_1,\dots,\lnot\Theta_n,\lnot\psi_1\cdots\lnot\psi_m$
 	\hfill
 	${\mathtt{(bounded\_farkas)}[b,a_1 \: \cdots \: a_n]}$
 }\\
@@ -367,7 +383,7 @@ $\cdots$
 	$s.\triangleright$
 	\hfill
 	\hfill
-	$\lnot\varphi_1,\cdots,\lnot\varphi_n,\psi$
+	$\lnot\varphi_1,\dots,\lnot\varphi_n,\psi$
 	\hfill
 	${\mathtt{(subproof \: t)}[s_1 \: \cdots \: s_n]}$
 }\\
@@ -402,7 +418,7 @@ We define here the extension of the verifiers CLI  to support the \vnnlib{} proo
 \end{lstlisting}
 
 \clOutputOption
-{--supports --proofs}
+{supports --proofs}
 {Can the verifier generate proof of unsatisfiability?} 
 {A Boolean}
 {}
@@ -411,8 +427,9 @@ We define here the extension of the verifiers CLI  to support the \vnnlib{} proo
 	true
 \end{lstlisting}
 
+
 \clOutputOption
-{--supports --activation-proofs}
+{supports --activation-proofs}
 {A list of activation functions supported by the proof mechanism.} 
 {A Boolean}
 {}
@@ -446,6 +463,7 @@ Additionally, the proof checker should support the following additional options:
 \clOption{--timeout}{Maximum time to spend on processing on the proof in an integer number of seconds.}{--timeout 10}
 
 \section{Example}
+\label{sec:proof-example}
 Lastly, this chapter is concluded with a complete example consisting of a neural network, a specification defined in \vnnlib{}, and a corresponding proof.
 
 Consider the neural network and \vnnlib{} specification illustrated in Figure~\ref{fig:proof-query}. Assume that the matrix-multiplication layers implicitly defined by the ONNX file are as follows:
@@ -485,7 +503,7 @@ $\begin{bmatrix} -1 & 1
 			(assert (>= X[0,3] 0.0))
 			
 			(assert (<= Y[0,0] -1.0)) \end{lstlisting}
-	\end{minipage}%
+	\end{minipage}
 	\begin{minipage}[c]{0.21\textwidth}
 		\centering
 		\includegraphics[height=6cm]{imgs/simple_encoder_net.onnx.pdf}
