@@ -6,18 +6,19 @@ Neural network verifiers, like any other software, are prone to implementation b
 
 A common practice for addressing solver reliability is the generation of \emph{proofs}: checkable mathematical objects that accompany verification results and serve as witnesses to their correctness. For satisfiable queries, correctness can be witnessed directly by a satisfying assignment. The unsatisfiable case, however, is more challenging to justify.
 
-Currently, only a few verifiers are capable of producing unsatisfiability proofs~\cite{IsBaZhKa22,DuNg25}, each using its own dedicated format, with varying levels of proof detail and different formal guarantees for their checkers~\cite{DeIsKoStPaKa25}. This chapter aims to support the unification of such proof formats into a single expressive format. The goal of this standardization is to modularly separate verifiers from proof checkers, enabling easier comparison between verifiers and checkers, and fostering the independent development of both.
+This chapter aims to support the unification of such proof formats into a single expressive format. The goal of this standardization is to modularly separate verifiers from proof checkers, enabling easier comparison between verifiers and checkers, and fostering the independent development of both.
 
-The \vnnlib{} proof format is based on a subset of the Alethe proof format for SMT solving~\cite{ScFlBaFo21}. Alethe is a readable, resolution-based proof format. It expresses the incremental derivation of first-order clauses from the input problem and previously derived clauses, using predefined \emph{proof rules}. An Alethe proof terminates with the derivation of the empty clause.
+The \vnnlib{} proof format is based on a subset of the Alethe proof format for SMT solving~\cite{ScFlBaFo21}. Alethe is a readable, resolution-based proof format. It expresses the incremental derivation of first-order clauses from the input problem and previously derived clauses, using predefined \emph{proof rules}.Additionally, Alethe allows solvers to leave \emph{proof holes} by invoking a dedicated rule, giving solvers flexibility in controlling the level of detail included in the proof.
+Finally, an Alethe proof terminates with the derivation of the empty clause.
 
 Alethe proofs can be reconstructed as proof terms in several interactive theorem provers (ITPs)~\cite{LaFlBaJaAnReScBaTi25,EkMeTiKeKaReBa17,CoAnBaDoMe24}, and can also be checked by a standard proof checker~\cite{AnLaBa23}. Thus, using Alethe enables integration with existing state-of-the-art proof checkers.
 
-In this chapter, we elaborate on a format for unsatisfiability proofs for neural network verifiers, based on Alethe. The proof is intended to be written in a dedicated file that accompanies the  \vnnlib{} specification and the ONNX network(s) files. The subset of Alethe rules used in this chapter is tentative, and we welcome any integration of additional rules, useful for verification of neural networks.
+In this chapter, we elaborate on a format for unsatisfiability proofs for neural network verifiers, based on Alethe. The proof is intended to be written in a dedicated file written by the verifier, which accompanies the  \vnnlib{} specification and the ONNX network(s) files.
 
 \section{Proof Syntax}
 \label{sec:proof-syntax}
 
-\begin{figure}[t!]
+\begin{figure}[p]
 	\setlength{\grammarindent}{6.5em}
 	\input{diagrams/proof-syntax.tex}
 	\vspace{-1em}
@@ -112,9 +113,8 @@ Recall that in Alethe, a proof step has the following from:
 	$\varphi_1,\dots,\varphi_n$
 	\hfill
 	${\mathtt{(rule\_name \: s_1\cdots s_k)}[a_1 \cdots a_m]}$
-}\\
-
-And is written as:
+}\\ 
+Where $\triangleright$ serves as a separator . This general step is is written as:
 
 \begin{code}[style=lbnf,escapechar=@]
 	(step s cl (@$\varphi_1 \cdots\varphi_n$@) :rule <rule_name> :premises(@$\mathtt{s_1 \cdots s_k}$@)
@@ -172,7 +172,7 @@ in~\cite{ScFlBaFo21} and it is summarized here for completeness.
 }\\
 \noindent\makebox[\linewidth]{
 	
-	$s.\triangleright$
+	$t.\triangleright$
 	\hfill
 	$\varphi_1,\dots,\varphi_n$
 	\hfill
@@ -399,68 +399,8 @@ Therefore, concluding the above subproof anchor would have the form:
 
 Nesting subproofs is possible, though if subproof $P$ is nested within $P'$, then $P$ must be completed before $P'$. 
 
-
-
 \subsection{Comments and Whitespace}
 Comments and Whitespace are used as in Section~\ref{sec:comments}.
-
-
-\section{CLI Extension for Proofs}
-We define here the extension of the verifiers CLI  to support the \vnnlib{} proof format. Additionally, we define a short CLI for \vnnlib{} proof checkers. 
-
-\subsection{Verifier Commands}
-\clOption
-{--prove-unsat}
-{When provided, this argument instructs the solver to produce a proof of unsatisfiability in the \vnnlib{} proof format, whenever the query is found to be unsatisfiable. Solvers are required to support this argument only if they declare support for UNSAT proof generation.} {}
-
-\begin{lstlisting}[style=bash,escapechar=@]
-			@\exampleSolver@ verify <filepath> --prove-unsat /proof/file/path
-\end{lstlisting}
-
-\clOutputOption
-{supports --proofs}
-{Can the verifier generate proof of unsatisfiability?} 
-{A Boolean}
-{}
-\begin{lstlisting}[style=bash,escapechar=@]
-	@\exampleSolver@ supports --proofs
-	true
-\end{lstlisting}
-
-
-\clOutputOption
-{supports --activation-proofs}
-{A list of activation functions supported by the proof mechanism.} 
-{A Boolean}
-{}
-\begin{lstlisting}[style=bash,escapechar=@]
-	@\exampleSolver@ supports --activation-proofs
-	relu
-	sign
-	maxpool
-\end{lstlisting}
-
-\subsection{Checker Commands}
-
-The proof checker is an external tool, separate from the solver, that verifies proofs written in the \vnnlib{} proof format. 
-A compliant checker should support the \texttt{check} command, with the following general usage pattern:
-\begin{lstlisting}[style=bash]
-<checker> check 
---proof <filepath> 
---vnnlib <filepath>
-[--network name=<filepath>]
-[ --timeout <seconds>]
-\end{lstlisting}
-This command has two arguments:
-
-\clOption{--proof}{The path of the proof file to be checked}{--proof /path/to/proof.alethe}
-
-\clOption{--vnnlib}{The path of the \vnnlib{} file that defines the problem claimed to be unsatisfiable }
-{--vnnlib /path/to/query.vnnlib}
-Additionally, the proof checker should support the following additional options:
-\clOption{--network}{This option maps the name of one of the networks declared in the provided \vnnlib{} query file to its implementation as an ONNX model file. When the query file contains multiple \texttt{declare-network} declarations this option should be used multiple times -- once for each network declaration not marked with an \texttt{equal-to} declaration (see Section~\ref{sec:multiple-networks}).}{--network classifier=/a/path/to/a/model.onnx}
-
-\clOption{--timeout}{Maximum time to spend on processing on the proof in an integer number of seconds.}{--timeout 10}
 
 \section{Example}
 \label{sec:proof-example}

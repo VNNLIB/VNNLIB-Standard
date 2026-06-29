@@ -1,4 +1,4 @@
-\begin{grammar}
+\begin{grammar}\footnotesize
 	<proof> ::= <proofCommand>$^*$ 
 	
 	<proofCommand> ::= <assume>
@@ -11,7 +11,7 @@
 
 	<subproof> ::= (\texttt{anchor} :step <name>)
 	
-	<step> ::= (\texttt{step} <name> <clause> \texttt{:rule} <name> <premisesAnnotation>$^?$ <argsAnnotation>$^?$ )
+	<step> ::= (\texttt{step} <name> <clause> \texttt{:rule} <rule\_name> <premisesAnnotation>$^?$ <argsAnnotation>$^?$ )
 	
 	<clause> ::= (\texttt{cl} <bool>$^*$)
 	
@@ -21,8 +21,6 @@
 	
 	<rational> ::= -$^?$[0-9]$^+$/$^?$[0-9]$^+$ 
 	\alt -$^?$[0-9]$^+$(.[0-9]$^+$)$^?$
-	
-	<comment> ::= \texttt{;}<name>
 		
 	<bool> ::= (\texttt{and} <bool> <bool>$^+$)
 	\alt (\texttt{or} <bool> <bool>$^+$)
@@ -35,6 +33,18 @@
 	\alt (\texttt{==} <arith> <arith>)
 	\alt (\texttt{!=} <arith> <arith>)
 	
+	<rule\_name> ::=  \texttt{false}
+	\alt  \texttt{not\_not}
+	\alt \texttt{resolution}
+	\alt \texttt{or}
+	\alt \texttt{and\_pos} 
+	\alt \texttt{and\_neg}
+	\alt \texttt{ite1} 
+	\alt \texttt{ite2}
+	\alt \texttt{la\_totality}
+	\alt \texttt{la\_tautology}
+	\alt \texttt{la\_generic}
+	\alt \texttt{hole}
 	%<arith> ::= <element>$\networkTheoryVarParam$
 	%\alt <name> <indices>$^?$
 	%\alt (\texttt{-} <arith>)
