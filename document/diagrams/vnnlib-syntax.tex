@@ -3,15 +3,17 @@
 	
 	<version> ::= (\texttt{vnnlib-version} \texttt{\textless}[0-9]$^+$.[0-9]$^+$\texttt{\textgreater})
 	
-	<name> ::= [A-Za-z][\_A-Za-z0-9]*
+	<name> ::= [A-Za-z][\_A-Za-z0-9]$^*$
 		
 	<network> ::= (\texttt{declare-network} <name> <equiv>$^?$ <input>$^+$ <hidden>* <output>$^+$)
 	
 	<equiv> ::= (\texttt{equal-to} <name>) | (\texttt{isomorphic-to} <name>)
 	
-	<input> ::= (\texttt{declare-input} <name> <elementType>$\networkTheoryVarParam$ <shape>)
+	<input> ::= (\texttt{declare-input} <name> <elementType>$\networkTheoryVarParam$ <shape> <init>$^?$)
+
+	<init> ::= \texttt{initialized}
 	
-	<hidden> ::= (\texttt{declare-hidden} <name> <elementType>$\networkTheoryVarParam$ <shape> <nodeOutput>$\networkTheoryVarParam$)
+	<hidden> ::= (\texttt{declare-hidden} <name> <elementType>$\networkTheoryVarParam$ <shape> <valueId>$\networkTheoryVarParam$)
 	
 	<output> ::= (\texttt{declare-output} <name> <elementType>$\networkTheoryVarParam$ <shape>)
 	

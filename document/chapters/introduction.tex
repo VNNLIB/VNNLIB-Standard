@@ -36,6 +36,7 @@ This document uses semantic versioning of the form \texttt{major.minor}. Minor v
 \item Clarified that all model inputs and outputs must be declared in a network declaration, even if the query does not constrain their value.
 \item Clarified that dynamic dimensions in ONNX models must be instantiated with concrete values in the \vnnlib{} query.
 \item Renamed `networkOutputs' function in the definition of a network theory to the more appropriate `modelOutputs'.
+\item Added a \texttt{initialized} keyword to constrain declared inputs to their default value specified in the ONNX model graph initializers.
 \end{itemize}
 
 \subsection*{Changelog for v2.0}

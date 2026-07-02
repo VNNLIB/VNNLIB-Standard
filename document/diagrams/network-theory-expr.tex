@@ -1,22 +1,13 @@
-\begin{minipage}[t]{0.55\textwidth}
-	\setlength{\grammarindent}{8.7em}
-	\begin{grammar}	
-	<element> $\ni \elementVar$ ::= (-)[0-9]$^+$(.[0-9]$^+$)
-	\grammarShrink
+\begin{minipage}[t]{\textwidth}
+	\setlength{\grammarindent}{7em}
+	\begin{grammar}
+	<model> $\ni \makebox[1em][c]{$\modelVar$}$ ::= \missing
 
-	<nodeOutput> $\ni \onnxNameVar$ ::= \missing
+	<valueId> $\ni \makebox[1em][c]{$\onnxNameVar$}$ ::= \missing
+
+	<tensor> $\ni \makebox[1em][c]{$\tensorVar$}$ ::= \missing
+
+	<element> $\ni \makebox[1em][c]{$\elementVar$}$ ::= \\
+		\mbox{(-)[0-9]$^+$(.[0-9]$^+$)}
 	\end{grammar}
 \end{minipage}
-\begin{minipage}[t]{0.5\textwidth}
-	\setlength{\grammarindent}{6em}
-	\begin{grammar}	
-	<tensor> $\ni \tensorVar$ ::= \missing
-	\grammarShrink
-	
-	<model> $\ni \modelVar$ ::= \missing
-	\end{grammar}
-\end{minipage}
-
-\vspace{0.6em}
-$\outputNodesFn : \mgrammar{<model>} \rightarrow \mgrammar{<nodeOutput>}^+$ = \missing
-
