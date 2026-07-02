@@ -109,32 +109,32 @@ This allows the ONNX standard to evolve independently without requiring the expl
 One of the consequences of this parameterisation is that when discussing the semantics of a particular \vnnlib{} query, it is necessary to state the versions of both the ONNX standard and the \vnnlib{} standard being used.
 
 
-\begin{figure}	
-	\newcommand{\grammarShrink}{\vspace{-0.4em}}
-	
-	\begin{subfigure}{\textwidth}
+\begin{figure}
+	\setlength{\grammarparsep}{0pt}
+
+	\begin{subfigure}[t]{0.63\textwidth}
 		\input{diagrams/network-theory-types.tex}
-		\vspace{-0.7em}
 		\caption{Abstract grammar for network model types.}
 		\label{fig:onnx-type-syntax}
 	\end{subfigure}
-	\\
-	\\
-	\\
-	\begin{subfigure}{\textwidth}
+	\begin{subfigure}[t]{0.36\textwidth}
 		\input{diagrams/network-theory-expr.tex}
-		\vspace{0.3em}
-		\caption{Abstract grammar and functions for network models.}
+		\caption{Abstract grammar for network models.}
 		\label{fig:onnx-expr-syntax}
 	\end{subfigure}
-	\\
-	\begin{subfigure}{\textwidth}
+	\begin{subfigure}[t]{\textwidth}
 		\input{diagrams/network-theory-typing-rules.tex}
 		\caption{Abstract type system for network models.}
 		\label{fig:onnx-types}
 	\end{subfigure}
-	\\
-	\begin{subfigure}{\textwidth}
+	\begin{subfigure}[t]{\textwidth}
+		\vspace{-1em}
+		\input{diagrams/network-theory-functions.tex}
+		\vspace{-2em}
+		\caption{Functions for network models.}
+		\label{fig:onnx-func-syntax}
+	\end{subfigure}
+	\begin{subfigure}[t]{\textwidth}
 		\input{diagrams/network-theory-semantics.tex}
 		\caption{Abstract semantics for network models.}
 		\label{fig:onnx-semantics}
@@ -159,13 +159,9 @@ Figures~\ref{fig:onnx-type-syntax}~\&~\ref{fig:onnx-expr-syntax} describe the sy
 \begin{itemize}
 \item In ONNX: the \texttt{ModelProto} object.
 \end{itemize}
-\item $\mgrammar{<nodeOutput>}$ - the format used to reference the outputs of nodes
+\item $\mgrammar{<valueId>}$ - the format used to reference values within a model, such as the outputs of nodes or model inputs, outputs, or initializers
 \begin{itemize}
 	\item In ONNX: any string compliant with the C90 identifier syntax rules.
-\end{itemize}
-\item $\outputNodesFn$ - a function that maps a model to its list of its final outputs
-\begin{itemize}
-	\item In ONNX: the accessor \texttt{model.graph.output}.
 \end{itemize}
 \end{enumerate}
 Figure~\ref{fig:onnx-types} describes the required typing judgments over the syntax, with the interface requiring the definition of:
@@ -173,8 +169,23 @@ Figure~\ref{fig:onnx-types} describes the required typing judgments over the syn
 \item \textsc{(Element)} - a judgement that a numeric string~$\elementVar$ is a valid element of a provided element type~$\elementTypeVar$. For example, it would be expected that the number~`1' could be judged as of type \texttt{float64} and \texttt{int32}, and `1.0' could be judged as of type \texttt{float64} but not \texttt{int32}.
 \item \textsc{(Tensor)} - a judgement that a tensor~$\tensorVar$ is of a given element type and shape~$\tensorTypeVar$.
 \item \textsc{(Model)} - a judgment that a model~$\modelVar$ is of a given type~$\modelTypeVar$, i.e takes in a list of tensors of the provided shape and produces a list of output tensors of the required shapes.
-\item \textsc{(NodeOutput)} - a judgment that a model~$\modelVar$ has a node that produces some tensor called~$\onnxNameVar$ of type~$\tensorTypeVar$ as output.
+\item \textsc{(NamedValue)} - a judgment that a model~$\modelVar$ has a value called~$\onnxNameVar$ of type~$\tensorTypeVar$, either as an output to a node or an initializer.
 \item \textsc{(Isomorphic)} - a judgment that the graph structure of two models are isomorphic to each other. See Section~\ref{sec:multiple-network} for details.
+\end{enumerate}
+Figure~\ref{fig:onnx-func-syntax} describes the functions over the syntax, with the interface requiring the definition of:
+\begin{enumerate}
+\item $\inputNodesFn$ - a function that maps a model to its list of its inputs
+\begin{itemize}
+	\item In ONNX: the accessor \texttt{model.graph.input}.
+\end{itemize}
+\item $\outputNodesFn$ - a function that maps a model to its list of its final outputs
+\begin{itemize}
+	\item In ONNX: the accessor \texttt{model.graph.output}.
+\end{itemize}
+\item $\initializerFn$ - a function that maps a model and a value identifier to a pre-defined value
+\begin{itemize}
+	\item In ONNX: the accessor \texttt{model.graph.initializer}.
+\end{itemize}
 \end{enumerate}
 Finally, Figure~\ref{fig:onnx-semantics} describes the semantics over the well-typed syntactic models, with the interface requiring the definition of:
 \begin{enumerate}

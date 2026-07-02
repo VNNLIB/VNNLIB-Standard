@@ -137,6 +137,7 @@ As will be described more formally in Section~\ref{sec:model-typing}, the declar
 \begin{enumerate}
     \item the network declaration must include all inputs and outputs present in the model even if a particular input or output is not constrained by assertions later in the query.
     \item the inputs and outputs must appear in the same order they are declared in the model.
+    \item any input marked as \texttt{initialized} must have a corresponding initializer in the ONNX model.
 \end{enumerate}
 Note that there has been extensive discussion about extending the standard to allow network inputs and outputs to be referred to by the textual name given to them in the ONNX model. 
 If implemented, this would allow inputs and outputs to be omitted from the network declaration if the user did not wish to constrain them. 
@@ -443,15 +444,13 @@ Given a list of network declarations $\networkDeclSet$, a set of models $\networ
 \begin{equation*}
 \assertEnv (\networkDeclSet, \networkImplementationSet, \networkInputSet) = \bigcup_{\networkDeclVar \in \networkDeclSet} \assertEnv (\networkDeclVar, \networkImplementationSet[\field{\networkDeclVar}{name}], \networkInputSet)
 \end{equation*}
-Concretely, given a network declaration~$\networkDeclVar$, and a compatible model~$\networkImplementation$ and input assignment~$\networkInput$, the calculation of the local environment can be defined as follows:
-\begin{align*}
-\assertEnv (\namedNetworkExpansion{\nameVar'}, \networkImplementation, \networkInputSet) =
-\qquad\qquad\qquad\qquad\qquad\qquad
-\\ 
-\bigcup_{i} \assertEnv_{I}(\inputDeclSet_i) \; \cup \;
+Concretely, given a network declaration~$\networkDeclVar$, and a compatible model~$\networkImplementation$ and input assignment~$\networkInputSet$, the calculation of the local environment can be defined as follows:
+\begin{multline*}
+\assertEnv (\namedNetworkExpansion{\nameVar'}, \networkImplementation, \networkInputSet) = \\
+\bigcup_{i} \assertEnv_{I}(\inputDeclSet_i, \inputNodesFn(m)_i) \; \cup \;
 \bigcup_{i} \assertEnv_{H}(\hiddenDeclSet_i) \; \cup \; 
 \bigcup_{i} \assertEnv_{O}(\outputDeclSet_i, \outputNodesFn(m)_i)
-\end{align*}
+\end{multline*}
 where
 \newcommand{\nameFn}[1]{\text{name}(#1)}
 \newcommand{\hiddenNameFn}[1]{\text{hiddenName}(#1)}
@@ -460,8 +459,13 @@ where
     \sem{\networkInput} 
     &= \{\semTensorTheory{\networkInputSet[\field{\inputDeclVar}{name}]} \mid \inputDeclVar \in \inputDeclSet \}
     \\
-    \assertEnv_{\inputDeclSet}(\inputExpansion) 
-    &= \{ \nameVar \rightarrow \semTensorTheory{\networkInputSet[\nameVar]} \}
+    \assertEnv_{\inputDeclSet}(\inputExpansion, \onnxNameVar) 
+    &= \{ \nameVar \rightarrow
+    \begin{cases}
+        \semTensorTheory{\networkInputSet[\nameVar]} &\text{ if } \neg\iota\\
+        \initializerFn(\networkImplementation, \onnxNameVar) &\text{ if } \iota
+    \end{cases}
+    \}
     \\
     \assertEnv_{\hiddenDeclSet}(\hiddenExpansion) 
     &= \{ \nameVar \rightarrow \semModelTheory{\networkImplementation}(\sem{\networkInput}, \onnxNameVar) \}
@@ -528,7 +532,6 @@ Using the \inlinevnn{real} type gives the solver explicit permission to interpre
     \centering
 	\begin{subfigure}{\textwidth}
 		\input{diagrams/real-network-theory-syntax-types.tex}
-        \vspace{-0.75em}
 		\caption{Grammar for real network model types.}
 		\label{fig:real-theory-type-syntax}
 	\end{subfigure}
@@ -536,7 +539,6 @@ Using the \inlinevnn{real} type gives the solver explicit permission to interpre
 
     \begin{subfigure}{\textwidth}
 		\input{diagrams/real-network-theory-syntax-expr.tex}
-        \vspace{-0.55em}
 		\caption{Grammar and functions for real network model expressions.}
 		\label{fig:real-theory-expr-syntax}
 	\end{subfigure}

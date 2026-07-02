@@ -1,13 +1,12 @@
-\setlength{\grammarindent}{9em}
+\begin{minipage}[t]{\textwidth}
+\setlength{\grammarindent}{8.5em}
 \begin{grammar}	
 	<elementType> $\ni \elementTypeVar$ ::= \missing
-	\grammarShrink
 
-	<shape> $\ni \shapeVar$ ::= [$n$,...,$n$] \hspace{5em} where $n \in \mathbb{N}$ 
-	\grammarShrink
+	<shape> $\ni \shapeVar$ ::= [$i$,...,$i$] \hspace{0.5em} where $i \in \mathbb{N}$ 
 
 	<tensorType> $\ni \tensorTypeVar$ ::= <elementType>  $\times$ <shape>
-	\grammarShrink
 	
-	<modelType> $\ni \modelTypeVar$ ::= <tensorType>$^+$ $\times$ <tensor-type>$^+$
+	<modelType> $\ni \modelTypeVar$ ::= \\ <tensorType>$^+$ $\times$ <tensorType>$^+$
 \end{grammar}
+\end{minipage}
