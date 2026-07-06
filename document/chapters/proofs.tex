@@ -22,20 +22,21 @@ In this chapter, we elaborate on a format for unsatisfiability proofs for neural
 	\setlength{\grammarindent}{6.5em}
 	\input{diagrams/proof-syntax.tex}
 	\vspace{-1em}
-    \caption{The syntax of \vnnlib{} proofs, adapted and from the Alethe syntax in~\cite{ScFlBaFo21}, simplified and stylized for this context. The superscripts $^*$, $^+$, $^?$ and the terms <arith>,<name> are defined as in Figure~\ref{fig:vnnlib-syntax}.}
+    \caption{The syntax of \vnnlib{} proofs, adapted from the Alethe syntax in~\cite{ScFlBaFo21}, simplified and stylized for this context. The superscripts $^*$, $^+$, $^?$ and the terms <arith>,<name> are defined as in Figure~\ref{fig:vnnlib-syntax}.}
     \label{fig:proof-syntax}
 \end{figure}
 
 The syntax of \vnnlib{} proofs is shown in Figure~\ref{fig:proof-syntax}. At the top level, a \vnnlib{} proof consists of three parts:
 \begin{enumerate}
-	\item \textbf{Assumptions:} Introduce formulas assumed to be correct. These can either be imported from the neural network or the \vnnlib{} specification being proved, or be assumed correct at a given subproof context.
+	\item \textbf{Assumptions:} Introduce formulas assumed to be correct. These can either be imported from the neural network or the \vnnlib{} specification being proved. To ease proof checking, the \vnnlib{} proofs need to specify the source of each assumption. The \texttt{assume\_n} command is used to import assumption from the network, and \texttt{assume\_q} imports assertions from the \vnnlib{} query.
+	Additional assumptions can be assumed correct at a given subproof context, then they are defined by the plain \texttt{assume} command.
 	Assumptions contain only a unique identifier name and the imported formula.
 	\item \textbf{Proof steps:} Derive new facts from assumptions and from previously derived steps, called \emph{premises}. Each proof step contains a unique identifier name, the derived clause, the name of the proof rule used to derive it, its premises, and, when needed, additional rule-specific arguments.
 	\item \textbf{Subproofs (optional):} Open a separate branch within a proof, adding assumptions $A_1 \cdots A_n$. When concluding a subproof with a conclusion $C$, then clause $\lnot A_1, \dots, \lnot A_n, C$ is learned in the main proof branch.
 \end{enumerate}
 For simplicity, all assumptions must appear either: 
 \begin{inparaenum}[(i)]
-	\item before all proof steps to represent imported problem constraints; or
+	\item before all proof steps to represent imported problem constraints where \texttt{assume\_n} commands appear before the \texttt{assume\_q} commands; or
 	\item immediately after beginning a subproof, to represent its local assumptions.
 \end{inparaenum}
 An example of a network, a specification defined in \vnnlib{}, and a corresponding Alethe proof appears in Section~\ref{sec:proof-example}.
@@ -56,7 +57,7 @@ A linear equation of the form $d = \overset{l}{\underset{i=1}{\sum}} c_i \cdot x
 as: 
 
 \begin{code}[style=lbnf]
-	(assume e (= d (+ (* c1 x1) ... (* ck xk))))
+	(assume_n e (= d (+ (* c1 x1) ... (* ck xk))))
 \end{code}
 
 In particular, consider a linear equation that computes the value of a neuron from the values of neurons in a preceding layer. Let $X_k$ be a layer and $i_k$ be an index vector such that $X_k[i_k]$ denotes a neuron in that layer. Similarly, consider $m$ neurons from a preceding layer $X_j$, identified by the index vectors $i_1,\dots,i_m$, namely
@@ -65,41 +66,128 @@ Then, the computation:
 \[X_k[i_k] = c_1 \cdot X_j[i_1] + \cdots + c_m \cdot X_j[i_m] + b\] can be written as the assumption:
 
 \begin{code}[style=lbnf]
-	(assume e (= Xk[ik] (+ (* c1 Xj[i1]) ... (* cm Xj[im]) b)))
+	(assume_n e (= Xk[ik] (+ (* c1 Xj[i1]) ... (* cm Xj[im]) b)))
 \end{code}
 
 \paragraph{Bounds}
 Using the notations above, the bounds $l_j \leq X_j[i_j] \leq u_j$ for $l_j,u_j \in \mathbb{R}$ are assumed as:
 
 \begin{code}[style=lbnf]
-	(assume l (>= Xj[ij] lj))
-	(assume u (<= Xj[ij] uj))
+	(assume_q l (>= Xj[ij] lj))
+	(assume_q u (<= Xj[ij] uj))
 \end{code}
 
-\paragraph{Activation Functions}
-The representation of each activation function requires its own formalization in Alethe. So far, only the ReLU activation function has been formalized, although the formalization of other piecewise-linear activation functions can be obtained by a straightforward adaptation.
-The constraint $Y_k[i_k] = \mathrm{ReLU}(X_j[i_j])$ is formulated as
+\subsubsection{Activation Functions}
+The representation of each activation function requires its own formalization in SMT, which can be interpreted in Alethe. We list here the formalization of several common activation functions in alphabetical order. The formalization of linear operators is straightforward using linear equations. To ease notation, we use here a simple naming convention for variables, naming $b,f$ as the input and output variables, respectively.
+
+
+\paragraph{Abs}
+The constraint $f = \mathrm{abs}(b)$ is formulated as
 follows: 
 
 \begin{code}[style=lbnf]
-	(assume r (ite (>= Xj[ij] 0.0) 
-	               (= Yk[ik] Xj[ij]) 
-	               (<= Yk[ik] 0.0))) 
+(assume_n abs (ite (>= b 0.0) 
+                   (= f b) 
+                   (= f (- b)))) 
+\end{code}
+
+\paragraph{Ceil and Floor}
+These two constraints require introducing reasoning on integers (e.g. using reasoning over LIA). To this end, a constraint of the form 
+$f = \mathrm{ceil}(b)$ is formulated as
+follows: 
+
+\begin{code}[style=lbnf]
+(assume_n is_int f)
+(assume_n (< f (+ b 1)))
+(assume_n (>= f b))
+\end{code} 
+
+And $f = \mathrm{floor}(b)$ is formulated as
+follows: 
+
+\begin{code}[style=lbnf]
+(assume_n is_int f)
+(assume_n (> f (- b 1)))
+(assume_n (<= f b))
+\end{code} 
+
+Where \texttt{is\_int} is the $LIA$ typecheck operator that returns true if and only if the type of its argument is \inlinevnn{int}. 
+
+\paragraph{Clip}
+The constraint $f = \mathrm{clip}(b)$, with maximum parameter $M$ and minimum parameter $m$ is formulated as
+follows: 
+
+\begin{code}[style=lbnf]
+(assume_n clp1 (ite (>= b M) 
+                    (= f M))) 
+                    (= f b) 
+(assume_n clp2 (ite (<= b m) 
+                    (= f m) 
+                    (= f b))) 
+\end{code}
+
+\paragraph{LeakyReLU}
+The constraint $f = \mathrm{LeakyReLU}(b)$, with leakage parameter $a>0$ is formulated as
+follows: 
+
+\begin{code}[style=lbnf]
+(assume_n lr (ite (>= f 0.0) 
+                  (= f b) 
+                  (= f (* a b)))) 
+\end{code}
+\paragraph{Max and Min}
+The constraint $f = \mathrm{max}(b_1,b_2)$ is formulated as follows: 
+ 
+\begin{code}[style=lbnf]
+(assume_n max (ite (>= b1 b2) 
+                   (= f b1) 
+                   (= f b2))) 
+\end{code}
+
+Likewise, $f = \mathrm{min}(b_1,b_2)$ is formulated as follows: 
+
+\begin{code}[style=lbnf]
+(assume_n min (ite (<= b1 b2) 
+                   (= f b1) 
+                   (= f b2))) 
+\end{code}
+
+Extending this formalization to multivariate  maximization and minimization is done by composition of the above formulation, i.e., by stating $max(a,b,c) = max(max(a,b),c))$.
+
+\paragraph{ReLU} The constraint $f = \mathrm{ReLU}(b)$ is formulated as
+follows: 
+
+\begin{code}[style=lbnf]
+(assume_n r (ite (>= b 0.0) 
+                 (= f b) 
+                 (<= f 0.0))) 
 \end{code}
 
 With the bound:
 
 \begin{code}[style=lbnf]
-	(assume fl (>= Yk[ik] 0.0))
+(assume_n fl (>= f 0.0))
 \end{code}
 
-Additionally, ReLU constraints allows adding an auxiliary variable $Aux$, with the following constraints:
+\paragraph{Sigmoid and Tanh}
+These functions are based on the transcendental exponent function, which is not a part of the SMTLIB standard and consequently in Alethe format.
+These functions could be formulated using keywords \texttt{sgm} and \texttt{tanh} and yield the following assumptions:
 
 \begin{code}[style=lbnf]
-	(assume auxe (= Xj[ij] (- Yk[ik]) aux))
-	(assume auxl (>= aux 0.0))
+(assume_n sig (= f (sgm b)))
+(assume_n t (= f (tanh b)))
 \end{code}
 
+However, related proof rules are yet to be formalized. This is currently left as an open problem.
+\paragraph{Sign}
+The constraint $f = \mathrm{sign}(b)$ is formulated as
+follows: 
+
+\begin{code}[style=lbnf]
+(assume_n sgn (ite (>= b 0.0) 
+                   (= f 1) 
+                   (= f -1))) 
+\end{code}
 
 \subsection{Proof Steps}
  
@@ -455,52 +543,66 @@ $\begin{bmatrix} -1 & 1
 An example proof of unsatisfiability for this query is shown in Figure~\ref{fig:proof}. The proof introduces three variables for each hidden neuron in the ReLU layer \texttt{hidden}: \texttt{H[0,i]\_b}, \texttt{H[0,i]\_f}, and \texttt{H[0,i]\_a}, corresponding to the variables described in Section~\ref{sec:proof-syntax}.
 The proof begins by listing the assumption equations induced by the network. It then adds the bounds specified by the \vnnlib{} property, followed by assumptions encoding the ReLU activation bound constraints.
 Finally, the proof contains a sequence of derivation steps that lead to the empty clause, thereby establishing unsatisfiability.
-\begin{figure}[t!]
-	\begin{lstlisting}[style=lbnf,basicstyle=\ttfamily\scriptsize\bfseries,linewidth=\linewidth]
-		; Constraint matrix
-		(assume e1 (!(= (+ X[0,0] (- X[0,1]) (- H[0,0]_b)) 0.0):named e1))
-		(assume e2 (!(= (+ (* 2.0 X[0,1]) X[0,2] (- H[0,1]_b)) 0.0):named e2))
-		(assume e3 (!(= (+ H[0,1]_f (- H[0,0]_f) (- Y[0,0])) 0.0):named e3))
-		(assume e4 (!(= (+ H[0,0]_f (- H[0,0]_b) (- H[0,0]_a)) 0.0):named e4))
-		(assume e5 (!(= (+ H[0,1]_f (- H[0,1]_b) (- H[0,1]_a)) 0.0):named e5))
-		
-		;Bound Assumptions
-		(assume u0 (!(<= X[0,0] 1.0):named u0))
-		(assume l0 (!(>= X[0,0] 0.0):named l0))
-		(assume u1 (!(<= X[0,1] 1.0):named u1))
-		(assume l1 (!(>= X[0,1] 0.0):named l1))
-		(assume u2 (!(<= X[0,2] 1.0):named u2))
-		(assume l2 (!(>= X[0,2] 0.0):named l2))
-		(assume u3 (!(<= Y[0,0] -1.0):named u3))
-		
-		(assume l4 (!(>= H[0,0]_f 0.0):named l4))
-		(assume l5 (!(>= H[0,1]_f 0.0):named l5))
-		(assume l6 (!(>= H[0,0]_a 0.0):named l6))
-		(assume l7 (!(>= H[0,1]_a 0.0):named l7))
-		
-		; Relu constraints
-		(assume r1 (!(ite (>= H[0,0]_b 0.0) (= H[0,0]_b H[0,0]_f) (<= H[0,0]_f 0.0)) :named r1))
-		(assume r2 (!(ite (>= H[0,1]_b 0.0) (= H[0,1]_b H[0,1]_f) (<= H[0,1]_f 0.0)) :named r2))
-		
-		; Proof steps
-		(step ax1 (cl (>= H[0,0]_b 0.0)(<= H[0,0]_f 0.0)):rule ite1 :premises(r1))
-		(step ax2 (cl (not (>= H[0,0]_b 0.0))(= H[0,0]_b H[0,0]_f)):rule ite2        :premises(r1))
-		(step ax3 (cl (not (= H[0,0]_b H[0,0]_f))(not e4)(<= H[0,0]_a 0.0)):rule la_generic :args(1 1 1))
-		(step ax4 (cl (not (>= H[0,0]_b 0.0))(<= H[0,0]_a 0.0)):rule resolution      :premises(ax2 ax3 e4))
+\begin{figure}[p]
+	\begin{lstlisting}[style=lbnf,basicstyle=\ttfamily\scriptsize\bfseries,linewidth=1.03\textwidth]
+	(assume_n e1 (!(= (+ X_0_0 (- X_0_1 ) (- H_0_0_b)) 0.0):named e1))
+	(assume_n e2 (!(= (+ (* 2.0 X_0_1) X_0_2 (- H_0_1_b)) 0.0):named e2))
+	(assume_n e3 (!(= (+ H_0_1_f (- H_0_0_f) (- Y_0_0)) 0.0):named e3))
 	
-		(step rt1 (cl (not e1)(not e2)(not e3)(not e4)(not e5)(not l1)(not l2)(not l7)(not u0)(not u3)(not (<= H[0,0]_a 0.0))):rule la_generic :args(1 -1 -1 -1 1 3 1 1 1 1 1))                                           
-		(step rt2 (cl (not (<= H[0,0]_a 0.0))):rule resolution :premises (rt1 e1 e2 e3 e4 e5 l1 l2 l7 u0 u3 ))
-		(step rt3 (cl (not (>= H[0,0]_b 0.0))):rule resolution :premises(rt2 ax4))
-		
-
-		(step lf1 (cl (not e3)(not l5)(not u3)(not (<= H[0,0]_f 0.0))):rule la_generic :args(-1 1 1 1))		                                                             
-		(step lf2 (cl (not (<= H[0,0]_f 0.0))):rule resolution :premises(lf1 e3 l5 u3))
-		(step lf3 (cl (>= H[0,0]_b 0.0)):rule resolution :premises(ax1 lf2))
-		
-		; Finalization
-		(step final (cl):rule resolution :premises(rt3 lf3))
-	\end{lstlisting}
+	(assume_q u0 (!(<= X_0_0 1.0):named u0))
+	(assume_q l0 (!(>= X_0_0 0.0):named l0))
+	(assume_q u1 (!(<= X_0_1 1.0):named u1))
+	(assume_q l1 (!(>= X_0_1 0.0):named l1))
+	(assume_q u2 (!(<= X_0_2 1.0):named u2))
+	(assume_q l2 (!(>= X_0_2 0.0):named l2))
+	(assume_q u3 (!(<= Y_0_0 -2.0):named u3))
+	(assume_n l4 (!(>= H_0_0_f 0.0):named l4))
+	(assume_n l5 (!(>= H_0_1_f 0.0):named l5))
+	
+	(assume r1 (!(ite (>= H_0_0_b 0.0)(= H_0_0_b H_0_0_f)(<= H_0_0_f 0.0)):named r1))
+	(assume r2 (!(ite (>= H_0_1_b 0.0)(= H_0_1_b H_0_1_f)(<= H_0_1_f 0.0)):named r2))
+	
+	; Prove for both ReLUs that f - b >= 0
+	(step t1 (cl (not (>= H_0_0_b 0.0))(= H_0_0_b H_0_0_f)):rule ite2 :premises(r1))
+	(step t2 (cl (not (= H_0_0_b H_0_0_f))(<= 0.0 (- H_0_0_f H_0_0_b))):rule
+	         la_generic :args(-1 1))
+	(step t3 (cl (>= H_0_0_b 0.0)(not (>= H_0_0_f 0.0))(<= 0.0 (- H_0_0_f H_0_0_b)))
+	         :rule la_generic :args(1 -1 1))
+	(step aux1bound (cl (<= 0.0 (!(- H_0_0_f H_0_0_b):named H_0_0_a))):rule
+	                resolution :premises(t1 t2 t3 l4))
+	
+	(step s1 (cl (not (>= H_0_1_b 0.0))(= H_0_1_b H_0_1_f)):rule ite2 :premises(r2))
+	(step s2 (cl (not (= H_0_1_b H_0_1_f))(<= 0.0 (- H_0_1_f H_0_1_b))):rule 
+	         la_generic :args(-1 1))
+	(step s3 (cl (>= H_0_1_b 0.0)(not (>= H_0_1_f 0.0))(<= 0.0 (- H_0_1_f H_0_1_b))) 
+	         :rule la_generic :args(1 -1 1))
+	(step aux2bound (cl (<= 0.0 (!(- H_0_1_f H_0_1_b):named H_0_1_a))):rule 
+	                resolution :premises(s1 s2 s3 l5))
+	                
+	; Activation pattern reasoning
+	(step ax1 (cl (>= H_0_0_b 0.0)(<= H_0_0_f 0.0)):rule ite1 :premises(r1))
+	(step ax2 (cl (not (>= H_0_0_b 0.0))(= H_0_0_b H_0_0_f)):rule ite2 :premises(r1))
+	(step ax3 (cl (not (= H_0_0_b H_0_0_f))(<= H_0_0_a 0.0)):rule la_generic 
+	          :args(1 1))
+	(step ax4 (cl (not (>= H_0_0_b 0.0))(<= H_0_0_a 0.0)):rule resolution 
+	          :premises(ax2 ax3))
+	
+	; Prove UNSAT for both phases of H_0_0
+	(step lf1 (cl (not e3)(not l5)(not u3)(not (<= H_0_0_f 0.0))):rule la_generic 
+	          :args(-1 1 1 1))
+	(step lf2 (cl (not (<= H_0_0_f 0.0))):rule resolution :premises(lf1 e3 l5 u3))
+	(step lf3 (cl (>= H_0_0_b 0.0)):rule resolution :premises(ax1 lf2))
+	
+	(step rt1 (cl (not e1)(not e2)(not e3)(not l1)(not l2)(not u0)(not u3)
+	          (not (<= H_0_0_a 0.0))(not (<= 0.0 H_0_1_a))):rule la_generic 
+	          :args(1 -1 -1 3 1 1 1 -1 -1))
+	(step rt2 (cl (not (<= H_0_0_a 0.0))):rule resolution 
+	          :premises (rt1 e1 e2 e3 l1 l2 u0 u3 aux2bound))
+	(step rt3 (cl (not (>= H_0_0_b 0.0))):rule resolution :premises(rt2 ax4))
+	
+	; Finalize
+	(step final (cl):rule resolution :premises(rt3 lf3))\end{lstlisting}
 	\vspace{-0.3cm}
-	\caption{An example for a \vnnlib{} proof in Alethe}
+	\caption{An example for a \vnnlib{} proof in Alethe.}
 	\label{fig:proof}
 \end{figure}
