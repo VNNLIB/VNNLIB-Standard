@@ -28,9 +28,16 @@ In this chapter, we elaborate on a format for unsatisfiability proofs for neural
 
 The syntax of \vnnlib{} proofs is shown in Figure~\ref{fig:proof-syntax}. At the top level, a \vnnlib{} proof consists of three parts:
 \begin{enumerate}
-	\item \textbf{Assumptions:} Introduce formulas assumed to be correct. These can either be imported from the neural network or the \vnnlib{} specification being proved. To ease proof checking, the \vnnlib{} proofs need to specify the source of each assumption. The \texttt{assume\_n} command is used to import assumption from the network, and \texttt{assume\_q} imports assertions from the \vnnlib{} query.
-	Additional assumptions can be assumed correct at a given subproof context, then they are defined by the plain \texttt{assume} command.
-	Assumptions contain only a unique identifier name and the imported formula.
+	\item \textbf{Assumptions:} Introduce formulas assumed to be correct. These can either be imported from the neural network or the \vnnlib{} specification being proved. To ease proof checking, the \vnnlib{} proofs need to specify the source of each assumption: 
+	\begin{itemize}
+	\item The \texttt{assume\_n} command specifies a \emph{network assumption} and is used to import assumption from the network.
+	\item The \texttt{assume\_q} command specifies a \emph{query assumption}, which imports assertions from the \vnnlib{} query. 
+	\item Additional assumptions can be assumed correct at a given subproof context, then they are defined by the plain \texttt{assume} command.
+	\end{itemize}
+
+	All Assumptions contain a unique identifier name and the imported formula. Additionally, \texttt{assume\_n} must explicitly state the name of the ONNX layer that is used to import the assumption, by using the \texttt{:layer} keyword.
+	
+	The proof checker \emph{must} certify that all network assumptions are correctly imported from a valid layer in the network, and that the variable names are consistent across all assumptions and the onnx file. All query assumptions must match an assertion defined in the \vnnlib{} query file, and have consistent variable names with the other assumptions.
 	\item \textbf{Proof steps:} Derive new facts from assumptions and from previously derived steps, called \emph{premises}. Each proof step contains a unique identifier name, the derived clause, the name of the proof rule used to derive it, its premises, and, when needed, additional rule-specific arguments.
 	\item \textbf{Subproofs (optional):} Open a separate branch within a proof, adding assumptions $A_1 \cdots A_n$. When concluding a subproof with a conclusion $C$, then clause $\lnot A_1, \dots, \lnot A_n, C$ is learned in the main proof branch.
 \end{enumerate}
@@ -494,7 +501,7 @@ Comments and Whitespace are used as in Section~\ref{sec:comments}.
 \label{sec:proof-example}
 Lastly, this chapter is concluded with a complete example consisting of a neural network, a specification defined in \vnnlib{}, and a corresponding proof.
 
-Consider the neural network and \vnnlib{} specification illustrated in Figure~\ref{fig:proof-query}. Assume that the matrix-multiplication layers implicitly defined by the ONNX file are as follows:
+Consider the neural network and \vnnlib{} specification illustrated in Figure~\ref{fig:proof-query}. Assume that the matrix-multiplication layers defined by the ONNX file are as follows:
 
 The input $X$ is multiplied by the matrix:
 $\begin{bmatrix} 1 & -1 & 0 
@@ -509,12 +516,14 @@ The output of the hidden later $H$ is multiplied by the matrix:
 $\begin{bmatrix} -1 & 1
 \end{bmatrix}$. Meaning that $Y[0,0] = H[0,1] - H[0,0]$.
 
+Finally, assume that the input layer operator is named \texttt{il}, the hidden ReLU layer operator is named \texttt{hr}, and the output layer operator name is \texttt{ol}
+
 \begin{figure}[h!]
 	\begin{minipage}[c]{0.76\textwidth}
 		\begin{lstlisting}[style=lbnf]   
 			(declare-network encoder
 			(declare-input  X float64 [1,4])
-			(declare-hidden H float64 [1,2] "hidden")
+			(declare-hidden H float64 [1,2] "hr")
 			(declare-output Y float64 [1,1])
 			)
 			
@@ -540,14 +549,15 @@ $\begin{bmatrix} -1 & 1
 	\label{fig:proof-query}
 \end{figure}
 
-An example proof of unsatisfiability for this query is shown in Figure~\ref{fig:proof}. The proof introduces three variables for each hidden neuron in the ReLU layer \texttt{hidden}: \texttt{H[0,i]\_b}, \texttt{H[0,i]\_f}, and \texttt{H[0,i]\_a}, corresponding to the variables described in Section~\ref{sec:proof-syntax}.
+An example proof of unsatisfiability for this query is shown in Figure~\ref{fig:proof}.
+The proof introduces two variables for each hidden neuron in the ReLU layer \texttt{hidden}: \texttt{H[0,i]\_b} and \texttt{H[0,i]\_f} corresponding to the variables described in Section~\ref{sec:proof-syntax}.
 The proof begins by listing the assumption equations induced by the network. It then adds the bounds specified by the \vnnlib{} property, followed by assumptions encoding the ReLU activation bound constraints.
 Finally, the proof contains a sequence of derivation steps that lead to the empty clause, thereby establishing unsatisfiability.
 \begin{figure}[p]
 	\begin{lstlisting}[style=lbnf,basicstyle=\ttfamily\scriptsize\bfseries,linewidth=1.03\textwidth]
-	(assume_n e1 (!(= (+ X_0_0 (- X_0_1 ) (- H_0_0_b)) 0.0):named e1))
-	(assume_n e2 (!(= (+ (* 2.0 X_0_1) X_0_2 (- H_0_1_b)) 0.0):named e2))
-	(assume_n e3 (!(= (+ H_0_1_f (- H_0_0_f) (- Y_0_0)) 0.0):named e3))
+	(assume_n e1 (!(= (+ X_0_0 (- X_0_1 ) (- H_0_0_b)) 0.0):named e1) :layer il)
+	(assume_n e2 (!(= (+ (* 2.0 X_0_1) X_0_2 (- H_0_1_b)) 0.0):named e2) :layer il)
+	(assume_n e3 (!(= (+ H_0_1_f (- H_0_0_f) (- Y_0_0)) 0.0):named e3) :layer ol)
 	
 	(assume_q u0 (!(<= X_0_0 1.0):named u0))
 	(assume_q l0 (!(>= X_0_0 0.0):named l0))
@@ -556,11 +566,13 @@ Finally, the proof contains a sequence of derivation steps that lead to the empt
 	(assume_q u2 (!(<= X_0_2 1.0):named u2))
 	(assume_q l2 (!(>= X_0_2 0.0):named l2))
 	(assume_q u3 (!(<= Y_0_0 -2.0):named u3))
-	(assume_n l4 (!(>= H_0_0_f 0.0):named l4))
-	(assume_n l5 (!(>= H_0_1_f 0.0):named l5))
+	(assume_n l4 (!(>= H_0_0_f 0.0):named l4):layer hr)
+	(assume_n l5 (!(>= H_0_1_f 0.0):named l5):layer hr)
 	
-	(assume r1 (!(ite (>= H_0_0_b 0.0)(= H_0_0_b H_0_0_f)(<= H_0_0_f 0.0)):named r1))
-	(assume r2 (!(ite (>= H_0_1_b 0.0)(= H_0_1_b H_0_1_f)(<= H_0_1_f 0.0)):named r2))
+	(assume_n r1 (!(ite (>= H_0_0_b 0.0)(= H_0_0_b H_0_0_f)(<= H_0_0_f 0.0)):named r1
+	             ):layer hr)
+	(assume_n r2 (!(ite (>= H_0_1_b 0.0)(= H_0_1_b H_0_1_f)(<= H_0_1_f 0.0)):named r2
+	             ):layer hr)
 	
 	; Prove for both ReLUs that f - b >= 0
 	(step t1 (cl (not (>= H_0_0_b 0.0))(= H_0_0_b H_0_0_f)):rule ite2 :premises(r1))
