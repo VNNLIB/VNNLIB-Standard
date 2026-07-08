@@ -6,9 +6,9 @@ Neural network verifiers, like any other software, are prone to implementation b
 
 A common practice for addressing solver reliability is the generation of \emph{proofs}: checkable mathematical objects that accompany verification results and serve as witnesses to their correctness. For satisfiable queries, correctness can be witnessed directly by a satisfying assignment. The unsatisfiable case, however, is more challenging to justify.
 
-This chapter aims to support the unification of such proof formats into a single expressive format. The goal of this standardization is to modularly separate verifiers from proof checkers, enabling easier comparison between verifiers and checkers, and fostering the independent development of both.
+This chapter aims to unify proofs of unsatisfiability of neural network verification queries into a single expressive format. The goal of this standardization is to modularly separate verifiers from proof checkers, enabling easier comparison between verifiers and checkers, and fostering the independent development of both.
 
-The \vnnlib{} proof format is based on a subset of the Alethe proof format for SMT solving~\cite{ScFlBaFo21}. Alethe is a readable, resolution-based proof format. It expresses the incremental derivation of first-order clauses from the input problem and previously derived clauses, using predefined \emph{proof rules}.Additionally, Alethe allows solvers to leave \emph{proof holes} by invoking a dedicated rule, giving solvers flexibility in controlling the level of detail included in the proof.
+The \vnnlib{} proof format is based on a subset of the Alethe proof format for SMT solving~\cite{ScFlBaFo21}. Alethe is a readable, resolution-based proof format. It expresses the incremental derivation of first-order clauses from the input problem and previously derived clauses, using predefined \emph{proof rules}. Additionally, Alethe allows solvers to leave \emph{proof holes} by invoking a dedicated rule, giving solvers flexibility in controlling the level of detail included in the proof.
 Finally, an Alethe proof terminates with the derivation of the empty clause.
 
 Alethe proofs can be reconstructed as proof terms in several interactive theorem provers (ITPs)~\cite{LaFlBaJaAnReScBaTi25,EkMeTiKeKaReBa17,CoAnBaDoMe24}, and can also be checked by a standard proof checker~\cite{AnLaBa23}. Thus, using Alethe enables integration with existing state-of-the-art proof checkers.
@@ -37,7 +37,7 @@ The syntax of \vnnlib{} proofs is shown in Figure~\ref{fig:proof-syntax}. At the
 
 	All Assumptions contain a unique identifier name and the imported formula. Additionally, \texttt{assume\_n} must explicitly state the name of the ONNX layer that is used to import the assumption, by using the \texttt{:layer} keyword.
 	
-	The proof checker \emph{must} certify that all network assumptions are correctly imported from a valid layer in the network, and that the variable names are consistent across all assumptions and the onnx file. All query assumptions must match an assertion defined in the \vnnlib{} query file, and have consistent variable names with the other assumptions.
+	The proof checker \emph{must} certify that all network assumptions are correctly imported from a valid layer in the network, and that the variable names are consistent across all assumptions and with the ONNX file. All query assumptions must match an assertion defined in the \vnnlib{} query file, and have consistent variable names with the other assumptions.
 	\item \textbf{Proof steps:} Derive new facts from assumptions and from previously derived steps, called \emph{premises}. Each proof step contains a unique identifier name, the derived clause, the name of the proof rule used to derive it, its premises, and, when needed, additional rule-specific arguments.
 	\item \textbf{Subproofs (optional):} Open a separate branch within a proof, adding assumptions $A_1 \cdots A_n$. When concluding a subproof with a conclusion $C$, then clause $\lnot A_1, \dots, \lnot A_n, C$ is learned in the main proof branch.
 \end{enumerate}
@@ -46,6 +46,7 @@ For simplicity, all assumptions must appear either:
 	\item before all proof steps to represent imported problem constraints where \texttt{assume\_n} commands appear before the \texttt{assume\_q} commands; or
 	\item immediately after beginning a subproof, to represent its local assumptions.
 \end{inparaenum}
+
 An example of a network, a specification defined in \vnnlib{}, and a corresponding Alethe proof appears in Section~\ref{sec:proof-example}.
 
 
@@ -64,7 +65,7 @@ A linear equation of the form $d = \overset{l}{\underset{i=1}{\sum}} c_i \cdot x
 as: 
 
 \begin{code}[style=lbnf]
-	(assume_n e (= d (+ (* c1 x1) ... (* ck xk))))
+	(assume_n e (= d (+ (* c1 x1) ... (* ck xk))) :layer ...)
 \end{code}
 
 In particular, consider a linear equation that computes the value of a neuron from the values of neurons in a preceding layer. Let $X_k$ be a layer and $i_k$ be an index vector such that $X_k[i_k]$ denotes a neuron in that layer. Similarly, consider $m$ neurons from a preceding layer $X_j$, identified by the index vectors $i_1,\dots,i_m$, namely
@@ -73,7 +74,7 @@ Then, the computation:
 \[X_k[i_k] = c_1 \cdot X_j[i_1] + \cdots + c_m \cdot X_j[i_m] + b\] can be written as the assumption:
 
 \begin{code}[style=lbnf]
-	(assume_n e (= Xk[ik] (+ (* c1 Xj[i1]) ... (* cm Xj[im]) b)))
+	(assume_n e (= Xk[ik] (+ (* c1 Xj[i1]) ... (* cm Xj[im]) b))  :layer ...)
 \end{code}
 
 \paragraph{Bounds}
@@ -85,7 +86,7 @@ Using the notations above, the bounds $l_j \leq X_j[i_j] \leq u_j$ for $l_j,u_j 
 \end{code}
 
 \subsubsection{Activation Functions}
-The representation of each activation function requires its own formalization in SMT, which can be interpreted in Alethe. We list here the formalization of several common activation functions in alphabetical order. The formalization of linear operators is straightforward using linear equations. To ease notation, we use here a simple naming convention for variables, naming $b,f$ as the input and output variables, respectively.
+The representation of each activation function requires its own formalization in SMT, which can be interpreted in Alethe. We list here the formalization of several common activation functions in alphabetical order. The formalization of linear operators is straightforward using linear equations. To ease notation, we use here a simple naming convention for variables, which denotes the input and output variables of the constraint as $b$ and $f$, respectively.
 
 
 \paragraph{Abs}
@@ -95,7 +96,7 @@ follows:
 \begin{code}[style=lbnf]
 (assume_n abs (ite (>= b 0.0) 
                    (= f b) 
-                   (= f (- b)))) 
+                   (= f (- b))) :layer ...) 
 \end{code}
 
 \paragraph{Ceil and Floor}
@@ -104,18 +105,18 @@ $f = \mathrm{ceil}(b)$ is formulated as
 follows: 
 
 \begin{code}[style=lbnf]
-(assume_n is_int f)
-(assume_n (< f (+ b 1)))
-(assume_n (>= f b))
+(assume_n is_int f :layer ...)
+(assume_n (< f (+ b 1)) :layer ...)
+(assume_n (>= f b) :layer ...)
 \end{code} 
 
 And $f = \mathrm{floor}(b)$ is formulated as
 follows: 
 
 \begin{code}[style=lbnf]
-(assume_n is_int f)
-(assume_n (> f (- b 1)))
-(assume_n (<= f b))
+(assume_n is_int f :layer ...)
+(assume_n (> f (- b 1)) :layer ...)
+(assume_n (<= f b) :layer ...)
 \end{code} 
 
 Where \texttt{is\_int} is the $LIA$ typecheck operator that returns true if and only if the type of its argument is \inlinevnn{int}. 
@@ -126,11 +127,11 @@ follows:
 
 \begin{code}[style=lbnf]
 (assume_n clp1 (ite (>= b M) 
-                    (= f M))) 
-                    (= f b) 
+                    (= f M) 
+                    (= f b)) :layer ...) 
 (assume_n clp2 (ite (<= b m) 
                     (= f m) 
-                    (= f b))) 
+                    (= f b)) :layer ...) 
 \end{code}
 
 \paragraph{LeakyReLU}
@@ -140,7 +141,7 @@ follows:
 \begin{code}[style=lbnf]
 (assume_n lr (ite (>= f 0.0) 
                   (= f b) 
-                  (= f (* a b)))) 
+                  (= f (* a b))) :layer ...) 
 \end{code}
 \paragraph{Max and Min}
 The constraint $f = \mathrm{max}(b_1,b_2)$ is formulated as follows: 
@@ -148,7 +149,7 @@ The constraint $f = \mathrm{max}(b_1,b_2)$ is formulated as follows:
 \begin{code}[style=lbnf]
 (assume_n max (ite (>= b1 b2) 
                    (= f b1) 
-                   (= f b2))) 
+                   (= f b2)) :layer ...) 
 \end{code}
 
 Likewise, $f = \mathrm{min}(b_1,b_2)$ is formulated as follows: 
@@ -156,7 +157,7 @@ Likewise, $f = \mathrm{min}(b_1,b_2)$ is formulated as follows:
 \begin{code}[style=lbnf]
 (assume_n min (ite (<= b1 b2) 
                    (= f b1) 
-                   (= f b2))) 
+                   (= f b2)) :layer ...) 
 \end{code}
 
 Extending this formalization to multivariate  maximization and minimization is done by composition of the above formulation, i.e., by stating $max(a,b,c) = max(max(a,b),c))$.
@@ -167,13 +168,13 @@ follows:
 \begin{code}[style=lbnf]
 (assume_n r (ite (>= b 0.0) 
                  (= f b) 
-                 (<= f 0.0))) 
+                 (<= f 0.0)) :layer ...) 
 \end{code}
 
 With the bound:
 
 \begin{code}[style=lbnf]
-(assume_n fl (>= f 0.0))
+(assume_n fl (>= f 0.0) :layer ...)
 \end{code}
 
 \paragraph{Sigmoid and Tanh}
@@ -181,8 +182,8 @@ These functions are based on the transcendental exponent function, which is not 
 These functions could be formulated using keywords \texttt{sgm} and \texttt{tanh} and yield the following assumptions:
 
 \begin{code}[style=lbnf]
-(assume_n sig (= f (sgm b)))
-(assume_n t (= f (tanh b)))
+(assume_n sig (= f (sgm b)) :layer ...)
+(assume_n t (= f (tanh b)) :layer ...)
 \end{code}
 
 However, related proof rules are yet to be formalized. This is currently left as an open problem.
@@ -193,7 +194,7 @@ follows:
 \begin{code}[style=lbnf]
 (assume_n sgn (ite (>= b 0.0) 
                    (= f 1) 
-                   (= f -1))) 
+                   (= f -1)) :layer ...) 
 \end{code}
 
 \subsection{Proof Steps}
@@ -559,6 +560,14 @@ Finally, the proof contains a sequence of derivation steps that lead to the empt
 	(assume_n e2 (!(= (+ (* 2.0 X_0_1) X_0_2 (- H_0_1_b)) 0.0):named e2) :layer il)
 	(assume_n e3 (!(= (+ H_0_1_f (- H_0_0_f) (- Y_0_0)) 0.0):named e3) :layer ol)
 	
+	(assume_n r1 (!(ite (>= H_0_0_b 0.0)(= H_0_0_b H_0_0_f)(<= H_0_0_f 0.0)):named r1
+	             ):layer hr)
+	(assume_n r2 (!(ite (>= H_0_1_b 0.0)(= H_0_1_b H_0_1_f)(<= H_0_1_f 0.0)):named r2
+	             ):layer hr)
+	
+	(assume_n lf0 (!(>= H_0_0_f 0.0):named lf0):layer hr)
+	(assume_n lf1 (!(>= H_0_1_f 0.0):named lf1):layer hr)
+	
 	(assume_q u0 (!(<= X_0_0 1.0):named u0))
 	(assume_q l0 (!(>= X_0_0 0.0):named l0))
 	(assume_q u1 (!(<= X_0_1 1.0):named u1))
@@ -566,13 +575,6 @@ Finally, the proof contains a sequence of derivation steps that lead to the empt
 	(assume_q u2 (!(<= X_0_2 1.0):named u2))
 	(assume_q l2 (!(>= X_0_2 0.0):named l2))
 	(assume_q u3 (!(<= Y_0_0 -2.0):named u3))
-	(assume_n l4 (!(>= H_0_0_f 0.0):named l4):layer hr)
-	(assume_n l5 (!(>= H_0_1_f 0.0):named l5):layer hr)
-	
-	(assume_n r1 (!(ite (>= H_0_0_b 0.0)(= H_0_0_b H_0_0_f)(<= H_0_0_f 0.0)):named r1
-	             ):layer hr)
-	(assume_n r2 (!(ite (>= H_0_1_b 0.0)(= H_0_1_b H_0_1_f)(<= H_0_1_f 0.0)):named r2
-	             ):layer hr)
 	
 	; Prove for both ReLUs that f - b >= 0
 	(step t1 (cl (not (>= H_0_0_b 0.0))(= H_0_0_b H_0_0_f)):rule ite2 :premises(r1))
@@ -581,7 +583,7 @@ Finally, the proof contains a sequence of derivation steps that lead to the empt
 	(step t3 (cl (>= H_0_0_b 0.0)(not (>= H_0_0_f 0.0))(<= 0.0 (- H_0_0_f H_0_0_b)))
 	         :rule la_generic :args(1 -1 1))
 	(step aux1bound (cl (<= 0.0 (!(- H_0_0_f H_0_0_b):named H_0_0_a))):rule
-	                resolution :premises(t1 t2 t3 l4))
+	                resolution :premises(t1 t2 t3 lf0))
 	
 	(step s1 (cl (not (>= H_0_1_b 0.0))(= H_0_1_b H_0_1_f)):rule ite2 :premises(r2))
 	(step s2 (cl (not (= H_0_1_b H_0_1_f))(<= 0.0 (- H_0_1_f H_0_1_b))):rule 
@@ -589,7 +591,7 @@ Finally, the proof contains a sequence of derivation steps that lead to the empt
 	(step s3 (cl (>= H_0_1_b 0.0)(not (>= H_0_1_f 0.0))(<= 0.0 (- H_0_1_f H_0_1_b))) 
 	         :rule la_generic :args(1 -1 1))
 	(step aux2bound (cl (<= 0.0 (!(- H_0_1_f H_0_1_b):named H_0_1_a))):rule 
-	                resolution :premises(s1 s2 s3 l5))
+	                resolution :premises(s1 s2 s3 lf1))
 	                
 	; Activation pattern reasoning
 	(step ax1 (cl (>= H_0_0_b 0.0)(<= H_0_0_f 0.0)):rule ite1 :premises(r1))
@@ -600,9 +602,9 @@ Finally, the proof contains a sequence of derivation steps that lead to the empt
 	          :premises(ax2 ax3))
 	
 	; Prove UNSAT for both phases of H_0_0
-	(step lf1 (cl (not e3)(not l5)(not u3)(not (<= H_0_0_f 0.0))):rule la_generic 
+	(step lf1 (cl (not e3)(not lf1)(not u3)(not (<= H_0_0_f 0.0))):rule la_generic 
 	          :args(-1 1 1 1))
-	(step lf2 (cl (not (<= H_0_0_f 0.0))):rule resolution :premises(lf1 e3 l5 u3))
+	(step lf2 (cl (not (<= H_0_0_f 0.0))):rule resolution :premises(lf1 e3 lf1 u3))
 	(step lf3 (cl (>= H_0_0_b 0.0)):rule resolution :premises(ax1 lf2))
 	
 	(step rt1 (cl (not e1)(not e2)(not e3)(not l1)(not l2)(not u0)(not u3)
