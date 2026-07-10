@@ -1,19 +1,16 @@
-\chapter{The \vnnlib{} Proof Format}
+\chapter{Proofs of UNSAT}
 \label{sec:proofs}
 \section{Introduction}
 
 Neural network verifiers, like any other software, are prone to implementation bugs and unpredictable behavior on edge cases, which can be exploited~\cite{jia2021exploiting}. This phenomenon undermines the purpose of the verification process, and calls for mechanisms that ensure the reliability of verifiers.
-
 A common practice for addressing solver reliability is the generation of \emph{proofs}: checkable mathematical objects that accompany verification results and serve as witnesses to their correctness. For satisfiable queries, correctness can be witnessed directly by a satisfying assignment. The unsatisfiable case, however, is more challenging to justify.
 
-This chapter aims to unify proofs of unsatisfiability of neural network verification queries into a single expressive format. The goal of this standardization is to modularly separate verifiers from proof checkers, enabling easier comparison between verifiers and checkers, and fostering the independent development of both.
+This chapter describes a standard format for expressing proofs of unsatisfiability for \vnnlib{} queries described in Section~\ref{sec:specification_language}.
+A proof is intended to be written in a dedicated file written by the solver, which accompanies the \vnnlib{} specification and the ONNX network(s) files.
+The goal is to modularly separate verifiers from proof checkers, enabling easier comparison between verifiers and checkers, and fostering the independent development of both.
 
-The \vnnlib{} proof format is based on a subset of the Alethe proof format for SMT solving~\cite{ScFlBaFo21}. Alethe is a readable, resolution-based proof format. It expresses the incremental derivation of first-order clauses from the input problem and previously derived clauses, using predefined \emph{proof rules}. Additionally, Alethe allows solvers to leave \emph{proof holes} by invoking a dedicated rule, giving solvers flexibility in controlling the level of detail included in the proof.
-Finally, an Alethe proof terminates with the derivation of the empty clause.
-
-Alethe proofs can be reconstructed as proof terms in several interactive theorem provers (ITPs)~\cite{LaFlBaJaAnReScBaTi25,EkMeTiKeKaReBa17,CoAnBaDoMe24}, and can also be checked by a standard proof checker~\cite{AnLaBa23}. Thus, using Alethe enables integration with existing state-of-the-art proof checkers.
-
-In this chapter, we elaborate on a format for unsatisfiability proofs for neural network verifiers, based on Alethe. The proof is intended to be written in a dedicated file written by the verifier, which accompanies the  \vnnlib{} specification and the ONNX network(s) files.
+The proof format is based on a subset of the Alethe proof format for SMT solving~\cite{ScFlBaFo21}. Alethe is a readable, resolution-based format for expressing the incremental derivation of first-order clauses from the input problem and previously derived clauses, using predefined \emph{proof rules}. The proof terminates with the derivation of the empty clause. One of the advantages of Alethe is that it allows solvers to leave \emph{proof holes} by invoking a dedicated rule, giving solvers flexibility in the level of detail included in the proof.
+Another advantage is that Alethe proofs can be reconstructed as proof terms in several interactive theorem provers (ITPs)~\cite{LaFlBaJaAnReScBaTi25,EkMeTiKeKaReBa17,CoAnBaDoMe24}, and can also be checked by a standard proof checker~\cite{AnLaBa23}. Thus, using Alethe enables the resuse of existing state-of-the-art proof checkers.
 
 \section{Proof Syntax}
 \label{sec:proof-syntax}

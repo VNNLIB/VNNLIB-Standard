@@ -1,0 +1,44 @@
+\chapter{Checker Command-Line Interface}
+\label{sec:checker-interface}
+
+The proof checker is an external tool, separate from the solver, that verifies proofs written in the \vnnlib{} proof format. 
+
+\section{The \texttt{check} Command}
+
+A compliant checker should support the \texttt{check} command, with the following general usage pattern:
+\begin{lstlisting}[style=bash]
+<checker> check 
+	--query <filepath>
+	--proof <filepath> 
+	[--network name=<filepath>]
+	[ --timeout <seconds>]
+\end{lstlisting}
+This command has two arguments:
+
+
+
+\clOption{-{}-query}{The path of the \vnnlib{} file that defines the problem claimed to be unsatisfiable }
+{-{}-query /path/to/query.vnnlib}
+\clOption{-{}-proof}{The path of the proof file to be checked}{-{}-proof /path/to/proof.alethe}
+Additionally, the proof checker should support the following additional options:
+\clOption{-{}-network}{This option maps the name of one of the networks declared in the provided \vnnlib{} query file to its implementation as an ONNX model file. When the query file contains multiple \texttt{declare-network} declarations this option should be used multiple times -- once for each network declaration not marked with an \texttt{equal-to} declaration (see Section~\ref{sec:multiple-networks}).}{-{}-network classifier=/a/path/to/a/model.onnx}
+
+\clOption{-{}-timeout}{Maximum time to spend on processing on the proof in an integer number of seconds.}{-{}-timeout 10}
+
+\subsection{Outputs of the \texttt{check} Command}
+ The output of the \texttt{check} should be reported on \texttt{stdout} and should be a single line consisting of one of the following options:
+\begin{itemize}
+	\item \texttt{timed-out} - The allocated time elapsed before the checking procedure terminated.
+	\item \texttt{valid} - The checker terminated and certified the proof witnesses the unsatisfiability of the query.
+	\item \texttt{invalid} - The checker terminated with at least one assumption that could not be imported from the initial network or \vnnlib{} query, or at least one proof step whose checking has failed. The checker may add information for better understanding which proofs steps did not pass the checking and the reasons for failure.
+	\item \texttt{holey} (optional) - The checker terminated and certified all assumptions and non-holey proof steps. Therefore, the proof witnesses the unsatisfiability of the query if and only if the \texttt{hole} steps are proven.
+\end{itemize}
+In particular, a proof checker is required to be complete and thus, unlike a solver, cannot output an \texttt{unknown} result.
+
+\subsection{Error Conditions of the \texttt{check} Command}
+The \texttt{check} command \emph{must} error when encountering any of the solver error cases as described in Section~\ref{sec:verify-command-errors}. In addition, if the checker is incapable of providing a sound analysis of the proof over the declared types in the \vnnlib{} query, it should require an explicit consent from the user, by re-writing the query to use the \inlinevnn{real} type (see Section~\ref{sec:real-queries} for details). Error messages must be printed on \texttt{stderr}.
+
+
+
+
+

@@ -1,4 +1,4 @@
-\chapter{Command-line Interface}
+\chapter{Solver Command-line Interface}
 \label{sec:solver_interface}
 
 With the growing number of solvers and their increasing integration into larger toolchains, there is a clear need for a consistent and predictable way to invoke them. A standardised command-line interface (CLI) therefore enables interoperability between solvers and higher-level tools, facilitates benchmarking and automation, and reduces the burden on users adapting to multiple systems.
@@ -25,7 +25,7 @@ At the moment, the \vnnlib{} standard contains two commands: \emph{verify} and \
 \vnnlib{} compliant solvers should implement the following global options:
 
 \clOutputOption
-{--name}
+{-{}-name}
 {Print the solver's full name. This can be different from the executable's name.}
 {A string that may contain spaces, special characters etc.}
 \begin{lstlisting}[style=bash]
@@ -34,7 +34,7 @@ CheckNeuralNetworks!
 \end{lstlisting}
 
 \clOutputOption
-{--version}
+{-{}-version}
 {Print the version of the solver. It is strongly recommended that solvers conform to \href{https://semver.org/}{semantic versioning}.}{A version string.}
 \begin{lstlisting}[style=bash]
 %*\exampleSolver* --version
@@ -57,17 +57,17 @@ The general pattern of usage is as follows:
 \end{lstlisting}
 The first argument should be the path to the \vnnlib{} query file (see Section~\ref{sec:specification_language}), and the solver should support the following additional options:
 
-\clOption{--network}{This option maps the name of one of the networks declared in the provided \vnnlib{} query file to its implementation as an ONNX model file. When the query file contains multiple \texttt{declare-network} declarations this option should be used multiple times -- once for each network declaration not marked with an \texttt{equal-to} declaration (see Section~\ref{sec:multiple-networks}).}{--network classifier=/a/path/to/a/model.onnx}
+\clOption{-{}-network}{This option maps the name of one of the networks declared in the provided \vnnlib{} query file to its implementation as an ONNX model file. When the query file contains multiple \texttt{declare-network} declarations this option should be used multiple times -- once for each network declaration not marked with an \texttt{equal-to} declaration (see Section~\ref{sec:multiple-networks}).}{--network classifier=/a/path/to/a/model.onnx}
 
-\clOption{--timeout}{Maximum time to spend on processing on the query in an integer number of seconds.}{--timeout 10}
+\clOption{-{}-timeout}{Maximum time to spend on processing on the query in an integer number of seconds.}{-{}-timeout 10}
 
-\clOption{--serialise-assignments}
-{Instructs the solver to output satisfying assignments in the seralised format described in Section~\ref{sec:seralised-assignment-format}. This argument only needs to be supported if the solver reports that it supports serialising assignments as described in Section~\ref{sec:other-capabilities}.}
-{--serialise-assignments /path/to/output}
+\clOption{-{}-serialise-assignments}
+{Instructs the solver to output satisfying assignments in the seralised format described in Section~\ref{sec:seralised-assignment-format}. Solvers are only required to support this argument if they declare support for serialising assignments as described in Section~\ref{sec:other-capabilities}.}
+{-{}-serialise-assignments /path/to/output}
 
 \clOption
-{--unsat-proofs}
-{When provided, this argument instructs the solver to produce a proof of unsatisfiability in the \vnnlib{} proof format, whenever the query is found to be unsatisfiable. Solvers are required to support this argument only if they declare support for UNSAT proof generation.} { --unsat-proofs /proof/file/path}
+{-{}-unsat-proofs}
+{When provided, this argument instructs the solver to produce a proof of unsatisfiability in the \vnnlib{} proof format, whenever the query is found to be unsatisfiable. Solvers are only required to support this argument if they declare support for UNSAT proof generation as described in Section~\ref{sec:other-capabilities}.} { -{}-unsat-proofs /proof/file/path}
 
 
 \noindent Compliant solvers may also support additional non-standard arguments to the \texttt{verify} command to affect the internal behaviour of the verification algorithm. However, such additional non-standard arguments \textit{must} be optional.
@@ -83,8 +83,8 @@ The first argument should be the path to the \vnnlib{} query file (see Section~\
 \end{itemize}
 If the query is satisfiable, there are two ways that the solver can output the satisfying assignment found:
 \begin{enumerate}
-\item \textbf{Command-line format}: If the \texttt{--serialise-assignments} option was not passed or the solver reports not supporting it, the solver should print the assignments on \texttt{stdout}. Outputting the assignment to the command-line is therefore the default behaviour and must be supported by all solvers.
-\item \textbf{Serialised format}: If the \texttt{--serialise-assignments} option was passed and the solver reports supporting it, the solver should serialise the assignments in the folder specified by the \texttt{--serialise-assignments} option.
+\item \textbf{Command-line format}: If the \texttt{-{}-serialise-assignments} option was not passed or the solver reports not supporting it, the solver should print the assignments on \texttt{stdout}. Outputting the assignment to the command-line is therefore the default behaviour and must be supported by all solvers.
+\item \textbf{Serialised format}: If the \texttt{-{}-serialise-assignments} option was passed and the solver reports supporting it, the solver should serialise the assignments in the folder specified by the \texttt{-{}-serialise-assignments} option.
 \end{enumerate}
 As a motivating example, consider a \vnnlib{} query that started with the following network declarations:
 \begin{lstlisting}[style=bash]
@@ -169,7 +169,7 @@ Z Real [1]
 \subsubsection{Serialised assignment format}
 \label{sec:seralised-assignment-format}
 
-In the case where efficiency is important, a solver may optionally support outputting assignments as a folder containing binary files of seralised ONNX TensorProto objects. If the user passes \texttt{--serialise-assignments <folder>} to the \texttt{verify} command, then the solver should generate a folder:
+In the case where efficiency is important, a solver may optionally support outputting assignments as a folder containing binary files of seralised ONNX TensorProto objects. If the user passes \texttt{-{}-serialise-assignments <folder>} to the \texttt{verify} command, then the solver should generate a folder:
 \begin{lstlisting}[style=bash]
 <folder>/
   <variable_1_name>.pb
@@ -179,7 +179,7 @@ In the case where efficiency is important, a solver may optionally support outpu
 \end{lstlisting}
 where each of the files contains a serialised TensorProto object of the correct element type and shape.
 
-For the example given above, if \texttt{--serialise-assignments my/output} was passed then the solver should therefore generate the following files:
+For the example given above, if \texttt{-{}-serialise-assignments my/output} was passed then the solver should therefore generate the following files:
 \begin{lstlisting}[style=bash]
 my/output/
   A.pb
@@ -218,7 +218,7 @@ The solver must be able to respond to all of the following capabilities, althoug
 \label{sec:onnx-capabilities}
 
 \clOutputOption
-{--onnx-opset-versions}
+{-{}-onnx-opset-versions}
 {Prints a newline-separated pair of the minimum and maximum \href{https://onnxruntime.ai/docs/reference/compatibility.html\#onnx-opset-support}{ONNX opset versions} that the solver supports.}
 {Two version strings}
 \begin{lstlisting}[style=bash]
@@ -228,7 +228,7 @@ The solver must be able to respond to all of the following capabilities, althoug
 \end{lstlisting}
 
 \clOutputOption
-{--onnx-element-types}
+{-{}-onnx-element-types}
 {Prints a newline-separated list of the element types that the solver supports. See Section~\ref{sec:element-types} for details.}
 {List of ONNX types}
 \begin{lstlisting}[style=bash]
@@ -241,32 +241,39 @@ real
 \textbf{Note}: as discussed in Section~\ref{sec:element-types}, in order for a solver to report that it supports an ONNX element type, then there must be a strong reason to believe that its analysis is sound with respect to that element type. If unsound, or the soundness is unknown then the solver should only report that it supports the \texttt{real} type.
 
 \clOutputOption
-{--onnx-operators}
-{Reports the ONNX operators (e.g., \texttt{Conv}, \texttt{Relu}, \texttt{Gemm}) that are supported by the solver. See Section~\ref{sec:models} for more details on the ONNX standard and its operators. The command can be followed by the \texttt{--unsat-proofs} flag to report the list of operators supported in proof producing mode.
+{-{}-onnx-operators}
+{Reports the ONNX operators (e.g., \texttt{Conv}, \texttt{Relu}, \texttt{Gemm}) that are supported by the solver. See Section~\ref{sec:models} for more details on the ONNX standard and its operators.
 }
-{A newline-separated list of lines, where each line contains the name of an ONNX operator followed by a possibly empty space-separated list of ONNX element types.  If the list is empty, then the solver is assumed to support the operator for all element types it reports via the \texttt{supports --onnx-element-types} command. When applicable, the list is followed by a \texttt{proof} string, indicating solver can generate proofs for queries involving the operator.
+{A newline-separated list of lines, where each line contains the name of an ONNX operator followed by a possibly empty space-separated list of ONNX element types.  If the list is empty, then the solver is assumed to support the operator for all element types it reports via the \texttt{supports -{}-onnx-element-types} command.
 }
 \begin{lstlisting}[style=bash]
 %*\exampleSolver* supports --onnx-operators
-Conv float64 float32 proofs
-Relu float64 float32 proofs
+Conv float64 float32
+Relu float64 float32
 MatMul
-Gemm proofs
+Gemm
 Add float64 float32 int64 int32
 Flatten
 \end{lstlisting}
 
+\clOutputOption
+{-{}-onnx-operators-unsat-proofs}
+{Reports the ONNX operators (e.g., \texttt{Conv}, \texttt{Relu}, \texttt{Gemm}) that are supported by the solver when producing proofs of UNSAT. The output should be a subset of the ONNX operators reported via the \texttt{supports -{}-onnx-operators} command. Solvers are only required to support this argument if they declare support for UNSAT proof generation as described in Section~\ref{sec:other-capabilities}.
+}
+{A newline-separated list of lines, where each line contains the name of an ONNX operator followed by a possibly empty space-separated list of ONNX element types.  If the list is empty, then the solver is assumed to support the operator for all element types it reports via the \texttt{supports -{}-onnx-element-types} command.
+}
 \begin{lstlisting}[style=bash]
-%*\exampleSolver* supports --onnx-operators --unsat-proofs
-Conv 
-Relu 
-Gemm 
+%*\exampleSolver* supports --onnx-operators
+Conv float64
+MatMul
+Add float64 float32 int64
+Flatten
 \end{lstlisting}
 
 \subsection{\vnnlib{} Query Capabilities}
 
 \clOutputOption
-{--vnnlib-versions}
+{-{}-vnnlib-versions}
 {Prints a newline-separated pair of the minimum and maximum versions (inclusive) of \vnnlib{} that the solver supports.}
 {Two version strings}
 \begin{lstlisting}[style=bash]
@@ -276,7 +283,7 @@ Gemm
 \end{lstlisting}
 
 \clOutputOption
-{--hidden-node-theories}
+{-{}-hidden-node-theories}
 {Which of the \hiddenNodes{} theories described in Section~\ref{sec:hidden-nodes} does the solver support?}
 {A newline-separated list of theories}
 \begin{lstlisting}[style=bash]
@@ -285,7 +292,7 @@ NH
 \end{lstlisting}
 
 \clOutputOption
-{--multiple-input-output-theories}
+{-{}-multiple-input-output-theories}
 {Which of the \multiIO{} theories described in Section~\ref{sec:multiple-inputs-outputs} does the solver support?}
 {A newline-separated list of theories}
 \begin{lstlisting}[style=bash]
@@ -295,7 +302,7 @@ MENET
 \end{lstlisting}
 
 \clOutputOption
-{--multiple-network-theories}
+{-{}-multiple-network-theories}
 {Which of the \multiNetwork{} theories described in Section~\ref{sec:multiple-networks} does the solver support?}
 {A newline-separated list of theories}
 \begin{lstlisting}[style=bash]
@@ -304,7 +311,7 @@ SIO
 \end{lstlisting}
 
 \clOutputOption
-{--multiple-node-comparison-theories}
+{-{}-multiple-node-comparison-theories}
 {Which of the \multiComparison{} theories described in Section~\ref{sec:multi-node-comparisons} does the solver support?}
 {A newline-separated list of theories}
 \begin{lstlisting}[style=bash]
@@ -313,7 +320,7 @@ MNC
 \end{lstlisting}
 
 \clOutputOption
-{--arithmetic-complexity-theories}
+{-{}-arithmetic-complexity-theories}
 {Which of the \arithComplexity{} theories described in Section~\ref{sec:arithmetic-complexity} does the solver support?
 }
 {A newline-separated list of theories.}
@@ -324,7 +331,7 @@ LIN
 
 
 \clOutputOption
-{--optimised-disjunctive-reasoning}
+{-{}-optimised-disjunctive-reasoning}
 {Does the solver use an intelligent strategy for handling queries involving \texttt{(or ...)} statements or simply translates them to disjunctive normal form? If the latter, then higher-level tools can use this flag to decide whether to perform the conversion to DNF themselves and hence get a better indication of progress.
 }
 {A boolean (\texttt{true} or \texttt{false})}
@@ -333,68 +340,24 @@ LIN
 true
 \end{lstlisting}
 
-\clOutputOption
-{supports --unsat-proofs}
-{Can the verifier generate proof of unsatisfiability?} 
-{A Boolean}
-{}
-\begin{lstlisting}[style=bash,escapechar=@]
-	@\exampleSolver@ supports --unsat-proofs
-	true
-\end{lstlisting}
-
-\subsection{Other Capabilities}
+\subsection{Output Capabilities}
 \label{sec:other-capabilities}
 
 \clOutputOption
-{--serialise-assignments}
+{-{}-serialise-assignments}
 {Does the solver support the \texttt{--serialise-assignments} option to the \texttt{verify} command? See Section~\ref{sec:verify_command} for details.}
-{A boolean (\texttt{true} or \texttt{false})}
+{A Boolean (\texttt{true} or \texttt{false})}
 \begin{lstlisting}[style=bash]
 %*\exampleSolver* supports --serialise-assignments
 true
 \end{lstlisting}
 
-
-
-
-\section{Proof Checker Commands}
-
-The proof checker is an external tool, separate from the solver, that verifies proofs written in the \vnnlib{} proof format. 
-A compliant checker should support the \texttt{check} command, with the following general usage pattern:
-\begin{lstlisting}[style=bash]
-	<checker> check 
-	--query <filepath>
-	--proof <filepath> 
-	[--network name=<filepath>]
-	[ --timeout <seconds>]
+\clOutputOption
+{-{}-unsat-proofs}
+{Can the verifier generate proofs of unsatisfiability?} 
+{A Boolean (true or false)}
+{}
+\begin{lstlisting}[style=bash,escapechar=@]
+	@\exampleSolver@ supports --unsat-proofs
+	true
 \end{lstlisting}
-This command has two arguments:
-
-
-
-\clOption{--query}{The path of the \vnnlib{} file that defines the problem claimed to be unsatisfiable }
-{--query /path/to/query.vnnlib}
-\clOption{--proof}{The path of the proof file to be checked}{--proof /path/to/proof.alethe}
-Additionally, the proof checker should support the following additional options:
-\clOption{--network}{This option maps the name of one of the networks declared in the provided \vnnlib{} query file to its implementation as an ONNX model file. When the query file contains multiple \texttt{declare-network} declarations this option should be used multiple times -- once for each network declaration not marked with an \texttt{equal-to} declaration (see Section~\ref{sec:multiple-networks}).}{--network classifier=/a/path/to/a/model.onnx}
-
-\clOption{--timeout}{Maximum time to spend on processing on the proof in an integer number of seconds.}{--timeout 10}
-
-\subsection{Outputs of the \texttt{check} command}
- The output of the \texttt{check} should be reported on \texttt{stdout} and should be a single line consisting of one of the following options:
-\begin{itemize}
-	\item \texttt{timed-out} - The allocated time elapsed before the checking procedure terminated.
-	\item \texttt{valid} - The checker terminated and certified the proof witnesses the unsatisfiability of the query.
-	\item \texttt{invalid} - The checker terminated with at least one assumption that could not be imported from the initial network or \vnnlib{} query, or at least one proof step whose checking has failed. The checker may add information for better understanding which proofs steps did not pass the checking and the reasons for failure.
-	\item \texttt{holey} (optional) - The checker terminated and certified all assumptions and non-holey proof steps. Therefore, the proof witnesses the unsatisfiability of the query if and only if the \texttt{hole} steps are proven.
-\end{itemize}
-In particular, a proof checker is required to be complete, and thus cannot output an \texttt{unknown} result.
-
-\subsection{Error handling}
-The \texttt{check} command \emph{must} error in file and type mismatch cases as described in Section~\ref{sec:verify-command-errors}. In addition, if the checker is incapable of providing a sound analysis of the proof over the declared types in the \vnnlib{} query, it should require an explicit consent from the user, by re-writing the query to use the \inlinevnn{real} type (see Section~\ref{sec:real-queries} for details). Error messages must be printed on \texttt{stderr}.
-
-
-
-
-
