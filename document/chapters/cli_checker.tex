@@ -40,5 +40,73 @@ The \texttt{check} command \emph{must} error when encountering any of the solver
 
 
 
+\section{The \texttt{supports} Command}
+
+When invoked with the \texttt{supports} command, the checker should report the types of queries and networks whose proof it can check, as well as the set of proof rules it is capable of checking
+. As in the solver's \texttt{supports}, these options provide a way for higher-level tools to automatically assess the capabilities of the proof checker.
+
+The general pattern of usage is as follows:
+\begin{lstlisting}[style=bash]
+	<checker> supports <capability>
+\end{lstlisting}
+The checker must be able to respond to all of the following capabilities, although of course it may be able to report other capabilities as well.
+
+\subsection{ONNX Capabilities}
+
+\clOutputOption
+{-{}-onnx-element-types}
+{Prints a newline-separated list of the element types that the checker supports. See Section~\ref{sec:element-types} for details.}
+{List of ONNX types}
+\begin{lstlisting}[style=bash]
+	%*\exampleChecker* supports --onnx-element-types
+	float64
+	float32
+	float16
+	real
+\end{lstlisting}
+\textbf{Note}: as discussed in Section~\ref{sec:element-types}, in order for a checker to report that it supports an ONNX element type, then there must be a strong reason to believe that its analysis is sound with respect to that element type. If unsound, or the soundness is unknown then the checker should only report that it supports the \texttt{real} type.
+
+\clOutputOption
+{-{}-onnx-operators}
+{Reports the ONNX operators (e.g., \texttt{Conv}, \texttt{Relu}, \texttt{Gemm}) that are supported by the checker. See Section~\ref{sec:models} for more details on the ONNX standard and its operators.
+}
+{A newline-separated list of lines, where each line contains the name of an ONNX operator followed by a possibly empty space-separated list of ONNX element types.  If the list is empty, then the checker is assumed to support the operator for all element types it reports via the \texttt{supports -{}-onnx-element-types} command.
+}
+\begin{lstlisting}[style=bash]
+	%*\exampleChecker* supports --onnx-operators
+	Conv float64 float32
+	Relu float64 float32
+	MatMul
+	Gemm
+	Add float64 float32 int64 int32
+	Flatten
+\end{lstlisting}
 
 
+\subsection{\vnnlib{} Query Capabilities}
+
+\clOutputOption
+{-{}-vnnlib-versions}
+{Prints a newline-separated pair of the minimum and maximum versions (inclusive) of \vnnlib{} that the checker supports.}
+{Two version strings}
+\begin{lstlisting}[style=bash]
+	%*\exampleChecker* supports --vnnlib-versions
+	2.0
+	2.3
+\end{lstlisting}
+
+
+\clOutputOption
+{-{}-proof-rules}
+{Reports the Alethe proof rules (e.g., \texttt{resolution}, \texttt{la\_generic}) supported by the checker. See Section~\ref{sec:proofs} for more details on the Alethe proof standard and its rules.
+}
+{A newline-separated list of lines, where each line contains the name of an Alethe proof rule.}
+\begin{lstlisting}[style=bash]
+	%*\exampleChecker* supports --proof-rules
+	and_pos
+	bounded_farkas
+	false
+	la_generic
+	or
+	resolution
+\end{lstlisting}
