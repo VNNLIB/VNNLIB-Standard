@@ -10,7 +10,7 @@ A proof is intended to be written in a dedicated file written by the solver, whi
 The goal is to modularly separate verifiers from proof checkers, enabling easier comparison between verifiers and checkers, and fostering the independent development of both.
 
 The proof format is based on a subset of the Alethe proof format for SMT solving~\cite{ScFlBaFo21}. Alethe is a readable, resolution-based format for expressing the incremental derivation of first-order clauses from the input problem and previously derived clauses, using predefined \emph{proof rules}. The proof terminates with the derivation of the empty clause. One of the advantages of Alethe is that it allows solvers to leave \emph{proof holes} by invoking a dedicated rule, giving solvers flexibility in the level of detail included in the proof.
-Another advantage is that Alethe proofs can be reconstructed as proof terms in several interactive theorem provers (ITPs)~\cite{LaFlBaJaAnReScBaTi25,EkMeTiKeKaReBa17,CoAnBaDoMe24}, and can also be checked by a standard proof checker~\cite{AnLaBa23}. Thus, using Alethe enables the resuse of existing state-of-the-art proof checkers.
+Another advantage is that Alethe proofs can be reconstructed as proof terms in several interactive theorem provers (ITPs)~\cite{LaFlBaJaAnReScBaTi25,EkMeTiKeKaReBa17,CoAnBaDoMe24}, and can also be checked by a capable standard proof checker~\cite{AnLaBa23}. Thus, using Alethe enables the reuse of existing state-of-the-art proof checkers.
 
 \section{Proof Syntax}
 \label{sec:proof-syntax}
@@ -25,26 +25,29 @@ Another advantage is that Alethe proofs can be reconstructed as proof terms in s
 
 The syntax of \vnnlib{} proofs is shown in Figure~\ref{fig:proof-syntax}. At the top level, a \vnnlib{} proof consists of three parts:
 \begin{enumerate}
-	\item \textbf{Assumptions:} Introduce formulas assumed to be correct. These can either be imported from the neural network or the \vnnlib{} specification being proved. To ease proof checking, the \vnnlib{} proofs need to specify the source of each assumption: 
-	\begin{itemize}
-	\item The \texttt{assume\_n} command specifies a \emph{network assumption} and is used to import assumption from the network.
-	\item The \texttt{assume\_q} command specifies a \emph{query assumption}, which imports assertions from the \vnnlib{} query. 
-	\item Additional assumptions can be assumed correct at a given subproof context, then they are defined by the plain \texttt{assume} command.
+	\item \textbf{Assumptions:} Introduce formulas assumed to be correct. These can either be imported from the neural networks or the \vnnlib{} specification being proved. To ease proof checking, \vnnlib{} proofs specify the source of each assumption depending on the context of their appearance.
+
+	\begin{itemize}	
+	\item The \texttt{assume-network} command specifies a \emph{network assumption} environment. This command must name a network used in the \vnnlib{} specification file and it defines a network context. This context is then used to define additional assumptions, imported from the declared network.
+	\item The \texttt{assume} command specifies a constraint imported from either a neural network or the  \vnnlib{} specification file. If the command appears within an \texttt{assume-network} context, then it represents an assumption imported from that network and must explicitly state the name of the ONNX layer used for its import, by using the \texttt{:layer} keyword. Otherwise, it directly imports assertions from the \vnnlib{} specification file, and should not use the \texttt{:layer} flag. 
+	\item Additional assumptions can be assumed correct at a given subproof context (see below in Section~\ref{sec:subproofs}).
 	\end{itemize}
 
-	All Assumptions contain a unique identifier name and the imported formula. Additionally, \texttt{assume\_n} must explicitly state the name of the ONNX layer that is used to import the assumption, by using the \texttt{:layer} keyword.
+	All Assumptions contain a unique identifier name and the imported formula. Additionally, the requirement to list the importing layer requires all ONNX networks used in this format to contain a unique name for each layer.
+	For all assumptions declared outside an \texttt{assume-network} command, the \texttt{:layer} flag can either lead to a checking failure, raise a warning, or simply be disregarded.
 	
-	The proof checker \emph{must} certify that all network assumptions are correctly imported from a valid layer in the network, and that the variable names are consistent across all assumptions and with the ONNX file. All query assumptions must match an assertion defined in the \vnnlib{} query file, and have consistent variable names with the other assumptions.
+	The proof checker \emph{must} certify that all network assumptions are correctly imported from a valid layer in the network, and that the variable names are consistent across all assumptions and with the ONNX files. All query assumptions must match an assertion defined in the \vnnlib{} specification file, and have consistent variable names with the other assumptions.
+	
 	\item \textbf{Proof steps:} Derive new facts from assumptions and from previously derived steps, called \emph{premises}. Each proof step contains a unique identifier name, the derived clause, the name of the proof rule used to derive it, its premises, and, when needed, additional rule-specific arguments.
 	\item \textbf{Subproofs (optional):} Open a separate branch within a proof, adding assumptions $A_1 \cdots A_n$. When concluding a subproof with a conclusion $C$, then clause $\lnot A_1, \dots, \lnot A_n, C$ is learned in the main proof branch.
 \end{enumerate}
 For simplicity, all assumptions must appear either: 
 \begin{inparaenum}[(i)]
-	\item before all proof steps to represent imported problem constraints where \texttt{assume\_n} commands appear before the \texttt{assume\_q} commands; or
+	\item before all proof steps to represent imported problem constraints; or
 	\item immediately after beginning a subproof, to represent its local assumptions.
 \end{inparaenum}
 
-An example of a network, a specification defined in \vnnlib{}, and a corresponding Alethe proof appears in Section~\ref{sec:proof-example}.
+An example of a network, a specification defined in \vnnlib{}, and a corresponding Alethe proof appears at the end of this chapter in Section~\ref{sec:proof-example}.
 
 
 \paragraph{Naming.} Formulas used in the proof can also be \emph{named} by a unique identifier, mainly for compactness and readability. Naming has the following syntax:
@@ -57,12 +60,12 @@ An example of a network, a specification defined in \vnnlib{}, and a correspondi
 
 \paragraph{Linear Equations}
 
-Linear equations are typically used to encode the affine transformations induced by the internal linear layers of the DNN, as well as linear constraints originating from the specification.
+Linear equations are typically used to encode the affine transformations induced by the internal linear layers of the network, as well as linear constraints originating from the specification.
 A linear equation of the form $d = \overset{l}{\underset{i=1}{\sum}} c_i \cdot x_i$  is represented in the proof
 as: 
 
 \begin{code}[style=lbnf]
-	(assume_n e (= d (+ (* c1 x1) ... (* ck xk))) :layer ...)
+(assume e (= d (+ (* c1 x1) ... (* ck xk))) :layer ...)
 \end{code}
 
 In particular, consider a linear equation that computes the value of a neuron from the values of neurons in a preceding layer. Let $X_k$ be a layer and $i_k$ be an index vector such that $X_k[i_k]$ denotes a neuron in that layer. Similarly, consider $m$ neurons from a preceding layer $X_j$, identified by the index vectors $i_1,\dots,i_m$, namely
@@ -71,15 +74,15 @@ Then, the computation:
 \[X_k[i_k] = c_1 \cdot X_j[i_1] + \cdots + c_m \cdot X_j[i_m] + b\] can be written as the assumption:
 
 \begin{code}[style=lbnf]
-	(assume_n e (= Xk[ik] (+ (* c1 Xj[i1]) ... (* cm Xj[im]) b))  :layer ...)
+(assume e (= Xk[ik] (+ (* c1 Xj[i1]) ... (* cm Xj[im]) b))     :layer ...)
 \end{code}
 
 \paragraph{Bounds}
 Using the notations above, the bounds $l_j \leq X_j[i_j] \leq u_j$ for $l_j,u_j \in \mathbb{R}$ are assumed as:
 
 \begin{code}[style=lbnf]
-	(assume_q l (>= Xj[ij] lj))
-	(assume_q u (<= Xj[ij] uj))
+	(assume l (>= Xj[ij] lj))
+	(assume u (<= Xj[ij] uj))
 \end{code}
 
 \subsubsection{Activation Functions}
@@ -91,7 +94,7 @@ The constraint $f = \mathrm{abs}(b)$ is formulated as
 follows: 
 
 \begin{code}[style=lbnf]
-(assume_n abs (ite (>= b 0.0) 
+(assume abs (ite (>= b 0.0) 
                    (= f b) 
                    (= f (- b))) :layer ...) 
 \end{code}
@@ -102,18 +105,18 @@ $f = \mathrm{ceil}(b)$ is formulated as
 follows: 
 
 \begin{code}[style=lbnf]
-(assume_n is_int f :layer ...)
-(assume_n (< f (+ b 1)) :layer ...)
-(assume_n (>= f b) :layer ...)
+(assume is_int f :layer ...)
+(assume (< f (+ b 1)) :layer ...)
+(assume (>= f b) :layer ...)
 \end{code} 
 
 And $f = \mathrm{floor}(b)$ is formulated as
 follows: 
 
 \begin{code}[style=lbnf]
-(assume_n is_int f :layer ...)
-(assume_n (> f (- b 1)) :layer ...)
-(assume_n (<= f b) :layer ...)
+(assume is_int f :layer ...)
+(assume (> f (- b 1)) :layer ...)
+(assume (<= f b) :layer ...)
 \end{code} 
 
 Where \texttt{is\_int} is the $LIA$ typecheck operator that returns true if and only if the type of its argument is \inlinevnn{int}. 
@@ -123,10 +126,10 @@ The constraint $f = \mathrm{clip}(b)$, with maximum parameter $M$ and minimum pa
 follows: 
 
 \begin{code}[style=lbnf]
-(assume_n clp1 (ite (>= b M) 
+(assume clp1 (ite (>= b M) 
                     (= f M) 
                     (= f b)) :layer ...) 
-(assume_n clp2 (ite (<= b m) 
+(assume clp2 (ite (<= b m) 
                     (= f m) 
                     (= f b)) :layer ...) 
 \end{code}
@@ -136,7 +139,7 @@ The constraint $f = \mathrm{LeakyReLU}(b)$, with leakage parameter $a>0$ is form
 follows: 
 
 \begin{code}[style=lbnf]
-(assume_n lr (ite (>= f 0.0) 
+(assume lr (ite (>= f 0.0) 
                   (= f b) 
                   (= f (* a b))) :layer ...) 
 \end{code}
@@ -144,7 +147,7 @@ follows:
 The constraint $f = \mathrm{max}(b_1,b_2)$ is formulated as follows: 
  
 \begin{code}[style=lbnf]
-(assume_n max (ite (>= b1 b2) 
+(assume max (ite (>= b1 b2) 
                    (= f b1) 
                    (= f b2)) :layer ...) 
 \end{code}
@@ -152,7 +155,7 @@ The constraint $f = \mathrm{max}(b_1,b_2)$ is formulated as follows:
 Likewise, $f = \mathrm{min}(b_1,b_2)$ is formulated as follows: 
 
 \begin{code}[style=lbnf]
-(assume_n min (ite (<= b1 b2) 
+(assume min (ite (<= b1 b2) 
                    (= f b1) 
                    (= f b2)) :layer ...) 
 \end{code}
@@ -163,7 +166,7 @@ Extending this formalization to multivariate  maximization and minimization is d
 follows: 
 
 \begin{code}[style=lbnf]
-(assume_n r (ite (>= b 0.0) 
+(assume r (ite (>= b 0.0) 
                  (= f b) 
                  (<= f 0.0)) :layer ...) 
 \end{code}
@@ -171,7 +174,7 @@ follows:
 With the bound:
 
 \begin{code}[style=lbnf]
-(assume_n fl (>= f 0.0) :layer ...)
+(assume fl (>= f 0.0) :layer ...)
 \end{code}
 
 \paragraph{Sigmoid and Tanh}
@@ -179,8 +182,8 @@ These functions are based on the transcendental exponent function, which is not 
 These functions could be formulated using keywords \texttt{sgm} and \texttt{tanh} and yield the following assumptions:
 
 \begin{code}[style=lbnf]
-(assume_n sig (= f (sgm b)) :layer ...)
-(assume_n t (= f (tanh b)) :layer ...)
+(assume sig (= f (sgm b)) :layer ...)
+(assume t (= f (tanh b)) :layer ...)
 \end{code}
 
 However, related proof rules are yet to be formalized. This is currently left as an open problem.
@@ -189,7 +192,7 @@ The constraint $f = \mathrm{sign}(b)$ is formulated as
 follows: 
 
 \begin{code}[style=lbnf]
-(assume_n sgn (ite (>= b 0.0) 
+(assume sgn (ite (>= b 0.0) 
                    (= f 1) 
                    (= f -1)) :layer ...) 
 \end{code}
@@ -197,22 +200,21 @@ follows:
 \subsection{Proof Steps}
  
 \paragraph{Structure}
-Recall that in Alethe, a proof step has the following from:
+Recall that in Alethe, a proof step has the following form:
 
 \noindent\begin{tabularx}{\linewidth}{ l C r }
 		$s.\triangleright$ & 
 		$\varphi_1,\dots,\varphi_n$ & 
 		${\mathtt{(rule\_name \: s_1\cdots s_k)}[a_1 \cdots a_m]}$
 \end{tabularx}\\
-Where $\triangleright$ serves as a separator . This general step is is written as:
+Where $\triangleright$ serves as a separator, $s$ is the unique step identifier, $\varphi_1 \cdots\varphi_n$ are terms representing a component of the derived clause, $\mathtt{s_1 \cdots s_k}$ are the identifiers of previous steps and assumptions, and  $\mathtt{a_1 \cdots a_m}$ are arguments with a specific definition per rule.
+
+This general step is written as:
 
 \begin{code}[style=lbnf,escapechar=@]
 	(step s cl (@$\varphi_1 \cdots\varphi_n$@) :rule <rule_name> :premises(@$\mathtt{s_1 \cdots s_k}$@)
 	                                      :args(@$\mathtt{a_1 \cdots a_m}$@))
 \end{code}
-
-Where \texttt{s} 
-is a unique step identifier, $\varphi_1 \cdots\varphi_n$ are terms representing a component of the derived clause, $\mathtt{s_1 \cdots s_k}$ are the identifiers of previous steps and assumptions, and  $\mathtt{a_1 \cdots a_m}$ are arguments with a specific definition per rule.
 
 We list here the subset of the Alethe proof rules that are used in the
 \vnnlib{} proof format. Their complete description originally appears
@@ -274,7 +276,7 @@ Conversely, a from a sequence of formulas we can establish their conjunction, by
 \end{tabularx}
 
 \paragraph{\texttt{ite1} and \texttt{ite2}:}
-These two rules break an \texttt{ite} statement into two clauses, alternating the truth value of the condition.
+These two rules break an \texttt{ite} statement into clauses, alternating the truth value of the condition.
 
 
 \noindent\begin{tabularx}{\linewidth}{ l C r }
@@ -289,7 +291,7 @@ These two rules break an \texttt{ite} statement into two clauses, alternating th
 	${\mathtt{(ite2 \: s)}}$
 \end{tabularx}
 
-\paragraph{\texttt{la\textunderscore totality}:} This rule represents the order totality over the reals. It is applied for \textsc{LRA} proof terms $t_1,t_2$.
+\paragraph{\texttt{la\textunderscore totality}:} This rule represents the order totality over the Reals. It is applied for \textsc{LRA} proof terms $t_1,t_2$.
 
 \noindent\begin{tabularx}{\linewidth}{ l C r }
 	$s.\triangleright$ & 
@@ -347,7 +349,7 @@ The rule derives the unsatisfiability of a sequence of linear equations
 $\Theta_1,\ldots,\Theta_n$, followed by a sequence of simple linear inequalities
 $\psi_1,\ldots,\psi_m$, where each inequality is of the form
 $\psi_i := (x_i \bowtie c_i)$, with
-$\bowtie \in \{<,>,\leq,\geq\}$, $c_i \in \mathbb{R}$, and $x_i$ a variable.
+$\bowtie \in \{<,>,\leq,\geq\}$, $c_i \in \mathbb{R}$, and $x_i$ a unique variable per inequality.
 Using the above, the \texttt{bounded\textunderscore farkas} rule has the structure:
 
 \noindent\begin{tabularx}{\linewidth}{ l C r }
@@ -361,7 +363,7 @@ Observe that, unlike \texttt{la\textunderscore generic}, only the equations are 
 First, the checker computes the linear combination
 $\sum_{i=1}^{n} a_i \cdot \Theta_i$, which yields an equation involving the variables that appear in the inequalities, say
 $\sum_{j=1}^{m} c_j \cdot x_j = c$,
-where $c_j \in \mathbb{R}\setminus\{0\}$. Then, for each variable $x_j$, the checker selects an inequality $\psi_{j'}$ containing $x_j$ and assigns it the coefficient $|c_j|$. Finally, the checker computes the combined expression
+where $c_j \in \mathbb{R}\setminus\{0\}$. Then, for each variable $x_j$, the checker selects the inequality $\psi_{j'}$ containing $x_j$ and assigns it the coefficient $|c_j|$. Finally, the checker computes the combined expression
 \[
 \sum_{i=1}^{n} a_i \cdot \Theta_i
 +
@@ -379,7 +381,8 @@ An additional form of this rule is as follows:
 This form applies when the clause also contains a single simple inequality $\tau$, which is added to the linear combination with coefficient $b \in \mathbb{R}$. The checking procedure is analogous to the first form of the rule: the checker computes the linear combination of the equations using the coefficients $a_1,\ldots,a_n$, adds the contribution of $\tau$ with coefficient $b$, and then maps the remaining simple inequalities to coefficients as before. The resulting combination must again reduce to an arithmetic contradiction of the form $d \geq 0$ for some negative constant $d$, or $d' > 0$ for some non-positive constant $d'$.
 
 \subsection{Subproofs}
-A subproof opens a separate branch within a proof and is typically used to derive implications of the form $\varphi \rightarrow \psi$. A complete description of subproofs can be found in~\cite{ScFlBaFo21}.
+\label{sec:subproofs}
+A subproof opens a separate branch within a proof and is typically used to derive implications of the form $\varphi \rightarrow \psi$. A full description of subproofs appears in~\cite{ScFlBaFo21}.
 
 A subproof begins with a sequence of assumptions that are valid only within its local context. It is introduced by an \texttt{anchor} command, which marks the start of the branch and specifies the identifier of the concluding step. The anchor is followed by one or more assumptions. Illustratively, this looks as:
 
@@ -453,9 +456,9 @@ Finally, assume that the input layer operator is named \texttt{il}, the hidden R
 	\begin{minipage}[c]{0.76\textwidth}
 		\begin{lstlisting}[style=lbnf]   
 			(declare-network encoder
-			(declare-input  X float64 [1,4])
-			(declare-hidden H float64 [1,2] "hr")
-			(declare-output Y float64 [1,1])
+			  (declare-input  X float64 [1,4])
+			  (declare-hidden H float64 [1,2] "hr")
+			  (declare-output Y float64 [1,1])
 			)
 			
 			(assert (<= X[0,0] 1.0))
@@ -482,29 +485,34 @@ Finally, assume that the input layer operator is named \texttt{il}, the hidden R
 
 An example proof of unsatisfiability for this query is shown in Figure~\ref{fig:proof}.
 The proof introduces two variables for each hidden neuron in the ReLU layer \texttt{hidden}: \texttt{H[0,i]\_b} and \texttt{H[0,i]\_f} corresponding to the variables described in Section~\ref{sec:proof-syntax}.
-The proof begins by listing the assumption equations induced by the network. It then adds the bounds specified by the \vnnlib{} property, followed by assumptions encoding the ReLU activation bound constraints.
+The proof begins by declaring the network assumption, which includes the equations induced by the linear layers of the network, followed by assumptions encoding the ReLU activation constraints. Then, the proof proceeds by importing bound assumption directly from the \vnnlib{} specification file.
 Finally, the proof contains a sequence of derivation steps that lead to the empty clause, thereby establishing unsatisfiability.
 \begin{figure}[p]
-	\begin{lstlisting}[style=lbnf,basicstyle=\ttfamily\scriptsize\bfseries,linewidth=1.03\textwidth]
-	(assume_n e1 (!(= (+ X_0_0 (- X_0_1 ) (- H_0_0_b)) 0.0):named e1) :layer il)
-	(assume_n e2 (!(= (+ (* 2.0 X_0_1) X_0_2 (- H_0_1_b)) 0.0):named e2) :layer il)
-	(assume_n e3 (!(= (+ H_0_1_f (- H_0_0_f) (- Y_0_0)) 0.0):named e3) :layer ol)
+	\vspace{-0.6cm}
+	\begin{lstlisting}[style=lbnf,basicstyle=\ttfamily\scriptsize\bfseries,linewidth=1.05\textwidth]
+	; Network assumptions
+	(assume network encoder 
+	  (assume e1 (!(= (+ X_0_0 (- X_0_1 ) (- H_0_0_b)) 0.0):named e1) :layer il)
+	  (assume e2 (!(= (+ (* 2.0 X_0_1) X_0_2 (- H_0_1_b)) 0.0):named e2) :layer il)
+	  (assume e3 (!(= (+ H_0_1_f (- H_0_0_f) (- Y_0_0)) 0.0):named e3) :layer ol)
 	
-	(assume_n r1 (!(ite (>= H_0_0_b 0.0)(= H_0_0_b H_0_0_f)(<= H_0_0_f 0.0)):named r1
-	             ):layer hr)
-	(assume_n r2 (!(ite (>= H_0_1_b 0.0)(= H_0_1_b H_0_1_f)(<= H_0_1_f 0.0)):named r2
-	             ):layer hr)
+	  (assume r1 (!(ite (>= H_0_0_b 0.0)(= H_0_0_b H_0_0_f)(<= H_0_0_f 0.0)):named r1
+	               ):layer hr)
+	  (assume r2 (!(ite (>= H_0_1_b 0.0)(= H_0_1_b H_0_1_f)(<= H_0_1_f 0.0)):named r2
+	               ):layer hr)
 	
-	(assume_n lf0 (!(>= H_0_0_f 0.0):named lf0):layer hr)
-	(assume_n lf1 (!(>= H_0_1_f 0.0):named lf1):layer hr)
+	  (assume lf0 (!(>= H_0_0_f 0.0):named lf0):layer hr)
+	  (assume lf1 (!(>= H_0_1_f 0.0):named lf1):layer hr)
+	)
 	
-	(assume_q u0 (!(<= X_0_0 1.0):named u0))
-	(assume_q l0 (!(>= X_0_0 0.0):named l0))
-	(assume_q u1 (!(<= X_0_1 1.0):named u1))
-	(assume_q l1 (!(>= X_0_1 0.0):named l1))
-	(assume_q u2 (!(<= X_0_2 1.0):named u2))
-	(assume_q l2 (!(>= X_0_2 0.0):named l2))
-	(assume_q u3 (!(<= Y_0_0 -2.0):named u3))
+	; Query assumption
+	(assume u0 (!(<= X_0_0 1.0):named u0))
+	(assume l0 (!(>= X_0_0 0.0):named l0))
+	(assume u1 (!(<= X_0_1 1.0):named u1))
+	(assume l1 (!(>= X_0_1 0.0):named l1))
+	(assume u2 (!(<= X_0_2 1.0):named u2))
+	(assume l2 (!(>= X_0_2 0.0):named l2))
+	(assume u3 (!(<= Y_0_0 -2.0):named u3))
 	
 	; Prove for both ReLUs that f - b >= 0
 	(step t1 (cl (not (>= H_0_0_b 0.0))(= H_0_0_b H_0_0_f)):rule ite2 :premises(r1))
@@ -514,7 +522,6 @@ Finally, the proof contains a sequence of derivation steps that lead to the empt
 	         :rule la_generic :args(1 -1 1))
 	(step aux1bound (cl (<= 0.0 (!(- H_0_0_f H_0_0_b):named H_0_0_a))):rule
 	                resolution :premises(t1 t2 t3 lf0))
-	
 	(step s1 (cl (not (>= H_0_1_b 0.0))(= H_0_1_b H_0_1_f)):rule ite2 :premises(r2))
 	(step s2 (cl (not (= H_0_1_b H_0_1_f))(<= 0.0 (- H_0_1_f H_0_1_b))):rule 
 	         la_generic :args(-1 1))
@@ -546,7 +553,7 @@ Finally, the proof contains a sequence of derivation steps that lead to the empt
 	
 	; Finalize
 	(step final (cl):rule resolution :premises(rt3 lf3))\end{lstlisting}
-	\vspace{-0.3cm}
+	\vspace{-0.4cm}
 	\caption{An example for a \vnnlib{} proof in Alethe.}
 	\label{fig:proof}
 \end{figure}

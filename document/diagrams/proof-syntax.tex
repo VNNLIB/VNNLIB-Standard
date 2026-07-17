@@ -1,13 +1,15 @@
 \begin{grammar}\footnotesize
 	<proof> ::= <proofCommand>$^*$ 
 	
-	<proofCommand> ::= <assume>
+	<proofCommand> ::= <assumeNetwork>
+	\alt <assume>
 	\alt<step>
 	
 	%<name> ::= [A-Za-z][\_A-Za-z0-9]*
-	<assume> ::= (\texttt{assume\_n} <name> <bool> \texttt{:layer} <name>)
-	\alt (\texttt{assume\_q} <name> <bool>)
-	\alt (\texttt{assume} <name> <bool>)
+	<assumeNetwork> ::=  (\texttt{assume-network} <name> <assume>$^*$ )
+	
+	
+	<assume> ::= (\texttt{assume} <name> <bool> (\texttt{:layer} <name>)$^?$)
 
 	<subproof> ::= (\texttt{anchor} :step <name>)
 	

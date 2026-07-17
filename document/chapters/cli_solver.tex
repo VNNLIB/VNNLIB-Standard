@@ -263,7 +263,7 @@ Flatten
 {A newline-separated list of lines, where each line contains the name of an ONNX operator followed by a possibly empty space-separated list of ONNX element types.  If the list is empty, then the solver is assumed to support the operator for all element types it reports via the \texttt{supports -{}-onnx-element-types} command.
 }
 \begin{lstlisting}[style=bash]
-%*\exampleSolver* supports --onnx-operators
+%*\exampleSolver* supports --onnx-operators-unsat-proofs
 Conv float64
 MatMul
 Add float64 float32 int64

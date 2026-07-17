@@ -1,7 +1,7 @@
 \chapter{Checker Command-Line Interface}
 \label{sec:checker-interface}
 
-The proof checker is an external tool, separate from the solver, that verifies proofs written in the \vnnlib{} proof format. 
+The proof checker is an external tool, separate from the solver, that verifies proofs written in the \vnnlib{} proof format.  This chapter defines the CLI for proof checkers that conform to the \vnnlib{} proof standard. The interface supports running the proof checker and querying its capabilities.
 
 \section{The \texttt{check} Command}
 
@@ -42,8 +42,7 @@ The \texttt{check} command \emph{must} error when encountering any of the solver
 
 \section{The \texttt{supports} Command}
 
-When invoked with the \texttt{supports} command, the checker should report the types of queries and networks whose proof it can check, as well as the set of proof rules it is capable of checking
-. As in the solver's \texttt{supports}, these options provide a way for higher-level tools to automatically assess the capabilities of the proof checker.
+When invoked with the \texttt{supports} command, the checker should report the types of queries and networks whose proof it can check, as well as the set of proof rules it is capable of checking. As in the solver's \texttt{supports} command, these options provide a way for higher-level tools to automatically assess the capabilities of the proof checker.
 
 The general pattern of usage is as follows:
 \begin{lstlisting}[style=bash]
