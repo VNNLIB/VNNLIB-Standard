@@ -276,8 +276,10 @@
     basicstyle=\ttfamily\footnotesize,
     breakatwhitespace=false,         
     breaklines=true,                 
-    captionpos=b,                    
-    keepspaces=true,                 
+    captionpos=b,  
+    escapeinside={\%*}{*},   
+    keepspaces=true,  
+    moredelim=**[is][\color{red}]{<@}{@>},            
     numbers=left,                    
     numbersep=5pt,                  
     showspaces=false,                
@@ -286,8 +288,7 @@
     tabsize=1,
     frame=lines,
     xleftmargin=2em,
-    framexleftmargin=1.5em,
-    escapeinside={\%*}{*}
+    framexleftmargin=1.5em
 }
 
 % Listings style for Bash/CLI commands

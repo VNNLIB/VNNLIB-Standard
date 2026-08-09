@@ -31,7 +31,7 @@ Additionally, the proof checker should support the following additional options:
 	\item \texttt{timed-out} - The allocated time elapsed before the checking procedure terminated.
 	\item \texttt{valid} - The checker terminated and certified the proof witnesses the unsatisfiability of the query.
 	\item \texttt{invalid} - The checker terminated with at least one assumption that could not be imported from the initial network or \vnnlib{} query, or at least one proof step whose checking has failed. The checker may add information for better understanding which proofs steps did not pass the checking and the reasons for failure.
-	\item \texttt{holey} (optional) - The checker terminated and certified all assumptions and non-holey proof steps. Therefore, the proof witnesses the unsatisfiability of the query if and only if the \texttt{hole} steps are proven.
+	\item \texttt{holey} - The checker terminated and certified all assumptions and non-holey proof steps. Therefore, the proof witnesses the unsatisfiability of the query if and only if the \texttt{hole} steps are proven.
 \end{itemize}
 In particular, a proof checker is required to be complete and thus, unlike a solver, cannot output an \texttt{unknown} result.
 

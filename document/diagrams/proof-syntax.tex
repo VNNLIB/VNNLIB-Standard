@@ -1,12 +1,12 @@
 \begin{grammar}\footnotesize
-	<proof> ::= <proofCommand>$^*$ 
+	<proof> ::=  <version><proofCommand>$^*$ 
 	
 	<proofCommand> ::= <assumeNetwork>
 	\alt <assume>
 	\alt<step>
 	
 	%<name> ::= [A-Za-z][\_A-Za-z0-9]*
-	<assumeNetwork> ::=  (\texttt{assume-network} <name> <assume>$^*$ )
+	<assumeNetwork> ::=  (\texttt{assume-network} <name> <assume>$^*$)
 	
 	
 	<assume> ::= (\texttt{assume} <name> <bool> (\texttt{:layer} <name>)$^?$)
@@ -34,6 +34,7 @@
 	\alt (\texttt{\textgreater=} <arith> <arith>)
 	\alt (\texttt{==} <arith> <arith>)
 	\alt (\texttt{!=} <arith> <arith>)
+	\alt (\texttt{is\_int} <arith>)
 	
 	<rule\_name> ::=  \texttt{false}
 	\alt  \texttt{not\_not}

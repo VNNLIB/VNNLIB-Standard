@@ -17,29 +17,32 @@ Another advantage is that Alethe proofs can be reconstructed as proof terms in s
 
 \begin{figure}[p]
 	\setlength{\grammarindent}{6.5em}
+	\vspace{-0.8cm}
 	\input{diagrams/proof-syntax.tex}
 	\vspace{-1em}
-    \caption{The syntax of \vnnlib{} proofs, adapted from the Alethe syntax in~\cite{ScFlBaFo21}, simplified and stylized for this context. The superscripts $^*$, $^+$, $^?$ and the terms <arith>,<name> are defined as in Figure~\ref{fig:vnnlib-syntax}.}
+    \caption{The syntax of \vnnlib{} proofs, adapted from the Alethe syntax in~\cite{ScFlBaFo21}, simplified and stylized for this context. The superscripts $^*$, $^+$, $^?$ and the terms <arith>,<name> and <version> are defined as in Figure~\ref{fig:vnnlib-syntax}.}
     \label{fig:proof-syntax}
 \end{figure}
 
 The syntax of \vnnlib{} proofs is shown in Figure~\ref{fig:proof-syntax}. At the top level, a \vnnlib{} proof consists of three parts:
 \begin{enumerate}
-	\item \textbf{Assumptions:} Introduce formulas assumed to be correct. These can either be imported from the neural networks or the \vnnlib{} specification being proved. To ease proof checking, \vnnlib{} proofs specify the source of each assumption depending on the context of their appearance.
+	\item \textbf{Network assumptions:} Introduce formulas assumed to be correct by the structure of the neural networks. To ease proof checking, \vnnlib{} proofs specify the source of each network assumption depending on the context of their appearance:
 
 	\begin{itemize}	
-	\item The \texttt{assume-network} command specifies a \emph{network assumption} environment. This command must name a network used in the \vnnlib{} specification file and it defines a network context. This context is then used to define additional assumptions, imported from the declared network.
-	\item The \texttt{assume} command specifies a constraint imported from either a neural network or the  \vnnlib{} specification file. If the command appears within an \texttt{assume-network} context, then it represents an assumption imported from that network and must explicitly state the name of the ONNX layer used for its import, by using the \texttt{:layer} keyword. Otherwise, it directly imports assertions from the \vnnlib{} specification file, and should not use the \texttt{:layer} flag. 
-	\item Additional assumptions can be assumed correct at a given subproof context (see below in Section~\ref{sec:subproofs}).
+	\item The \texttt{assume-network} command specifies a \emph{network assumption context}. This command must name a network used in the \vnnlib{} specification file and it defines that network's context. This context is then used to define additional assumptions, imported from the declared network.
+	\item Within a network context, the \texttt{assume} command specifies a constraint imported from that neural network. Each such assumption  must explicitly state the name of the ONNX layer used for its import, by using the \texttt{:layer} keyword. 
 	\end{itemize}
+	
+	\item \textbf{Query assumptions:} Introduce formulas imported directly from the \vnnlib{} query specification, outside any network context. These assumptions are also introduced using the \texttt{assume} command and must reproduce formulas exactly as stated in the specification. Since they are defined outside any network context, they should not use the \texttt{:layer} keyword.
 
-	All Assumptions contain a unique identifier name and the imported formula. Additionally, the requirement to list the importing layer requires all ONNX networks used in this format to contain a unique name for each layer.
-	For all assumptions declared outside an \texttt{assume-network} command, the \texttt{:layer} flag can either lead to a checking failure, raise a warning, or simply be disregarded.
+	All assumptions contain a unique identifier name and the imported formula. Additionally, the requirement to list the importing layer requires all ONNX networks used in this format to contain a unique name for each layer.
+	For all assumptions declared outside an \texttt{assume-network} command, the \texttt{:layer} flag should lead to a checking failure.
 	
 	The proof checker \emph{must} certify that all network assumptions are correctly imported from a valid layer in the network, and that the variable names are consistent across all assumptions and with the ONNX files. All query assumptions must match an assertion defined in the \vnnlib{} specification file, and have consistent variable names with the other assumptions.
 	
 	\item \textbf{Proof steps:} Derive new facts from assumptions and from previously derived steps, called \emph{premises}. Each proof step contains a unique identifier name, the derived clause, the name of the proof rule used to derive it, its premises, and, when needed, additional rule-specific arguments.
-	\item \textbf{Subproofs (optional):} Open a separate branch within a proof, adding assumptions $A_1 \cdots A_n$. When concluding a subproof with a conclusion $C$, then clause $\lnot A_1, \dots, \lnot A_n, C$ is learned in the main proof branch.
+	
+	Proof steps may include \textbf{Subproofs}, which open a separate branch within a proof and add assumptions $A_1 \cdots A_n$. When concluding a subproof with a conclusion $C$, then clause $\lnot A_1, \dots, \lnot A_n, C$ is learned in the main proof branch.
 \end{enumerate}
 For simplicity, all assumptions must appear either: 
 \begin{inparaenum}[(i)]
@@ -55,10 +58,19 @@ An example of a network, a specification defined in \vnnlib{}, and a correspondi
 \begin{code}[style=lbnf]
 	... !(term):named id ...
 \end{code}
-\subsection{Assumptions}
+
+
+\paragraph{Variable Naming.} Although \vnnlib{} supported square brackets (\texttt{[ ]}) and commas (\texttt{,}) as a part of variable naming, Alethe does not. Therefore. to maintain the required consistency of variable names, we use underscores (\texttt{\_}) for indexing instead. For example, the variable $X[i,j]$ is indexed as $X\_i\_j$.
+
+\subsection{Network Assumptions}
 \label{sec:proof-assumptions}
 
-\paragraph{Linear Equations}
+We list the formal encodings of common ONNX nodes, including nodes frequently used in the neural network verification literature. We first formalize a general linear equation, which is used to encode linear nodes, and then present an alphabetical list of ONNX nodes together with their corresponding encodings.
+For simplicity, we use a naming convention in which the input and output variables of each node are denoted by $x$ and $y$, respectively; and input and output matrices are denoted $A,B,C$ and $Y$, respectively. All node indexing that appear in the proofs must match the indexing implied by the node, and all variable naming must be isomorphic to such indexing.  
+
+The list is not exhaustive, and we welcome contributions of encodings for additional node types.
+ 
+\subsubsection{Linear Equations}
 
 Linear equations are typically used to encode the affine transformations induced by the internal linear layers of the network, as well as linear constraints originating from the specification.
 A linear equation of the form $d = \overset{l}{\underset{i=1}{\sum}} c_i \cdot x_i$  is represented in the proof
@@ -74,128 +86,180 @@ Then, the computation:
 \[X_k[i_k] = c_1 \cdot X_j[i_1] + \cdots + c_m \cdot X_j[i_m] + b\] can be written as the assumption:
 
 \begin{code}[style=lbnf]
-(assume e (= Xk[ik] (+ (* c1 Xj[i1]) ... (* cm Xj[im]) b))     :layer ...)
+(assume e (= Xk_ik (+ (* c1 Xj_i1) ... (* cm Xj_im) b))     :layer ...)
 \end{code}
 
-\paragraph{Bounds}
-Using the notations above, the bounds $l_j \leq X_j[i_j] \leq u_j$ for $l_j,u_j \in \mathbb{R}$ are assumed as:
 
-\begin{code}[style=lbnf]
-	(assume l (>= Xj[ij] lj))
-	(assume u (<= Xj[ij] uj))
-\end{code}
-
-\subsubsection{Activation Functions}
-The representation of each activation function requires its own formalization in SMT, which can be interpreted in Alethe. We list here the formalization of several common activation functions in alphabetical order. The formalization of linear operators is straightforward using linear equations. To ease notation, we use here a simple naming convention for variables, which denotes the input and output variables of the constraint as $b$ and $f$, respectively.
-
+\subsubsection{ONNX Nodes Encoding}
 
 \paragraph{Abs}
-The constraint $f = \mathrm{abs}(b)$ is formulated as
+The constraint $y = \mathrm{abs}(x)$ is formulated as
 follows: 
 
 \begin{code}[style=lbnf]
-(assume abs (ite (>= b 0.0) 
-                   (= f b) 
-                   (= f (- b))) :layer ...) 
+(assume abs (ite (>= x 0.0) 
+                   (= y x) 
+                   (= y (- x))) :layer ...) 
 \end{code}
 
-\paragraph{Ceil and Floor}
-These two constraints require introducing reasoning on integers (e.g. using reasoning over LIA). To this end, a constraint of the form 
-$f = \mathrm{ceil}(b)$ is formulated as
+\paragraph{Ceil}
+This constraint requires introducing reasoning on integers (e.g. using reasoning over LIA). To this end, a constraint of the form 
+$f = \mathrm{ceil}(x)$ is formulated as
 follows: 
 
 \begin{code}[style=lbnf]
-(assume is_int f :layer ...)
-(assume (< f (+ b 1)) :layer ...)
-(assume (>= f b) :layer ...)
+(assume is_int y :layer ...)
+(assume (< x (+ x 1)) :layer ...)
+(assume (>= y x) :layer ...)
 \end{code} 
 
-And $f = \mathrm{floor}(b)$ is formulated as
-follows: 
+where \texttt{is\_int} is the $LIA$ typecheck operator that returns true if and only if the type of its argument is \inlinevnn{int}. 
 
-\begin{code}[style=lbnf]
-(assume is_int f :layer ...)
-(assume (> f (- b 1)) :layer ...)
-(assume (<= f b) :layer ...)
-\end{code} 
-
-Where \texttt{is\_int} is the $LIA$ typecheck operator that returns true if and only if the type of its argument is \inlinevnn{int}. 
 
 \paragraph{Clip}
-The constraint $f = \mathrm{clip}(b)$, with maximum parameter $M$ and minimum parameter $m$ is formulated as
+The constraint $y = \mathrm{clip}_{M,m}(x)$, with maximum parameter $M$ and minimum parameter $m$ is formulated as
 follows: 
 
 \begin{code}[style=lbnf]
-(assume clp1 (ite (>= b M) 
-                    (= f M) 
-                    (= f b)) :layer ...) 
-(assume clp2 (ite (<= b m) 
-                    (= f m) 
-                    (= f b)) :layer ...) 
+(assume clp1 (ite (>= x M) 
+                    (= y M) 
+                    (= y x)) :layer ...) 
+(assume clp2 (ite (<= x m) 
+                    (= y m) 
+                    (= y x)) :layer ...) 
 \end{code}
+
+\paragraph{Floor}
+This constraint requires introducing reasoning on integers (e.g. using reasoning over LIA). To this end, a constraint of the form 
+And $y = \mathrm{floor}(x)$ is formulated as
+follows: 
+
+\begin{code}[style=lbnf]
+(assume is_int y :layer ...)
+(assume (> y (- x 1)) :layer ...)
+(assume (<= y x) :layer ...)
+\end{code} 
+
+where \texttt{is\_int} is the $LIA$ typecheck operator that returns true if and only if the type of its argument is \inlinevnn{int}. 
+
+\paragraph{Gemm (General Matrix Multiplication)}
+The ONNX \texttt{Gemm} operator performs a general matrix multiplication followed by an addition. As input, the function receives three Tensors $A$, $B$, and $C$; two scalars $\alpha, \beta$; and two Booleans \texttt{transA}, \texttt{transB}. The operator computes
+\[
+Y = \alpha \cdot A'\cdot B' + \beta \cdot C,
+\]
+
+where $A'=A^\top$ if the \texttt{transA} attribute is set, and $A'=A$ otherwise; $B'$ is defined analogously according to \texttt{transB}. 
+Assuming that $A'$ has dimensions $m\times k$ and $B'$
+has dimensions $k\times n$, the resulting tensor $Y$ has dimensions $m\times n$, while $C$ is broadcast to $m\times n$ when necessary
+
+To represent a fully connected layer, $B$ and $C$ are constant Tensors, resulting in
+linear equations over the network variables of $A$.
+
+Using the above formulation, we can assume the following equations used to derive the output variable $Y[i,j]$:
+ 
+\begin{code}[style=lbnf,mathescape=true]
+(assume e_i_j (= Y_i_j (+ (* $\alpha$ B_1_j A_i_1) ... 
+                          (* $\alpha$ B_k_j A_i_k)
+                          (* $\beta$ C_i_j))) :layer ...)
+\end{code}
+
+where \texttt{B\_1\_j,...,B\_k\_j, C\_i\_j } appear in their numerical value.
+
 
 \paragraph{LeakyReLU}
-The constraint $f = \mathrm{LeakyReLU}(b)$, with leakage parameter $a>0$ is formulated as
+The constraint $y = \mathrm{LeakyReLU}_\alpha(x)$, with leakage parameter $a>0$ is formulated as
 follows: 
 
 \begin{code}[style=lbnf]
-(assume lr (ite (>= f 0.0) 
-                  (= f b) 
-                  (= f (* a b))) :layer ...) 
+(assume lr (ite (>= y 0.0) 
+                  (= y x) 
+                  (= y (* a x))) :layer ...) 
 \end{code}
+
+\paragraph{MatMul (Matrix Multiplication)}
+The ONNX \texttt{MatMul} operator performs matrix multiplication. As input, the function receives two Tensors $A$ and $B$, and computes $Y = A \cdot B$.
+
+For Tensors with more than two dimensions, the last two dimensions are treated as the matrix dimensions, while the preceding dimensions are treated as batch dimensions. Thus, considering a batch index vector $q$, and assuming that the last two dimensions of $A$ and $B$ are $m \times k$ and $k \times n$, respectively, each output variable is computed as:
+\[
+Y[q,i,j] = \sum_{r=1}^{k} A[q,i,r] \cdot B[q,r,j],
+\]
+
+To represent a linear layer, $B$ is a constant Tensor, resulting in linear equations over the network variables of $A$.
+Using the above formulation, we can assume the following equations used to derive the output variable $Y[q,i,j]$:
+
+\begin{code}[style=lbnf]
+(assume e_q_i_j (= Y_q_i_j (+ (* B_q_1_j A_q_i_1) ... 
+                              (* B_q_k_j A_q_i_k))) :layer ...)
+\end{code}
+
+where \texttt{B\_q\_1\_j,...,B\_q\_k\_j} appear in their numerical value.
+
+
 \paragraph{Max and Min}
-The constraint $f = \mathrm{max}(b_1,b_2)$ is formulated as follows: 
+The constraint $y = \mathrm{max}(x_1,x_2)$ is formulated as follows: 
  
 \begin{code}[style=lbnf]
-(assume max (ite (>= b1 b2) 
-                   (= f b1) 
-                   (= f b2)) :layer ...) 
+(assume max (ite (>= x1 x2) 
+                   (= y x1) 
+                   (= y x2)) :layer ...) 
 \end{code}
 
-Likewise, $f = \mathrm{min}(b_1,b_2)$ is formulated as follows: 
+Likewise, $y = \mathrm{min}(x_1,x_2)$ is formulated as follows: 
 
 \begin{code}[style=lbnf]
-(assume min (ite (<= b1 b2) 
-                   (= f b1) 
-                   (= f b2)) :layer ...) 
+(assume min (ite (<= x1 x2) 
+                   (= y x1) 
+                   (= y x2)) :layer ...) 
 \end{code}
 
 Extending this formalization to multivariate  maximization and minimization is done by composition of the above formulation, i.e., by stating $max(a,b,c) = max(max(a,b),c))$.
 
-\paragraph{ReLU} The constraint $f = \mathrm{ReLU}(b)$ is formulated as
+\paragraph{ReLU} The constraint $y = \mathrm{ReLU}(x)$ is formulated as
 follows: 
 
 \begin{code}[style=lbnf]
-(assume r (ite (>= b 0.0) 
-                 (= f b) 
-                 (<= f 0.0)) :layer ...) 
+(assume r (ite (>= x 0.0) 
+                 (= y x) 
+                 (<= y 0.0)) :layer ...) 
 \end{code}
 
 With the bound:
 
 \begin{code}[style=lbnf]
-(assume fl (>= f 0.0) :layer ...)
+(assume fl (>= y 0.0) :layer ...)
 \end{code}
 
-\paragraph{Sigmoid and Tanh}
-These functions are based on the transcendental exponent function, which is not a part of the SMTLIB standard and consequently in Alethe format.
-These functions could be formulated using keywords \texttt{sgm} and \texttt{tanh} and yield the following assumptions:
-
-\begin{code}[style=lbnf]
-(assume sig (= f (sgm b)) :layer ...)
-(assume t (= f (tanh b)) :layer ...)
-\end{code}
-
-However, related proof rules are yet to be formalized. This is currently left as an open problem.
 \paragraph{Sign}
-The constraint $f = \mathrm{sign}(b)$ is formulated as
+The constraint $y = \mathrm{sign}(x)$ is formulated as
 follows: 
 
 \begin{code}[style=lbnf]
-(assume sgn (ite (>= b 0.0) 
-                   (= f 1) 
-                   (= f -1)) :layer ...) 
+(assume sgn (ite (> x 0.0)
+                 (= y 1.0)
+                 (ite (< x 0.0)
+                      (= y -1.0)
+                      (= y 0.0))) :layer ...)
 \end{code}
+
+\subsection{Query Assumptions}
+
+The syntactical form of query assumptions is independent of the neural network structure, and only adhere to constraints appear in the \vnnlib{} query file. In particular, variable naming in the proof file should be consistent with the naming in the query file.
+
+For example, the notations above allows us to formalize any bounds on the form $l_j \leq X_j[i_j] \leq u_j$ for $l_j,u_j \in \mathbb{R}$ as:
+
+\begin{code}[style=lbnf]
+	(assert (>= Xj_ij lj))
+	(assert (<= Xj_ij uj))
+\end{code}
+
+within the \vnnlib{} query. And as,
+
+\begin{code}[style=lbnf]
+	(assume l (>= Xj_ij lj))
+	(assume u (<= Xj_ij uj))
+\end{code}
+
+within the proof file.
 
 \subsection{Proof Steps}
  
@@ -338,8 +402,8 @@ The complete checking procedure for this rule is given in~\cite{ScFlBaFo21}.
 A proof checker may either reject any proof containing such a step, or return a dedicated status indicating that all other proof steps are valid, while the proof as a whole remains incomplete.
 The arguments and premises of this rule must be syntactically well formed, but they can be disregarded.
  
-\paragraph{\texttt{bounded\textunderscore farkas} (optional):}
-In addition to the rules above, we include optional support for the novel
+\paragraph{\texttt{bounded\textunderscore farkas}:}
+In addition to the rules above, we include the option support the novel
 \texttt{bounded\textunderscore farkas} rule, which formalizes the proof vectors
 used in~\cite{IsBaZhKa22}. This rule provides a compact representation of
 \texttt{la\textunderscore generic} for a particular class of cases, and can
@@ -438,17 +502,18 @@ Lastly, this chapter is concluded with a complete example consisting of a neural
 Consider the neural network and \vnnlib{} specification illustrated in Figure~\ref{fig:proof-query}. Assume that the matrix-multiplication layers defined by the ONNX file are as follows:
 
 The input $X$ is multiplied by the matrix:
-$\begin{bmatrix} 1 & -1 & 0 
+
+$$\begin{bmatrix} 1 & -1 & 0 
 \\
 0 & 1 & 1 
- \end{bmatrix}$
-Resulting in $H = \begin{bmatrix} X[0,0] - X[0,1] 
+ \end{bmatrix}$$
+resulting in: $$H = \begin{bmatrix} X\_0\_0 - X\_0\_1 
 	\\
-	X[0,1] + X[0,2]
-\end{bmatrix}$.
+	X\_0\_1 + X\_0\_2
+\end{bmatrix}$$.
 The output of the hidden later $H$ is multiplied by the matrix:
 $\begin{bmatrix} -1 & 1
-\end{bmatrix}$. Meaning that $Y[0,0] = H[0,1] - H[0,0]$.
+\end{bmatrix}$. Meaning that $Y\_0\_0 = H\_0\_1 - H\_0\_0$.
 
 Finally, assume that the input layer operator is named \texttt{il}, the hidden ReLU layer operator is named \texttt{hr}, and the output layer operator name is \texttt{ol}
 
@@ -461,19 +526,19 @@ Finally, assume that the input layer operator is named \texttt{il}, the hidden R
 			  (declare-output Y float64 [1,1])
 			)
 			
-			(assert (<= X[0,0] 1.0))
-			(assert (>= X[0,0] 0.0))
+			(assert (<= X_0_0 1.0))
+			(assert (>= X_0_0 0.0))
 			
-			(assert (<= X[0,1] 1.0))
-			(assert (>= X[0,1] 0.0))
+			(assert (<= X_0_1 1.0))
+			(assert (>= X_0_1 0.0))
 			
-			(assert (<= X[0,2] 1.0))
-			(assert (>= X[0,2] 0.0))
+			(assert (<= X_0_2 1.0))
+			(assert (>= X_0_2 0.0))
 			
-			(assert (<= X[0,3] 1.0))
-			(assert (>= X[0,3] 0.0))
+			(assert (<= X_0_3 1.0))
+			(assert (>= X_0_3 0.0))
 			
-			(assert (<= Y[0,0] -1.0)) \end{lstlisting}
+			(assert (<= Y_0_0 -1.0)) \end{lstlisting}
 	\end{minipage}
 	\begin{minipage}[c]{0.21\textwidth}
 		\centering
@@ -484,26 +549,26 @@ Finally, assume that the input layer operator is named \texttt{il}, the hidden R
 \end{figure}
 
 An example proof of unsatisfiability for this query is shown in Figure~\ref{fig:proof}.
-The proof introduces two variables for each hidden neuron in the ReLU layer \texttt{hidden}: \texttt{H[0,i]\_b} and \texttt{H[0,i]\_f} corresponding to the variables described in Section~\ref{sec:proof-syntax}.
-The proof begins by declaring the network assumption, which includes the equations induced by the linear layers of the network, followed by assumptions encoding the ReLU activation constraints. Then, the proof proceeds by importing bound assumption directly from the \vnnlib{} specification file.
-Finally, the proof contains a sequence of derivation steps that lead to the empty clause, thereby establishing unsatisfiability.
+The proof introduces two variables for each hidden neuron in the ReLU layer \texttt{hidden}: \texttt{H\_0\_i\_b} and \texttt{H\_0\_i\_f} corresponding to the variables described in Section~\ref{sec:proof-syntax}.
+The proof begins by declaring the network assumption in lines 2--14, which includes the equations induced by the linear layers of the network (lines 3--5), followed by assumptions encoding the ReLU activation constraints (lines 7--13). Then, in lines 17--23, the proof proceeds by importing bound assumption directly from the \vnnlib{} specification file.
+Finally, lines 25--63 contain a sequence of derivation steps that lead to the empty clause, thereby establishing unsatisfiability.
 \begin{figure}[p]
-	\vspace{-0.6cm}
+	\vspace{-0.8cm}
 	\begin{lstlisting}[style=lbnf,basicstyle=\ttfamily\scriptsize\bfseries,linewidth=1.05\textwidth]
 	; Network assumptions
-	(assume network encoder 
-	  (assume e1 (!(= (+ X_0_0 (- X_0_1 ) (- H_0_0_b)) 0.0):named e1) :layer il)
-	  (assume e2 (!(= (+ (* 2.0 X_0_1) X_0_2 (- H_0_1_b)) 0.0):named e2) :layer il)
-	  (assume e3 (!(= (+ H_0_1_f (- H_0_0_f) (- Y_0_0)) 0.0):named e3) :layer ol)
+	<@(assume network encoder @> 
+	  (assume e1 (!(= (+ X_0_0 (- X_0_1 ) (- H_0_0_b)) 0.0):named e1) <@:layer@> il)
+	  (assume e2 (!(= (+ (* 2.0 X_0_1) X_0_2 (- H_0_1_b)) 0.0):named e2) <@:layer@> il)
+	  (assume e3 (!(= (+ H_0_1_f (- H_0_0_f) (- Y_0_0)) 0.0):named e3) <@:layer@> ol)
 	
 	  (assume r1 (!(ite (>= H_0_0_b 0.0)(= H_0_0_b H_0_0_f)(<= H_0_0_f 0.0)):named r1
-	               ):layer hr)
+	               )<@:layer@> hr)
 	  (assume r2 (!(ite (>= H_0_1_b 0.0)(= H_0_1_b H_0_1_f)(<= H_0_1_f 0.0)):named r2
-	               ):layer hr)
+	               )<@:layer@> hr)
 	
-	  (assume lf0 (!(>= H_0_0_f 0.0):named lf0):layer hr)
-	  (assume lf1 (!(>= H_0_1_f 0.0):named lf1):layer hr)
-	)
+	  (assume lf0 (!(>= H_0_0_f 0.0):named lf0)<@:layer@> hr)
+	  (assume lf1 (!(>= H_0_1_f 0.0):named lf1)<@:layer@> hr)
+	<@)@>
 	
 	; Query assumption
 	(assume u0 (!(<= X_0_0 1.0):named u0))
@@ -554,6 +619,6 @@ Finally, the proof contains a sequence of derivation steps that lead to the empt
 	; Finalize
 	(step final (cl):rule resolution :premises(rt3 lf3))\end{lstlisting}
 	\vspace{-0.4cm}
-	\caption{An example for a \vnnlib{} proof in Alethe.}
+	\caption{An example for a \vnnlib{} proof in Alethe. The text highlighted in red is an addition on top of the standard Alethe.}
 	\label{fig:proof}
 \end{figure}
