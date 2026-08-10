@@ -27,7 +27,32 @@ This document uses semantic versioning of the form \texttt{major.minor}. Minor v
 
 \subsection*{Changelog for v2.1}
 
-\paragraph{Contributors:} Matthew Daggitt, David Shriver
+\paragraph{Contributors:} Matthew Daggitt, David Shriver, Omri Isac
+
+\paragraph{Features}
+\begin{enumerate}
+\item \textbf{Proofs of UNSAT}.
+\begin{itemize}
+\item A new Chapter~\ref{sec:proofs} introduces a standard format for proofs of UNSAT based on the Alethe proof format.
+\item A new Chapter~\ref{sec:checker-interface} introduces a standard command-line interface for tools that check the produced proofs of UNSAT.
+\item The existing command-line interface for solvers in Chapter~\ref{sec:solver_interface} has been extended as follows:
+\begin{itemize}
+\item All v2.1 compliant solvers must respond to the new flag:
+\begin{center}
+\texttt{<solver> supports -{}-unsat-proofs}
+\end{center}
+as described in Section~\ref{sec:other-capabilities}.
+\item if the command above outputs \texttt{true}, then the solver must also respond to the new flags:
+\begin{center}
+\texttt{<solver> verify ... -{}-unsat-proofs ...} 
+
+\texttt{<solver> supports -{}-onnx-operators-unsat-proofs}
+\end{center}
+See Sections~\ref{sec:verify_command}~\&~\ref{sec:onnx-capabilities} for details.
+\end{itemize} 
+\end{itemize} 
+\end{enumerate}
+
 
 \paragraph{Clarifications and bug fixes:}
 \begin{itemize}

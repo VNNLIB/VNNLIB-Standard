@@ -4,6 +4,7 @@
 \usepackage{amsmath}
 \usepackage{amsfonts}
 \usepackage{amssymb}
+\usepackage{caption}
 \usepackage{graphicx}
 \usepackage[colorlinks = true,
             linkcolor = black,
@@ -25,6 +26,9 @@
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}
 
+\usepackage{paralist}
+\usepackage{tabularx}
+\newcolumntype{C}{>{\centering\arraybackslash}X}
 %%%%%%%%%%%%
 % Diagrams %
 %%%%%%%%%%%%
@@ -273,8 +277,10 @@
     basicstyle=\ttfamily\footnotesize,
     breakatwhitespace=false,         
     breaklines=true,                 
-    captionpos=b,                    
-    keepspaces=true,                 
+    captionpos=b,  
+    escapeinside={\%*}{*},   
+    keepspaces=true,  
+    moredelim=**[is][\color{red}]{<@}{@>},            
     numbers=left,                    
     numbersep=5pt,                  
     showspaces=false,                
@@ -283,8 +289,7 @@
     tabsize=1,
     frame=lines,
     xleftmargin=2em,
-    framexleftmargin=1.5em,
-    escapeinside={\%*}{*}
+    framexleftmargin=1.5em
 }
 
 % Listings style for Bash/CLI commands
@@ -326,6 +331,37 @@
 \newcommand{\inlinevnn}[1]{\texttt{#1}}
 
 %%%%%%%%%%%%
+% Interface %
+%%%%%%%%%%%%
+
+\newcommand{\clOutputOption}[3]{
+	\paragraph{\texttt{#1}}
+	\begin{itemize}
+		\item \textbf{Description}: #2
+		\item \textbf{Output}: #3
+		\item \textbf{Example usage}:
+	\end{itemize}
+}
+
+\newcommand{\clOption}[3]{
+	\paragraph{\texttt{#1}}
+	\begin{itemize}
+		\item \textbf{Description}: #2
+		\item \textbf{Example usage}: \texttt{#3}
+	\end{itemize}
+}
+
+\lstdefinestyle{bashcommand}{
+	style=bash,
+	numbers=none,
+	frame=none,
+	backgroundcolor=\color{white}
+}
+
+\newcommand{\exampleSolver}{solveNN}
+\newcommand{\exampleChecker}{checkNN}
+
+%%%%%%%%%%%%
 % Metadata %
 %%%%%%%%%%%%
 
@@ -360,7 +396,7 @@
 \begin{abstract}
 This document presents \vnnlib{} -- an open-source standard for automated solvers of satisfiability problems over neural networks. 
 The goal of the standard is to foster greater robustness and interoperability in the neural network verification landscape.
-To this end, the standard defines: i) a formal syntax for defining satisfiabilty queries over neural networks, ii) a formal semantics for that syntax and iii) and a command-line interface for solvers.
+To this end, the standard defines: i) a formal syntax for defining satisfiability queries over neural networks, ii) a formal semantics for that syntax and iii) and a command-line interface for solvers.
 \end{abstract}
 
 \tableofcontents
@@ -369,7 +405,9 @@ To this end, the standard defines: i) a formal syntax for defining satisfiabilty
 \input{chapters/models.tex}
 \input{chapters/query_language.tex}
 \input{chapters/logics.tex}
-\input{chapters/verifier_interface.tex}
+\input{chapters/proofs.tex}
+\input{chapters/cli_solver.tex}
+\input{chapters/cli_checker.tex}
 
 \appendix
 

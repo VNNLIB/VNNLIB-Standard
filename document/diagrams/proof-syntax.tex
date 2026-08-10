@@ -1,0 +1,61 @@
+\begin{grammar}\footnotesize
+	<proof> ::=  <version><proofCommand>$^*$ 
+	
+	<proofCommand> ::= <assumeNetwork>
+	\alt <assume>
+	\alt<step>
+	
+	%<name> ::= [A-Za-z][\_A-Za-z0-9]*
+	<assumeNetwork> ::=  (\texttt{assume-network} <name> <assumeNode>$^*$)
+	
+	<assumeNode> ::=  (\texttt{assume-node} <name> <nodeType> <assume>$^*$)
+	
+	
+	<assume> ::= (\texttt{assume} <name> <bool>)
+
+	<subproof> ::= (\texttt{anchor} :step <name>)
+	
+	<step> ::= (\texttt{step} <name> <clause> \texttt{:rule} <ruleName> <premisesAnnotation>$^?$ <argsAnnotation>$^?$ )
+	
+	<clause> ::= (\texttt{cl} <bool>$^*$)
+	
+	<premisesAnnotation> ::= \texttt{:premises} (<name>$^+$)
+	
+	<argsAnnotation> ::= \texttt{:args} (<rational>$^+$)
+	
+	<rational> ::= -$^?$[0-9]$^+$/$^?$[0-9]$^+$ 
+	\alt -$^?$[0-9]$^+$(.[0-9]$^+$)$^?$
+		
+	<bool> ::= (\texttt{and} <bool> <bool>$^+$)
+	\alt (\texttt{or} <bool> <bool>$^+$)
+	\alt (\texttt{not} <bool>)
+	\alt (\texttt{ite} <bool> <bool> <bool>)
+	\alt (\texttt{\textless} <arith> <arith>)
+	\alt (\texttt{\textless=} <arith> <arith>)
+	\alt (\texttt{\textgreater} <arith> <arith>)
+	\alt (\texttt{\textgreater=} <arith> <arith>)
+	\alt (\texttt{==} <arith> <arith>)
+	\alt (\texttt{!=} <arith> <arith>)
+	\alt (\texttt{is\_int} <arith>)
+	
+	<ruleName> ::= \texttt{false} $\mid$ \texttt{not\_not}	
+	\alt \texttt{resolution}
+	\alt \texttt{or} $\mid$ \texttt{and\_pos} $\mid$ \texttt{and\_neg}
+	\alt \texttt{ite1} $\mid$ \texttt{ite2}
+	\alt \texttt{la\_totality} $\mid$ \texttt{la\_tautology} $\mid$ \texttt{la\_generic}
+	\alt \texttt{bounded\_farkas} $\mid$ \texttt{hole}
+	
+	<nodeType> ::= \texttt{abs} $\mid$ \texttt{ceil} $\mid$ \texttt{clip} 
+	\alt \texttt{floor} $\mid$ \texttt{gemm} $\mid$ \texttt{leaky\_relu}
+	\alt \texttt{matmul} $\mid$ \texttt{max} $\mid$ 
+	\alt \texttt{min} $\mid$ \texttt{relu} $\mid$ \texttt{sign}
+	
+	%<arith> ::= <element>$\networkTheoryVarParam$
+	%\alt <name> <indices>$^?$
+	%\alt (\texttt{-} <arith>)
+	%\alt (\texttt{+} <arith> <arith>$^+$)
+	%\alt (\texttt{*} <arith> <arith>$^+$)
+	%\alt (\texttt{-} <arith> <arith>$^+$)
+	
+	%<indices> ::= [i, ..., i] for $i \in \mathbb{N}$
+\end{grammar}
