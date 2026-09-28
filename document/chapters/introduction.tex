@@ -18,7 +18,10 @@ This document assumes some basic familiarity with neural networks, first-order l
 \item \textbf{Chapter~\ref{sec:models} - \nameref{sec:models}}: A high-level description of the pre-existing ONNX standard for representing trained neural network models, and the definition of an abstract interface to ONNX against which the rest of the document is defined.
 \item \textbf{Chapter~\ref{sec:specification_language} - \nameref{sec:specification_language}}: A detailed description of the \vnnlib{} language for representing a satisfiability query over one or more neural network models, including syntax, typing and semantics.
 \item \textbf{Chapter~\ref{sec:theories-logics} - \nameref{sec:theories-logics}}: A system for describing the different subsets of the query language that a given solver may support.
+\item \textbf{Chapter~\ref{sec:proofs} - \nameref{sec:proofs}}: A detailed description of the VNN-LIB format for proofs of unsatisfability that may optionally be produced by a solver.
 \item \textbf{Chapter~\ref{sec:solver_interface} - \nameref{sec:solver_interface}}: A standardised interface for allowing users to invoke and query the capabilities of a solver.
+\item \textbf{Chapter~\ref{sec:checker-interface} - \nameref{sec:checker-interface}}: A standardised interface for allowing users to invoke and query the capabilities of a proof checker.
+
 \end{enumerate}
 
 \section{Document versioning}
@@ -42,7 +45,7 @@ This document uses semantic versioning of the form \texttt{major.minor}. Minor v
 \texttt{<solver> supports -{}-unsat-proofs}
 \end{center}
 as described in Section~\ref{sec:other-capabilities}.
-\item if the command above outputs \texttt{true}, then the solver must also respond to the new flags:
+\item if the command above outputs \texttt{true}, then the solver must also respond to the two new flags:
 \begin{center}
 \texttt{<solver> verify ... -{}-unsat-proofs ...} 
 

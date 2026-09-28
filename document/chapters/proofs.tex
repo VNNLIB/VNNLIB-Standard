@@ -1,19 +1,26 @@
 \chapter{Proofs of UNSAT}
 \label{sec:proofs}
-\section{Introduction}
 
-Neural network verifiers, like any other software, are prone to implementation bugs and unpredictable behavior on edge cases, which can be exploited~\cite{jia2021exploiting}. This phenomenon undermines the purpose of the verification process, and calls for mechanisms that ensure the reliability of verifiers.
-A common practice for addressing solver reliability is the generation of \emph{proofs}: checkable mathematical objects that accompany verification results and serve as witnesses to their correctness. For satisfiable queries, correctness can be witnessed directly by a satisfying assignment. The unsatisfiable case, however, is more challenging to justify.
+Neural network solvers, like any other software, are prone to implementation bugs and unpredictable behavior on edge cases, which can be exploited~\cite{jia2021exploiting}. This phenomenon undermines the purpose of the verification process, and calls for mechanisms that ensure the reliability of solvers.
+A common practice for addressing solver reliability is for the solver to generate a \emph{proof}: a checkable mathematical object that accompanies the verification result and serves as a witness to its correctness. When the solver judges a query to be satisfiable, correctness can be witnessed directly by a satisfying assignment. However, when the solver judges a query 
+to be unsatisfiable, it is more challenging to justify.
 
 This chapter describes a standard format for expressing proofs of unsatisfiability for \vnnlib{} queries described in Section~\ref{sec:specification_language}.
-A proof is intended to be written in a dedicated file written by the solver, which accompanies the \vnnlib{} specification and the ONNX network(s) files.
-The goal is to modularly separate verifiers from proof checkers, enabling easier comparison between verifiers and checkers, and fostering the independent development of both.
+A proof is intended to be written in a dedicated file written by the solver, which accompanies the \vnnlib{} query file and the ONNX network(s) files.
+The goal is to modularly separate solvers from proof checkers, enabling easier comparison between solvers and checkers, and fostering the independent development of both.
+Note that solvers are not required to produce proofs of unsatisfiability. Readers who are uninterested in such proofs may therefore proceed directly to Chapter~\ref{sec:solver_interface}.
 
-The proof format is based on a subset of the Alethe proof format for SMT solving~\cite{ScFlBaFo21}. Alethe is a readable, resolution-based format for expressing the incremental derivation of first-order clauses from the input problem and previously derived clauses, using predefined \emph{proof rules}. The proof terminates with the derivation of the empty clause. One of the advantages of Alethe is that it allows solvers to leave \emph{proof holes} by invoking a dedicated rule, giving solvers flexibility in the level of detail included in the proof.
-Another advantage is that Alethe proofs can be reconstructed as proof terms in several interactive theorem provers (ITPs)~\cite{LaFlBaJaAnReScBaTi25,EkMeTiKeKaReBa17,CoAnBaDoMe24}, and can also be checked by a capable standard proof checker~\cite{AnLaBa23}. Thus, using Alethe enables the reuse of existing state-of-the-art proof checkers.
+An important caveat before we describe the proof format in further detail is that verifying a proof of unsatisfiability requires us to inspect the concrete implementation of the neural network model. 
+Consequently, doing so relies on the internal representation and semantics of neural network models in the underlying network theory $\networkTheoryVar$ being used. 
+This chapter is therefore necessarily tied to ONNX and less rigorous than Chapters~\ref{sec:syntax}~\&~\ref{sec:theories-logics}. 
+We assume an informal understanding of the syntax and semantics of ONNX, and present a proof format designed to support a fully rigorous treatment once a stable and rigorous formal semantics for ONNX becomes available.
 
 \section{Proof Syntax}
 \label{sec:proof-syntax}
+
+The VNN-LIB proof format is a very thin wrapper around a subset of the existing Alethe proof format for SMT solving~\cite{ScFlBaFo21}. Alethe is a readable, resolution-based format for expressing the incremental derivation of first-order clauses from the input problem and previously derived clauses, using predefined \emph{proof rules}. The proof terminates with the derivation of the empty clause. One of the advantages of Alethe is that it allows solvers to leave \emph{proof holes} by invoking a dedicated rule, giving solvers flexibility in the level of detail included in the proof.
+Another advantage is that Alethe proofs can be reconstructed as proof terms in several interactive theorem provers (ITPs)~\cite{LaFlBaJaAnReScBaTi25,EkMeTiKeKaReBa17,CoAnBaDoMe24}, and can also be checked by a capable standard proof checker~\cite{AnLaBa23}. Thus, using Alethe enables the reuse of existing state-of-the-art proof checkers. Finally Alethe is modular in the sense that additonal custom proof steps can be added to support common neural network reasoning patterns.
+
 
 \begin{figure}[p]
 	\setlength{\grammarindent}{6.5em}
@@ -24,35 +31,20 @@ Another advantage is that Alethe proofs can be reconstructed as proof terms in s
     \label{fig:proof-syntax}
 \end{figure}
 
-The syntax of \vnnlib{} proofs is shown in Figure~\ref{fig:proof-syntax}. At the top level, a \vnnlib{} proof consists of three parts:
+The syntax of the proofs is shown in Figure~\ref{fig:proof-syntax}. A \vnnlib{} proof consists of three parts:
 \begin{enumerate}
-	\item \textbf{Network assumptions:} Introduce formulas assumed to be correct by the structure of the neural networks. To ease proof checking, \vnnlib{} proofs specify the exact source of each network assumption depending on the context of their appearance:
+	\item \textbf{Network assumptions} introduce formulae that encode the computatation performed by each of the neural network models referenced in the original query. To make proof checkers easier to implement, each assumed formula within the neural network assumptions references the node in the neural network that it is is encoding.
 
-	\begin{itemize}	
-	\item The \texttt{assume-network} command specifies a \emph{network assumption context}. This command must name a network used in the \vnnlib{} specification file and it defines that network's context. This context is then used to define additional node assumptions, imported from the declared network.
-	\item The \texttt{assume-node} command specifies a \emph{node assumption context}. This command is defined within a network assumption context, and is used to import of assumptions from a specific ONNX node within that network. The declaration must include the name of the ONNX node and its type.
-	\item Within a node context, the \texttt{assume} command specifies a constraint imported from that node (within some neural network). These commands are pure Alethe assumption, but they are required to comply with the structure defined by their  context, as described in Section~\ref{sec:proof-node-encoding}.
-	\end{itemize}
-	
-	\item \textbf{Query assumptions:} Introduce formulas imported directly from the \vnnlib{} query specification, outside any network context. These assumptions are also introduced using the \texttt{assume} command and must reproduce formulas exactly as stated in the specification. 
+	\item \textbf{Query assumptions} introduce formulae imported directly from the original \vnnlib{} query. These assumptions  must reproduce the formulae exactly as stated (modulo the caveat on variable names below) and, again to make implementation of proof checkers easier, must occur in the same order as they appear in the query file. 
 
-	All \texttt{assume} commands contain a unique identifier name and the imported formula. Additionally, the requirement to list the importing node requires all ONNX networks used in this format to contain a unique name for each node.
-
-	The proof checker \emph{must} certify that all network assumptions are correctly imported from a valid node in the network, and that the variable names are consistent across all assumptions and with the ONNX files. All query assumptions must match an assertion defined in the \vnnlib{} specification file, and have consistent variable names with the other assumptions.
-	
-	\item \textbf{Proof steps:} Derive new facts from assumptions and from previously derived steps, called \emph{premises}. Each proof step contains a unique identifier name, the derived clause, the name of the proof rule used to derive it, its premises, and, when needed, additional rule-specific arguments.
-	
-	Proof steps may include \textbf{Subproofs}, which open a separate branch within a proof and add assumptions $A_1 \cdots A_n$. When concluding a subproof with a conclusion $C$, then clause $\lnot A_1, \dots, \lnot A_n, C$ is learned in the main proof branch.
+	\item \textbf{Proof steps} derive new facts from assumptions and from previously derived steps, called \emph{premises}. Each proof step contains a unique identifier name, the derived clause, the name of the proof rule used to derive it, its premises, and, when needed, additional rule-specific arguments.
+Proof steps may include \textbf{subproofs}, which open a separate branch within a proof and add assumptions $A_1 \cdots A_n$. When concluding a subproof with a conclusion $C$, then clause $\lnot A_1, \dots, \lnot A_n, C$ is learned in the main proof branch.
 \end{enumerate}
-For simplicity, all assumptions must appear either: 
-\begin{inparaenum}[(i)]
-	\item before all proof steps to represent imported problem constraints; or
-	\item immediately after beginning a subproof, to represent its local assumptions.
-\end{inparaenum}
 
-An example of a network, a specification defined in \vnnlib{}, and a corresponding Alethe proof appears at the end of this chapter in Section~\ref{sec:proof-example}.
-
-
+For simplicity, all network and query assumptions must appear before all proof steps. Of course, purely local assumptions used within a subproof may be declared at the top of the subproof.
+The proof checker \emph{must} certify that all network assumptions are correctly imported from a valid node in the network, and that the variable names are consistent across all assumptions and with the ONNX files. The proof checker must also check that all query assumptions must match an assertion defined in the \vnnlib{} query file, and have consistent variable names with the other assumptions.
+	
+	
 \paragraph{Naming.} Formulas used in the proof can also be \emph{named} by a unique identifier, mainly for compactness and readability. Naming has the following syntax:
 
 \begin{code}[style=lbnf]
@@ -60,19 +52,162 @@ An example of a network, a specification defined in \vnnlib{}, and a correspondi
 \end{code}
 
 
-\paragraph{Variable Naming.} Although \vnnlib{} supported square brackets (\texttt{[ ]}) and commas (\texttt{,}) as a part of variable naming, Alethe does not. Therefore. to maintain the required consistency of variable names, we use underscores (\texttt{\_}) for indexing instead. For example, the variable $X[i,j]$ is indexed as $X\_i\_j$.
+\paragraph{Variable Naming.} Although \vnnlib{} supported square brackets (\texttt{[ ]}) and commas (\texttt{,}) as a part of variable naming, Alethe does not. Therefore. to maintain the required consistency of variable names, the proof format uses underscores (\texttt{\_}) for indexing into tensor variables instead. For example, the indexed variable $X[i,j]$ in the VNN-LIB query format is written as $X\_i\_j$ in the VNN-LIB proof format.
 
-\subsection{Network Assumptions}
+
+\paragraph{Comments and Whitespace}
+Comments and whitespace are used as in Section~\ref{sec:comments}.
+
+
+\section{Example}
+\label{sec:proof-example}
+
+Consider the neural network and \vnnlib{} query illustrated in Figure~\ref{fig:proof-query}. Assume that the matrix-multiplication nodes defined by the ONNX file are as follows: the input $X$ is multiplied by the matrix:
+$$\begin{bmatrix} 1 & -1 & 0 
+\\
+0 & 1 & 1 
+ \end{bmatrix}$$
+resulting in: $$H = \begin{bmatrix} X\_0\_0 - X\_0\_1 
+	\\
+	X\_0\_1 + X\_0\_2
+\end{bmatrix}$$
+The output of the hidden later $H$ is multiplied by the matrix:
+$\begin{bmatrix} -1 & 1
+\end{bmatrix}$ meaning that $Y\_0\_0 = H\_0\_1 - H\_0\_0$.
+Finally, assume that the input node operator is named \texttt{il} in the ONNX model, the hidden ReLU node operator is named \texttt{hr}, and the output node operator name is \texttt{ol}
+
+\begin{figure}[h!]
+	\begin{minipage}[c]{0.76\textwidth}
+		\begin{lstlisting}[style=lbnf]   
+			(declare-network encoder
+			  (declare-input  X float64 [1,4])
+			  (declare-hidden H float64 [1,2] "hr")
+			  (declare-output Y float64 [1,1])
+			)
+			
+			(assert (<= X_0_0 1.0))
+			(assert (>= X_0_0 0.0))
+			
+			(assert (<= X_0_1 1.0))
+			(assert (>= X_0_1 0.0))
+			
+			(assert (<= X_0_2 1.0))
+			(assert (>= X_0_2 0.0))
+			
+			(assert (<= X_0_3 1.0))
+			(assert (>= X_0_3 0.0))
+			
+			(assert (<= Y_0_0 -1.0)) \end{lstlisting}
+	\end{minipage}
+	\begin{minipage}[c]{0.21\textwidth}
+		\centering
+		\includegraphics[height=6cm]{imgs/simple_encoder_net.onnx.pdf}
+	\end{minipage}
+	\caption{A \vnnlib{} network declaration that declares a hidden node}
+	\label{fig:proof-query}
+\end{figure}
+
+An example proof of unsatisfiability for this query is shown in Example~\ref{lst:proof}.
+The proof introduces two variables for each hidden neuron in the ReLU node \texttt{hidden}: \texttt{H\_0\_i\_b} and \texttt{H\_0\_i\_f} corresponding to the variables described in Section~\ref{sec:proof-syntax}.
+The proof begins by declaring the network assumption in lines 2--20, which includes the equations induced by the input and output nodes of the network (lines 3--8, 9--1, respectively), followed by assumptions encoding the ReLU activation node (lines 12--19). Then, in lines 23--29, the proof proceeds by importing bound assumption directly from the \vnnlib{} query file.
+Finally, lines 32--69 contain a sequence of derivation steps that lead to the empty clause, thereby establishing unsatisfiability. 
+
+\begin{figure}
+\begin{lstlisting}[style=lbnf,basicstyle=\ttfamily\scriptsize\bfseries,linewidth=1.05\textwidth]
+	; Network assumptions
+	<@(assume-network encoder
+	      (assume-node il matmul@>
+	          (assume e1 (!(= (+ X_0_0 (- X_0_1 ) (- H_0_0_b)) 0.0)
+	                     :named e1))
+	          (assume e2 (!(= (+ (* 2.0 X_0_1) X_0_2 (- H_0_1_b)) 0.0)
+	                      :named e2))
+	      <@)@>
+	      <@(assume-node ol matmul@>
+	          (assume e3 (!(= (+ H_0_1_f (- H_0_0_f) (- Y_0_0)) 0.0):named e3))
+	      <@)@>
+	      <@(assume-node hr relu@>
+	          (assume r1 (!(ite (>= H_0_0_b 0.0)(= H_0_0_b H_0_0_f)(<= H_0_0_f 0.0))
+	                     :named r1))
+	          (assume r2 (!(ite (>= H_0_1_b 0.0)(= H_0_1_b H_0_1_f)(<= H_0_1_f 0.0))
+	                     :named r2))
+	          (assume lf0 (!(>= H_0_0_f 0.0):named lf0))
+	          (assume lf1 (!(>= H_0_1_f 0.0):named lf1))
+	       <@)@>
+	<@)@>
+	
+	; Query assumptions
+	(assume u0 (!(<= X_0_0 1.0):named u0))
+	(assume l0 (!(>= X_0_0 0.0):named l0))
+	(assume u1 (!(<= X_0_1 1.0):named u1))
+	(assume l1 (!(>= X_0_1 0.0):named l1))
+	(assume u2 (!(<= X_0_2 1.0):named u2))
+	(assume l2 (!(>= X_0_2 0.0):named l2))
+	(assume u3 (!(<= Y_0_0 -2.0):named u3))
+	
+	; Prove for both ReLUs that f - b >= 0
+	(step t1 (cl (not (>= H_0_0_b 0.0))(= H_0_0_b H_0_0_f)):rule ite2 :premises(r1))
+	(step t2 (cl (not (= H_0_0_b H_0_0_f))(<= 0.0 (- H_0_0_f H_0_0_b))):rule
+	         la_generic :args(-1 1))
+	(step t3 (cl (>= H_0_0_b 0.0)(not (>= H_0_0_f 0.0))(<= 0.0 (- H_0_0_f H_0_0_b)))
+	         :rule la_generic :args(1 -1 1))
+	(step aux1bound (cl (<= 0.0 (!(- H_0_0_f H_0_0_b):named H_0_0_a))):rule
+	                resolution :premises(t1 t2 t3 lf0))
+	(step s1 (cl (not (>= H_0_1_b 0.0))(= H_0_1_b H_0_1_f)):rule ite2 :premises(r2))
+	(step s2 (cl (not (= H_0_1_b H_0_1_f))(<= 0.0 (- H_0_1_f H_0_1_b))):rule 
+	         la_generic :args(-1 1))
+	(step s3 (cl (>= H_0_1_b 0.0)(not (>= H_0_1_f 0.0))(<= 0.0 (- H_0_1_f H_0_1_b))) 
+	         :rule la_generic :args(1 -1 1))
+	(step aux2bound (cl (<= 0.0 (!(- H_0_1_f H_0_1_b):named H_0_1_a))):rule 
+	                resolution :premises(s1 s2 s3 lf1))
+	                
+	; Activation pattern reasoning
+	(step ax1 (cl (>= H_0_0_b 0.0)(<= H_0_0_f 0.0)):rule ite1 :premises(r1))
+	(step ax2 (cl (not (>= H_0_0_b 0.0))(= H_0_0_b H_0_0_f)):rule ite2 :premises(r1))
+	(step ax3 (cl (not (= H_0_0_b H_0_0_f))(<= H_0_0_a 0.0)):rule la_generic 
+	          :args(1 1))
+	(step ax4 (cl (not (>= H_0_0_b 0.0))(<= H_0_0_a 0.0)):rule resolution 
+	          :premises(ax2 ax3))
+	
+	; Prove UNSAT for both phases of H_0_0
+	(step lf1 (cl (not e3)(not lf1)(not u3)(not (<= H_0_0_f 0.0))):rule la_generic 
+	          :args(-1 1 1 1))
+	(step lf2 (cl (not (<= H_0_0_f 0.0))):rule resolution :premises(lf1 e3 lf1 u3))
+	(step lf3 (cl (>= H_0_0_b 0.0)):rule resolution :premises(ax1 lf2))
+	
+	(step rt1 (cl (not e1)(not e2)(not e3)(not l1)(not l2)(not u0)(not u3)
+	          (not (<= H_0_0_a 0.0))(not (<= 0.0 H_0_1_a))):rule la_generic 
+	          :args(1 -1 -1 3 1 1 1 -1 -1))
+	(step rt2 (cl (not (<= H_0_0_a 0.0))):rule resolution 
+	          :premises (rt1 e1 e2 e3 l1 l2 u0 u3 aux2bound))
+	(step rt3 (cl (not (>= H_0_0_b 0.0))):rule resolution :premises(rt2 ax4))
+	
+	; Finalize
+	(step final (cl):rule resolution :premises(rt3 lf3))
+\end{lstlisting}
+\captionof{lstlisting}{An example for a \vnnlib{} proof. The text highlighted in red is the VNN-LIB specific syntax. When this text is removed, then the remaining file becomes a valid Alethe file.}
+\label{lst:proof}
+\end{figure}
+
+
+\section{Network Assumptions}
 \label{sec:proof-assumptions}
 
+
+	All \texttt{assume} commands contain a unique identifier name and the imported formula. Additionally, the requirement to list the importing node requires all ONNX networks used in this format to contain a unique name for each node.
+	\begin{itemize}	
+	\item The \texttt{assume-network} command specifies a \emph{network assumption context}. This command must name a network used in the \vnnlib{} query file and it defines that network's context. This context is then used to define additional node assumptions, imported from the declared network.
+	\item The \texttt{assume-node} command specifies a \emph{node assumption context}. This command is defined within a network assumption context, and is used to import of assumptions from a specific ONNX node within that network. The declaration must include the name of the ONNX node and its type.
+	\item Within a node context, the \texttt{assume} command specifies a constraint imported from that node (within some neural network). These commands are pure Alethe assumption, but they are required to comply with the structure defined by their  context, as described in Section~\ref{sec:proof-node-encoding}.
+	\end{itemize}
+	
 We list the formal encodings of common ONNX nodes, including nodes frequently used in the neural network verification literature. We first formalize a general linear equation, which is used to encode linear nodes, and then present an alphabetical list of ONNX nodes together with their corresponding encodings.
 For simplicity, we use a naming convention in which the input and output variables of each node are denoted by $x$ and $y$, respectively; and input and output matrices are denoted $A,B,C$ and $Y$, respectively. All node indexing that appear in the proofs must match the indexing implied by the node, and all variable naming must be isomorphic to such indexing.  
 
 The list is not exhaustive, and we welcome contributions of encodings for additional node types.
  
-\subsubsection{Linear Equations}
+\subsection{Linear Equations}
 
-Linear equations are typically used to encode the affine transformations induced by the internal linear nodes of the network, as well as linear constraints originating from the specification.
+Linear equations are typically used to encode the affine transformations induced by the internal linear nodes of the network, as well as linear constraints originating from the query.
 A linear equation of the form $d = \overset{l}{\underset{i=1}{\sum}} c_i \cdot x_i$  is represented in the proof
 as: 
 
@@ -90,7 +225,7 @@ Then, the computation:
 \end{code}
 
 
-\subsubsection{ONNX Nodes Encoding}
+\subsection{ONNX Nodes Encoding}
 \label{sec:proof-node-encoding}
 
 \paragraph{Abs}
@@ -152,17 +287,15 @@ follows:
 where \texttt{is\_int} is the $LIA$ typecheck operator that returns true if and only if the type of its argument is \inlinevnn{int}. 
 
 \paragraph{Gemm (General Matrix Multiplication)}
-The ONNX \texttt{Gemm} operator performs a general matrix multiplication followed by an addition. As input, the function receives three Tensors $A$, $B$, and $C$; two scalars $\alpha, \beta$; and two Booleans \texttt{transA}, \texttt{transB}. The operator computes
+The ONNX \texttt{Gemm} operator performs a general matrix multiplication followed by an addition. As input, the function receives three tensors $A$, $B$, and $C$; two scalars $\alpha, \beta$; and two Booleans \texttt{transA}, \texttt{transB}. The operator computes
 \[
 Y = \alpha \cdot A'\cdot B' + \beta \cdot C,
 \]
-
 where $A'=A^\top$ if the \texttt{transA} attribute is set, and $A'=A$ otherwise; $B'$ is defined analogously according to \texttt{transB}. 
 Assuming that $A'$ has dimensions $m\times k$ and $B'$
-has dimensions $k\times n$, the resulting tensor $Y$ has dimensions $m\times n$, while $C$ is broadcast to $m\times n$ when necessary
+has dimensions $k\times n$, the resulting tensor $Y$ has dimensions $m\times n$, while $C$ is broadcast to $m\times n$ when necessary.
 
-To represent a fully connected node, $B$ and $C$ are constant Tensors, resulting in
-linear equations over the network variables of $A$.
+To represent a fully connected node, $B$ and $C$ are constant tensors, resulting in linear equations over the network variables of $A$.
 
 Using the above formulation, we can assume the following equations used to derive the output variable $Y[i,j]$:
  
@@ -192,14 +325,14 @@ follows:
 \end{code}
 
 \paragraph{MatMul (Matrix Multiplication)}
-The ONNX \texttt{MatMul} operator performs matrix multiplication. As input, the function receives two Tensors $A$ and $B$, and computes $Y = A \cdot B$.
+The ONNX \texttt{MatMul} operator performs matrix multiplication. As input, the function receives two tensors $A$ and $B$, and computes $Y = A \cdot B$.
 
-For Tensors with more than two dimensions, the last two dimensions are treated as the matrix dimensions, while the preceding dimensions are treated as batch dimensions. Thus, considering a batch index vector $q$, and assuming that the last two dimensions of $A$ and $B$ are $m \times k$ and $k \times n$, respectively, each output variable is computed as:
+For tensors with more than two dimensions, the last two dimensions are treated as the matrix dimensions, while the preceding dimensions are treated as batch dimensions. Thus, considering a batch index vector $q$, and assuming that the last two dimensions of $A$ and $B$ are $m \times k$ and $k \times n$, respectively, each output variable is computed as:
 \[
 Y[q,i,j] = \sum_{r=1}^{k} A[q,i,r] \cdot B[q,r,j],
 \]
 
-To represent a linear mode, $B$ is a constant Tensor, resulting in linear equations over the network variables of $A$.
+To represent a linear mode, $B$ is a constant tensor, resulting in linear equations over the network variables of $A$.
 Using the above formulation, we can assume the following equations used to derive the output variable $Y[q,i,j]$:
 
 \begin{code}[style=lbnf]
@@ -263,7 +396,7 @@ follows:
 )
 \end{code}
 
-\subsection{Query Assumptions}
+\section{Query Assumptions}
 
 The syntactical form of query assumptions is independent of the neural network structure, and only adhere to constraints appear in the \vnnlib{} query file. In particular, variable naming in the proof file should be consistent with the naming in the query file.
 
@@ -283,7 +416,7 @@ within the \vnnlib{} query. And as,
 
 within the proof file.
 
-\subsection{Proof Steps}
+\section{Proof Steps}
  
 \paragraph{Structure}
 Recall that in Alethe, a proof step has the following form:
@@ -413,7 +546,7 @@ The complete checking procedure for this rule is given in~\cite{ScFlBaFo21}.
 
 
 
-\paragraph{\texttt{hole}:} This rule indicates that the corresponding proof step has been left unproved by the verifier, and therefore marks a possible error or incompleteness in the proof.
+\paragraph{\texttt{hole}:} This rule indicates that the corresponding proof step has been left unproved by the solver, and therefore marks a possible error or incompleteness in the proof.
 
 \noindent\begin{tabularx}{\linewidth}{ l C r }
 	$s.\triangleright$ & 
@@ -514,139 +647,4 @@ Therefore, concluding the above subproof anchor would have the form:
 
 Nesting subproofs is possible, though if subproof $P$ is nested within $P'$, then $P$ must be completed before $P'$. 
 
-\subsection{Comments and Whitespace}
-Comments and Whitespace are used as in Section~\ref{sec:comments}.
-
-\section{Example}
-\label{sec:proof-example}
-Lastly, this chapter is concluded with a complete example consisting of a neural network, a specification defined in \vnnlib{}, and a corresponding proof.
-
-Consider the neural network and \vnnlib{} specification illustrated in Figure~\ref{fig:proof-query}. Assume that the matrix-multiplication nodes defined by the ONNX file are as follows:
-
-The input $X$ is multiplied by the matrix:
-
-$$\begin{bmatrix} 1 & -1 & 0 
-\\
-0 & 1 & 1 
- \end{bmatrix}$$
-resulting in: $$H = \begin{bmatrix} X\_0\_0 - X\_0\_1 
-	\\
-	X\_0\_1 + X\_0\_2
-\end{bmatrix}$$.
-The output of the hidden later $H$ is multiplied by the matrix:
-$\begin{bmatrix} -1 & 1
-\end{bmatrix}$. Meaning that $Y\_0\_0 = H\_0\_1 - H\_0\_0$.
-
-Finally, assume that the input node operator is named \texttt{il}, the hidden ReLU node operator is named \texttt{hr}, and the output node operator name is \texttt{ol}
-
-\begin{figure}[h!]
-	\begin{minipage}[c]{0.76\textwidth}
-		\begin{lstlisting}[style=lbnf]   
-			(declare-network encoder
-			  (declare-input  X float64 [1,4])
-			  (declare-hidden H float64 [1,2] "hr")
-			  (declare-output Y float64 [1,1])
-			)
-			
-			(assert (<= X_0_0 1.0))
-			(assert (>= X_0_0 0.0))
-			
-			(assert (<= X_0_1 1.0))
-			(assert (>= X_0_1 0.0))
-			
-			(assert (<= X_0_2 1.0))
-			(assert (>= X_0_2 0.0))
-			
-			(assert (<= X_0_3 1.0))
-			(assert (>= X_0_3 0.0))
-			
-			(assert (<= Y_0_0 -1.0)) \end{lstlisting}
-	\end{minipage}
-	\begin{minipage}[c]{0.21\textwidth}
-		\centering
-		\includegraphics[height=6cm]{imgs/simple_encoder_net.onnx.pdf}
-	\end{minipage}
-	\caption{A \vnnlib{} network declaration that declares a hidden node}
-	\label{fig:proof-query}
-\end{figure}
-
-An example proof of unsatisfiability for this query is shown in Example~\ref{lst:proof}.
-The proof introduces two variables for each hidden neuron in the ReLU node \texttt{hidden}: \texttt{H\_0\_i\_b} and \texttt{H\_0\_i\_f} corresponding to the variables described in Section~\ref{sec:proof-syntax}.
-The proof begins by declaring the network assumption in lines 2--20, which includes the equations induced by the input and output nodes of the network (lines 3--8, 9--1, respectively), followed by assumptions encoding the ReLU activation node (lines 12--19). Then, in lines 23--29, the proof proceeds by importing bound assumption directly from the \vnnlib{} specification file.
-Finally, lines 32--69 contain a sequence of derivation steps that lead to the empty clause, thereby establishing unsatisfiability. \newline
-
-
-\begin{lstlisting}[style=lbnf,basicstyle=\ttfamily\scriptsize\bfseries,linewidth=1.05\textwidth]
-	; Network assumptions
-	<@(assume-network encoder
-	      (assume-node il matmul@>
-	          (assume e1 (!(= (+ X_0_0 (- X_0_1 ) (- H_0_0_b)) 0.0)
-	                     :named e1))
-	          (assume e2 (!(= (+ (* 2.0 X_0_1) X_0_2 (- H_0_1_b)) 0.0)
-	                      :named e2))
-	      <@)@>
-	      <@(assume-node ol matmul@>
-	          (assume e3 (!(= (+ H_0_1_f (- H_0_0_f) (- Y_0_0)) 0.0):named e3))
-	      <@)@>
-	      <@(assume-node hr relu@>
-	          (assume r1 (!(ite (>= H_0_0_b 0.0)(= H_0_0_b H_0_0_f)(<= H_0_0_f 0.0))
-	                     :named r1))
-	          (assume r2 (!(ite (>= H_0_1_b 0.0)(= H_0_1_b H_0_1_f)(<= H_0_1_f 0.0))
-	                     :named r2))
-	          (assume lf0 (!(>= H_0_0_f 0.0):named lf0))
-	          (assume lf1 (!(>= H_0_1_f 0.0):named lf1))
-	       <@)@>
-	<@)@>
-	
-	; Query assumption
-	(assume u0 (!(<= X_0_0 1.0):named u0))
-	(assume l0 (!(>= X_0_0 0.0):named l0))
-	(assume u1 (!(<= X_0_1 1.0):named u1))
-	(assume l1 (!(>= X_0_1 0.0):named l1))
-	(assume u2 (!(<= X_0_2 1.0):named u2))
-	(assume l2 (!(>= X_0_2 0.0):named l2))
-	(assume u3 (!(<= Y_0_0 -2.0):named u3))
-	
-	; Prove for both ReLUs that f - b >= 0
-	(step t1 (cl (not (>= H_0_0_b 0.0))(= H_0_0_b H_0_0_f)):rule ite2 :premises(r1))
-	(step t2 (cl (not (= H_0_0_b H_0_0_f))(<= 0.0 (- H_0_0_f H_0_0_b))):rule
-	         la_generic :args(-1 1))
-	(step t3 (cl (>= H_0_0_b 0.0)(not (>= H_0_0_f 0.0))(<= 0.0 (- H_0_0_f H_0_0_b)))
-	         :rule la_generic :args(1 -1 1))
-	(step aux1bound (cl (<= 0.0 (!(- H_0_0_f H_0_0_b):named H_0_0_a))):rule
-	                resolution :premises(t1 t2 t3 lf0))
-	(step s1 (cl (not (>= H_0_1_b 0.0))(= H_0_1_b H_0_1_f)):rule ite2 :premises(r2))
-	(step s2 (cl (not (= H_0_1_b H_0_1_f))(<= 0.0 (- H_0_1_f H_0_1_b))):rule 
-	         la_generic :args(-1 1))
-	(step s3 (cl (>= H_0_1_b 0.0)(not (>= H_0_1_f 0.0))(<= 0.0 (- H_0_1_f H_0_1_b))) 
-	         :rule la_generic :args(1 -1 1))
-	(step aux2bound (cl (<= 0.0 (!(- H_0_1_f H_0_1_b):named H_0_1_a))):rule 
-	                resolution :premises(s1 s2 s3 lf1))
-	                
-	; Activation pattern reasoning
-	(step ax1 (cl (>= H_0_0_b 0.0)(<= H_0_0_f 0.0)):rule ite1 :premises(r1))
-	(step ax2 (cl (not (>= H_0_0_b 0.0))(= H_0_0_b H_0_0_f)):rule ite2 :premises(r1))
-	(step ax3 (cl (not (= H_0_0_b H_0_0_f))(<= H_0_0_a 0.0)):rule la_generic 
-	          :args(1 1))
-	(step ax4 (cl (not (>= H_0_0_b 0.0))(<= H_0_0_a 0.0)):rule resolution 
-	          :premises(ax2 ax3))
-	
-	; Prove UNSAT for both phases of H_0_0
-	(step lf1 (cl (not e3)(not lf1)(not u3)(not (<= H_0_0_f 0.0))):rule la_generic 
-	          :args(-1 1 1 1))
-	(step lf2 (cl (not (<= H_0_0_f 0.0))):rule resolution :premises(lf1 e3 lf1 u3))
-	(step lf3 (cl (>= H_0_0_b 0.0)):rule resolution :premises(ax1 lf2))
-	
-	(step rt1 (cl (not e1)(not e2)(not e3)(not l1)(not l2)(not u0)(not u3)
-	          (not (<= H_0_0_a 0.0))(not (<= 0.0 H_0_1_a))):rule la_generic 
-	          :args(1 -1 -1 3 1 1 1 -1 -1))
-	(step rt2 (cl (not (<= H_0_0_a 0.0))):rule resolution 
-	          :premises (rt1 e1 e2 e3 l1 l2 u0 u3 aux2bound))
-	(step rt3 (cl (not (>= H_0_0_b 0.0))):rule resolution :premises(rt2 ax4))
-	
-	; Finalize
-	(step final (cl):rule resolution :premises(rt3 lf3))
-\end{lstlisting}
-\captionof{lstlisting}{An example for a \vnnlib{} proof in Alethe. The text highlighted in red is an addition on top of the standard Alethe.}
-\label{lst:proof}
 
