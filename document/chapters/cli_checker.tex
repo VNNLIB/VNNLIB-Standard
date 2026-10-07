@@ -1,7 +1,7 @@
 \chapter{Checker Command-Line Interface}
 \label{sec:checker-interface}
 
-The proof checker is an external tool, separate from the solver, that verifies proofs written in the \vnnlib{} proof format.  This chapter defines the CLI for proof checkers that conform to the \vnnlib{} proof standard. The interface supports running the proof checker and querying its capabilities.
+A proof checker is an external tool, separate a solver, that verifies proofs written in the \vnnlib{} proof format described in Chapter~\ref{sec:proofs}.  This chapter defines the CLI for proof checkers that conform to the \vnnlib{} proof standard. The interface supports running the proof checker and querying its capabilities.
 
 \section{The \texttt{check} Command}
 
@@ -17,7 +17,7 @@ This command has two arguments:
 
 
 
-\clOption{-{}-query}{The path of the \vnnlib{} file that defines the problem claimed to be unsatisfiable }
+\clOption{-{}-query}{The path of the \vnnlib{} query file that defines the satisfaction problem claimed to be unsatisfiable }
 {-{}-query /path/to/query.vnnlib}
 \clOption{-{}-proof}{The path of the proof file to be checked}{-{}-proof /path/to/proof.alethe}
 Additionally, the proof checker should support the following additional options:

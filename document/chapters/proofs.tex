@@ -2,18 +2,18 @@
 \label{sec:proofs}
 
 Neural network solvers, like any other software, are prone to implementation bugs and unpredictable behavior on edge cases, which can be exploited~\cite{jia2021exploiting}. This phenomenon undermines the purpose of the verification process, and calls for mechanisms that ensure the reliability of solvers.
-A common practice for addressing solver reliability is for the solver to generate a \emph{proof}: a checkable mathematical object that accompanies the verification result and serves as a witness to its correctness. When the solver judges a query to be satisfiable, correctness can be witnessed directly by a satisfying assignment. However, when the solver judges a query 
+A common practice for addressing solver reliability is for the solver to generate a \emph{proof}: a checkable mathematical object that accompanies the verification result and serves as a witness to its correctness. When the solver judges a query to be satisfiable, correctness can be proved directly by a satisfying assignment. However, when the solver judges a query 
 to be unsatisfiable, it is more challenging to justify.
 
 This chapter describes a standard format for expressing proofs of unsatisfiability for \vnnlib{} queries described in Section~\ref{sec:specification_language}.
-A proof is intended to be written in a dedicated file written by the solver, which accompanies the \vnnlib{} query file and the ONNX network(s) files.
-The goal is to modularly separate solvers from proof checkers, enabling easier comparison between solvers and checkers, and fostering the independent development of both.
-Note that solvers are not required to produce proofs of unsatisfiability. Readers who are uninterested in such proofs may therefore proceed directly to Chapter~\ref{sec:solver_interface}.
+A proof should be written out by the solver in a dedicated file, which accompanies the \vnnlib{} query file and the ONNX network(s) files.
+The goal is to modularly separate solvers from proof checkers, thereby enabling easier comparison between solvers and checkers and fostering the independent development of both.
+Note that there is no requirement that a solver must be capable of producing proofs of unsatisfiability. Readers who are uninterested in such proofs may therefore proceed directly to Chapter~\ref{sec:solver_interface}.
 
 An important caveat before we describe the proof format in further detail is that verifying a proof of unsatisfiability requires us to inspect the concrete implementation of the neural network model. 
-Consequently, doing so relies on the internal representation and semantics of neural network models in the underlying network theory $\networkTheoryVar$ being used. 
+Consequently, we must rely on the internal representation and semantics of neural network models in the underlying network theory $\networkTheoryVar$. 
 This chapter is therefore necessarily tied to ONNX and less rigorous than Chapters~\ref{sec:syntax}~\&~\ref{sec:theories-logics}. 
-We assume an informal understanding of the syntax and semantics of ONNX, and present a proof format designed to support a fully rigorous treatment once a stable and rigorous formal semantics for ONNX becomes available.
+We assume an informal understanding of the semantics of ONNX, and present a proof format that is designed to be extendable enough that, once a stable formal semantics for ONNX becomes available, it can be made fully rigorous in the future.
 
 \section{Proof Syntax}
 \label{sec:proof-syntax}
@@ -52,7 +52,7 @@ The proof checker \emph{must} certify that all network assumptions are correctly
 \end{code}
 
 
-\paragraph{Variable Naming.} Although \vnnlib{} supported square brackets (\texttt{[ ]}) and commas (\texttt{,}) as a part of variable naming, Alethe does not. Therefore. to maintain the required consistency of variable names, the proof format uses underscores (\texttt{\_}) for indexing into tensor variables instead. For example, the indexed variable $X[i,j]$ in the VNN-LIB query format is written as $X\_i\_j$ in the VNN-LIB proof format.
+\paragraph{Variable Naming.} Although \vnnlib{} supported square brackets (\texttt{[ ]}) and commas (\texttt{,}) as a part of variable naming, Alethe does not. Therefore. to maintain the required consistency of variable names, the proof format uses underscores (\texttt{\_}) for indexing into tensor variables instead. For example, the indexed variable \texttt{X[i,j]} in the VNN-LIB query format is written as \texttt{X\_i\_j} in the VNN-LIB proof format.
 
 
 \paragraph{Comments and Whitespace}
@@ -73,7 +73,7 @@ resulting in: $$H = \begin{bmatrix} X\_0\_0 - X\_0\_1
 \end{bmatrix}$$
 The output of the hidden later $H$ is multiplied by the matrix:
 $\begin{bmatrix} -1 & 1
-\end{bmatrix}$ meaning that $Y\_0\_0 = H\_0\_1 - H\_0\_0$.
+\end{bmatrix}$ meaning that $\texttt{Y\_0\_0} = \texttt{H\_0\_1} - \texttt{H\_0\_0}$.
 Finally, assume that the input node operator is named \texttt{il} in the ONNX model, the hidden ReLU node operator is named \texttt{hr}, and the output node operator name is \texttt{ol}
 
 \begin{figure}[h!]
@@ -114,77 +114,74 @@ Finally, lines 32--69 contain a sequence of derivation steps that lead to the em
 
 \begin{figure}
 \begin{lstlisting}[style=lbnf,basicstyle=\ttfamily\scriptsize\bfseries,linewidth=1.05\textwidth]
-	; Network assumptions
-	<@(assume-network encoder
-	      (assume-node il matmul@>
-	          (assume e1 (!(= (+ X_0_0 (- X_0_1 ) (- H_0_0_b)) 0.0)
-	                     :named e1))
-	          (assume e2 (!(= (+ (* 2.0 X_0_1) X_0_2 (- H_0_1_b)) 0.0)
-	                      :named e2))
-	      <@)@>
-	      <@(assume-node ol matmul@>
-	          (assume e3 (!(= (+ H_0_1_f (- H_0_0_f) (- Y_0_0)) 0.0):named e3))
-	      <@)@>
-	      <@(assume-node hr relu@>
-	          (assume r1 (!(ite (>= H_0_0_b 0.0)(= H_0_0_b H_0_0_f)(<= H_0_0_f 0.0))
+; Network assumptions
+<@(assume-network encoder
+  (assume-node il matmul@>
+    (assume e1 (!(= (+ X_0_0 (- X_0_1 )    (- H_0_0_b)) 0.0) :named e1))
+    (assume e2 (!(= (+ (* 2.0 X_0_1) X_0_2 (- H_0_1_b)) 0.0) :named e2))
+  <@)@>
+  <@(assume-node ol matmul@>
+    (assume e3 (!(= (+ H_0_1_f (- H_0_0_f) (- Y_0_0)) 0.0):named e3))
+  <@)@>
+  <@(assume-node hr relu@>
+    (assume r1 (!(ite (>= H_0_0_b 0.0)(= H_0_0_b H_0_0_f)(<= H_0_0_f 0.0))
 	                     :named r1))
-	          (assume r2 (!(ite (>= H_0_1_b 0.0)(= H_0_1_b H_0_1_f)(<= H_0_1_f 0.0))
+    (assume r2 (!(ite (>= H_0_1_b 0.0)(= H_0_1_b H_0_1_f)(<= H_0_1_f 0.0))
 	                     :named r2))
-	          (assume lf0 (!(>= H_0_0_f 0.0):named lf0))
-	          (assume lf1 (!(>= H_0_1_f 0.0):named lf1))
-	       <@)@>
-	<@)@>
+    (assume lf0 (!(>= H_0_0_f 0.0):named lf0))
+    (assume lf1 (!(>= H_0_1_f 0.0):named lf1))
+  <@)@>
+<@)@>
+
+; Query assumptions
+(assume u0 (!(<= X_0_0 1.0):named u0))
+(assume l0 (!(>= X_0_0 0.0):named l0))
+(assume u1 (!(<= X_0_1 1.0):named u1))
+(assume l1 (!(>= X_0_1 0.0):named l1))
+(assume u2 (!(<= X_0_2 1.0):named u2))
+(assume l2 (!(>= X_0_2 0.0):named l2))
+(assume u3 (!(<= Y_0_0 -2.0):named u3))
 	
-	; Query assumptions
-	(assume u0 (!(<= X_0_0 1.0):named u0))
-	(assume l0 (!(>= X_0_0 0.0):named l0))
-	(assume u1 (!(<= X_0_1 1.0):named u1))
-	(assume l1 (!(>= X_0_1 0.0):named l1))
-	(assume u2 (!(<= X_0_2 1.0):named u2))
-	(assume l2 (!(>= X_0_2 0.0):named l2))
-	(assume u3 (!(<= Y_0_0 -2.0):named u3))
-	
-	; Prove for both ReLUs that f - b >= 0
-	(step t1 (cl (not (>= H_0_0_b 0.0))(= H_0_0_b H_0_0_f)):rule ite2 :premises(r1))
-	(step t2 (cl (not (= H_0_0_b H_0_0_f))(<= 0.0 (- H_0_0_f H_0_0_b))):rule
+; Prove for both ReLUs that f - b >= 0
+(step t1 (cl (not (>= H_0_0_b 0.0))(= H_0_0_b H_0_0_f)):rule ite2 :premises(r1))
+(step t2 (cl (not (= H_0_0_b H_0_0_f))(<= 0.0 (- H_0_0_f H_0_0_b))):rule
 	         la_generic :args(-1 1))
-	(step t3 (cl (>= H_0_0_b 0.0)(not (>= H_0_0_f 0.0))(<= 0.0 (- H_0_0_f H_0_0_b)))
+(step t3 (cl (>= H_0_0_b 0.0)(not (>= H_0_0_f 0.0))(<= 0.0 (- H_0_0_f H_0_0_b)))
 	         :rule la_generic :args(1 -1 1))
-	(step aux1bound (cl (<= 0.0 (!(- H_0_0_f H_0_0_b):named H_0_0_a))):rule
+(step aux1bound (cl (<= 0.0 (!(- H_0_0_f H_0_0_b):named H_0_0_a))):rule
 	                resolution :premises(t1 t2 t3 lf0))
-	(step s1 (cl (not (>= H_0_1_b 0.0))(= H_0_1_b H_0_1_f)):rule ite2 :premises(r2))
-	(step s2 (cl (not (= H_0_1_b H_0_1_f))(<= 0.0 (- H_0_1_f H_0_1_b))):rule 
+(step s1 (cl (not (>= H_0_1_b 0.0))(= H_0_1_b H_0_1_f)):rule ite2 :premises(r2))
+(step s2 (cl (not (= H_0_1_b H_0_1_f))(<= 0.0 (- H_0_1_f H_0_1_b))):rule 
 	         la_generic :args(-1 1))
-	(step s3 (cl (>= H_0_1_b 0.0)(not (>= H_0_1_f 0.0))(<= 0.0 (- H_0_1_f H_0_1_b))) 
+(step s3 (cl (>= H_0_1_b 0.0)(not (>= H_0_1_f 0.0))(<= 0.0 (- H_0_1_f H_0_1_b))) 
 	         :rule la_generic :args(1 -1 1))
-	(step aux2bound (cl (<= 0.0 (!(- H_0_1_f H_0_1_b):named H_0_1_a))):rule 
+(step aux2bound (cl (<= 0.0 (!(- H_0_1_f H_0_1_b):named H_0_1_a))):rule 
 	                resolution :premises(s1 s2 s3 lf1))
 	                
 	; Activation pattern reasoning
-	(step ax1 (cl (>= H_0_0_b 0.0)(<= H_0_0_f 0.0)):rule ite1 :premises(r1))
-	(step ax2 (cl (not (>= H_0_0_b 0.0))(= H_0_0_b H_0_0_f)):rule ite2 :premises(r1))
-	(step ax3 (cl (not (= H_0_0_b H_0_0_f))(<= H_0_0_a 0.0)):rule la_generic 
-	          :args(1 1))
-	(step ax4 (cl (not (>= H_0_0_b 0.0))(<= H_0_0_a 0.0)):rule resolution 
+(step ax1 (cl (>= H_0_0_b 0.0)(<= H_0_0_f 0.0)):rule ite1 :premises(r1))
+(step ax2 (cl (not (>= H_0_0_b 0.0))(= H_0_0_b H_0_0_f)):rule ite2 :premises(r1))
+(step ax3 (cl (not (= H_0_0_b H_0_0_f))(<= H_0_0_a 0.0)):rule la_generic :args(1 1))
+(step ax4 (cl (not (>= H_0_0_b 0.0))(<= H_0_0_a 0.0)):rule resolution 
 	          :premises(ax2 ax3))
 	
-	; Prove UNSAT for both phases of H_0_0
-	(step lf1 (cl (not e3)(not lf1)(not u3)(not (<= H_0_0_f 0.0))):rule la_generic 
+; Prove UNSAT for both phases of H_0_0
+(step lf1 (cl (not e3)(not lf1)(not u3)(not (<= H_0_0_f 0.0))):rule la_generic 
 	          :args(-1 1 1 1))
-	(step lf2 (cl (not (<= H_0_0_f 0.0))):rule resolution :premises(lf1 e3 lf1 u3))
-	(step lf3 (cl (>= H_0_0_b 0.0)):rule resolution :premises(ax1 lf2))
+(step lf2 (cl (not (<= H_0_0_f 0.0))):rule resolution :premises(lf1 e3 lf1 u3))
+(step lf3 (cl (>= H_0_0_b 0.0)):rule resolution :premises(ax1 lf2))
 	
-	(step rt1 (cl (not e1)(not e2)(not e3)(not l1)(not l2)(not u0)(not u3)
+(step rt1 (cl (not e1)(not e2)(not e3)(not l1)(not l2)(not u0)(not u3)
 	          (not (<= H_0_0_a 0.0))(not (<= 0.0 H_0_1_a))):rule la_generic 
 	          :args(1 -1 -1 3 1 1 1 -1 -1))
-	(step rt2 (cl (not (<= H_0_0_a 0.0))):rule resolution 
+(step rt2 (cl (not (<= H_0_0_a 0.0))):rule resolution 
 	          :premises (rt1 e1 e2 e3 l1 l2 u0 u3 aux2bound))
-	(step rt3 (cl (not (>= H_0_0_b 0.0))):rule resolution :premises(rt2 ax4))
+(step rt3 (cl (not (>= H_0_0_b 0.0))):rule resolution :premises(rt2 ax4))
 	
-	; Finalize
-	(step final (cl):rule resolution :premises(rt3 lf3))
+; Finalize
+(step final (cl):rule resolution :premises(rt3 lf3))
 \end{lstlisting}
-\captionof{lstlisting}{An example for a \vnnlib{} proof. The text highlighted in red is the VNN-LIB specific syntax. When this text is removed, then the remaining file becomes a valid Alethe file.}
+\captionof{lstlisting}{An \vnnlib{} proof of unsat for Figure~\ref{fig:proof-query}. The red text is VNN-LIB specific syntax, and when removed the remaining file becomes a valid Alethe file.}
 \label{lst:proof}
 \end{figure}
 
@@ -398,23 +395,22 @@ follows:
 
 \section{Query Assumptions}
 
-The syntactical form of query assumptions is independent of the neural network structure, and only adhere to constraints appear in the \vnnlib{} query file. In particular, variable naming in the proof file should be consistent with the naming in the query file.
-
-For example, the notations above allows us to formalize any bounds on the form $l_j \leq X_j[i_j] \leq u_j$ for some numeral elements $l_j,u_j$ as:
-
-\begin{code}[style=lbnf]
-	(assert (>= Xj_ij lj))
-	(assert (<= Xj_ij uj))
-\end{code}
-
-within the \vnnlib{} query. And as,
+The query assumptions simply reproduce the assertions that appear in the original \vnnlib{} query file. In particular, variable naming in the proof file should be consistent with the naming in the query file (modulo the difference in variable names explained at the start of this chapter).
+For example, if the following assertions were present in the query file:
 
 \begin{code}[style=lbnf]
-	(assume l (>= Xj_ij lj))
-	(assume u (<= Xj_ij uj))
+	(assert (>= X[0,0] 0))
+	(assert (<= X[0,0] 1))
 \end{code}
 
-within the proof file.
+\noindent then the following assumptions should appear in the proof file:
+
+\begin{code}[style=lbnf]
+	(assume l (>= X_0_0 0))
+	(assume u (<= X_0_0 1))
+\end{code}
+
+\noindent where $l$ and $u$ are names for the assumptions that can be referenced later on in the proof.
 
 \section{Proof Steps}
  

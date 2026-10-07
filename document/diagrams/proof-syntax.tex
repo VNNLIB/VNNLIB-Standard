@@ -2,8 +2,8 @@
 	<proof> ::=  <version><proofCommand>$^*$ 
 	
 	<proofCommand> ::= <assumeNetwork>
-	\alt <assume>
-	\alt<step>
+	| <assume>
+	| <step>
 	
 	%<name> ::= [A-Za-z][\_A-Za-z0-9]*
 	<assumeNetwork> ::=  (\texttt{assume-network} <name> <assumeNode>$^*$)
@@ -15,16 +15,16 @@
 
 	<subproof> ::= (\texttt{anchor} :step <name>)
 	
-	<step> ::= (\texttt{step} <name> <clause> \texttt{:rule} <ruleName> <premisesAnnotation>$^?$ <argsAnnotation>$^?$ )
+	<step> ::= (\texttt{step} <name> <clause> \texttt{:rule} <ruleName> <premises>$^?$ <args>$^?$ )
 	
 	<clause> ::= (\texttt{cl} <bool>$^*$)
 	
-	<premisesAnnotation> ::= \texttt{:premises} (<name>$^+$)
+	<premises> ::= \texttt{:premises} (<name>$^+$)
 	
-	<argsAnnotation> ::= \texttt{:args} (<rational>$^+$)
+	<args> ::= \texttt{:args} (<rational>$^+$)
 	
 	<rational> ::= -$^?$[0-9]$^+$/$^?$[0-9]$^+$ 
-	\alt -$^?$[0-9]$^+$(.[0-9]$^+$)$^?$
+	| -$^?$[0-9]$^+$(.[0-9]$^+$)$^?$
 		
 	<bool> ::= (\texttt{and} <bool> <bool>$^+$)
 	\alt (\texttt{or} <bool> <bool>$^+$)
