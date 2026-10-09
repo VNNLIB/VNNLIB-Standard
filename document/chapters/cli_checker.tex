@@ -19,7 +19,7 @@ This command has two arguments:
 
 \clOption{-{}-query}{The path of the \vnnlib{} query file that defines the satisfaction problem claimed to be unsatisfiable }
 {-{}-query /path/to/query.vnnlib}
-\clOption{-{}-proof}{The path of the proof file to be checked}{-{}-proof /path/to/proof.alethe}
+\clOption{-{}-proof}{The path of the proof file to be checked}{-{}-proof /path/to/proof.alethe.vnnlib}
 Additionally, the proof checker should support the following additional options:
 \clOption{-{}-network}{This option maps the name of one of the networks declared in the provided \vnnlib{} query file to its implementation as an ONNX model file. When the query file contains multiple \texttt{declare-network} declarations this option should be used multiple times -- once for each network declaration not marked with an \texttt{equal-to} declaration (see Section~\ref{sec:multiple-networks}).}{-{}-network classifier=/a/path/to/a/model.onnx}
 
