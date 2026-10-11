@@ -1,35 +1,36 @@
-% This minipage exists to force left-alignment
-\begin{minipage}[t]{0.5\textwidth}
-	\begin{flalign*}
-		\inferrule*[Right=(Element)]{
-            \missing
-        }{
-            \vdash \elementVar : \elementTypeVar
-        }
-        \hspace{8.3em}
-        \inferrule*[Right=(Tensor)]{
-            \missing 
-        }{
-            \vdash \tensorVar : \tensorTypeVar
-        }
-        \hspace{7.8em}
-	    \inferrule*[Right=(Model)]{
-            \missing
-        }{
-            \vdash \modelVar : \modelTypeVar 
-        }
-        \\
-        \inferrule*[Right=(NodeOutput)]{
-            \missing
-        }{
-            \modelVar \vdash \onnxNameVar : \tensorTypeVar
-        }
-        \hspace{9em}
-        \inferrule*[Right=(Isomorphic)]{
-            \missing
-        }{
-            \vdash \modelVar_1 \cong \modelVar_2
-        }
-        \hspace{5em}
-    \end{flalign*}
-\end{minipage}
+{
+\vspace{-1em}
+\renewcommand{\MathparLineskip}{\lineskiplimit=0em\lineskip=0em}
+\begin{mathpar}
+    \inferrule*[right=(Element)]{
+        \missing
+    }{
+        \vdash \elementVar : \elementTypeVar
+    }
+    \and
+    \inferrule*[right=(Tensor)]{
+        \missing 
+    }{
+        \vdash \tensorVar : \tensorTypeVar
+    }
+    \and
+    \inferrule*[right=(Model)]{
+        \missing
+    }{
+        \vdash \modelVar : \modelTypeVar 
+    }
+    \and
+    \inferrule*[right=(NamedValue)]{
+        \missing
+    }{
+        \modelVar \vdash \onnxNameVar : \tensorTypeVar
+    }
+    \and
+    \inferrule*[right=(Isomorphic)]{
+        \missing
+    }{
+        \vdash \modelVar_1 \cong \modelVar_2
+    }
+\end{mathpar}
+\vspace{-2em}
+}

@@ -101,9 +101,13 @@
 \newcommand{\elementTypeVar}{\tau}
 \newcommand{\tensorTypeVar}{\delta}
 \newcommand{\modelTypeVar}{\gamma}
+\newcommand{\initVar}{\iota}
 
-\newcommand{\inputNodesFn}{inputs}
+
+\newcommand{\inputNodesFn}{\text{modelInputs}}
+\newcommand{\initNodesFn}{\text{modelInitializers}}
 \newcommand{\outputNodesFn}{\text{modelOutputs}}
+\newcommand{\initializerFn}{\text{modelInitializerValue}}
 
 \newcommand{\semApp}[2]{\sem{#2}_\text{#1}}
 \newcommand{\semElementType}[1]{\semApp{elementType}{#1}}
@@ -173,7 +177,8 @@
 \texttt{declare-input} ~
 \nameVar ~
 \elementTypeVar ~
-\shapeVar
+\shapeVar ~
+\initVar
 }
 
 \newcommand{\hiddenExpansion}
