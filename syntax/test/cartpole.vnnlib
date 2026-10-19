@@ -2,8 +2,8 @@
 ; cartpole property unsafe_44
 
 (declare-network cartpole
-    (declare-input X Real [4])
-    (declare-output Y Real [2])
+    (declare-input X real [4])
+    (declare-output Y real [2])
 )
 
 

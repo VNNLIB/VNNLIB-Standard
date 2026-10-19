@@ -18,7 +18,7 @@ All solvers adhering to the \vnnlib{} specification should be available as an ex
 Throughout the following sections, \texttt{<...>} is used to indicate required values and \texttt{[...]} is used to indicate optional values. To illustrate the example usages, we will  use an imaginary solver called \texttt{\exampleSolver}.
 
 Invoking the solver will produce output in the format described in the rest of this section. Unless stated otherwise all output should be printed on \texttt{stdout}. Detailed logs, warnings, or error messages must be printed on \texttt{stderr}.
-At the moment, the \vnnlib{} standard contains two commands: \emph{verify} and \emph{capabilities}. Compliant solvers can provide additional other non-standard functionality under different commands. 
+At the moment, the \vnnlib{} standard contains two commands: \emph{verify} and \emph{supports}. Compliant solvers can provide additional other non-standard functionality under different commands. 
 
 \section{Global Options}
 
@@ -53,26 +53,26 @@ The general pattern of usage is as follows:
   <filepath>
   [--network <name>=<filepath>]
   [--timeout <seconds>]
-  [--assignments <filepath>]
+  [--serialise-assignments <filepath>]
 \end{lstlisting}
 The first argument should be the path to the \vnnlib{} query file (see Section~\ref{sec:specification_language}), and the solver should support the following additional options:
 
-\clOption{-{}-network}{This option maps the name of one of the networks declared in the provided \vnnlib{} query file to its implementation as an ONNX model file. When the query file contains multiple \texttt{declare-network} declarations this option should be used multiple times -- once for each network declaration not marked with an \texttt{equal-to} declaration (see Section~\ref{sec:multiple-networks}).}{--network classifier=/a/path/to/a/model.onnx}
+\clOption{{-}-network}{This option maps the name of one of the networks declared in the provided \vnnlib{} query file to its implementation as an ONNX model file. When the query file contains multiple \texttt{declare-network} declarations this option should be used multiple times -- once for each network declaration not marked with an \texttt{equal-to} declaration (see Section~\ref{sec:multiple-networks}).}{{-}-network classifier=/a/path/to/a/model.onnx}
 
-\clOption{-{}-timeout}{Maximum time to spend on processing on the query in an integer number of seconds.}{-{}-timeout 10}
+\clOption{{-}-timeout}{Maximum time to spend on processing on the query in an integer number of seconds.}{{-}-timeout 10}
 
-\clOption{-{}-serialise-assignments}
-{Instructs the solver to output satisfying assignments in the seralised format described in Section~\ref{sec:seralised-assignment-format}. Solvers are only required to support this argument if they declare support for serialising assignments as described in Section~\ref{sec:other-capabilities}.}
-{-{}-serialise-assignments /path/to/output}
+\clOption{{-}-serialise-assignments}
+{Instructs the solver to output satisfying assignments in the seralised format described in Section~\ref{sec:seralised-assignment-format}. This argument only needs to be supported if the solver reports that it supports serialising assignments as described in Section~\ref{sec:other-capabilities}.}
+{{-}-serialise-assignments /path/to/output}
 
 \clOption
 {-{}-unsat-proofs}
 {When provided, this argument instructs the solver to produce a proof of unsatisfiability in the \vnnlib{} proof format, whenever the query is found to be unsatisfiable. Solvers are only required to support this argument if they declare support for UNSAT proof generation as described in Section~\ref{sec:other-capabilities}.} { -{}-unsat-proofs /proof/file/path}
 
-
 \noindent Compliant solvers may also support additional non-standard arguments to the \texttt{verify} command to affect the internal behaviour of the verification algorithm. However, such additional non-standard arguments \textit{must} be optional.
 
 \subsection{Output of the \texttt{verify} command}
+\label{sec:verify-output-format}
 
 \noindent The initial output of the command should be reported on \texttt{stdout} and should be a single line consisting of one of the following options: 
 \begin{itemize}
@@ -150,17 +150,17 @@ A float32 [2,2]
 0.2
 B int32 [1]
 -1
-H Real [1,2]
+H float32 [1,2]
 0.5
 0.3
-Y Real [1]
+Y float32 [1]
 0.1
-C Real [2,2]
+C float32 [2,2]
 1.0
 0.3
 0.4
 0.2
-Z Real [1]
+Z float32 [1]
 0.0
 \end{lstlisting}
 
@@ -198,7 +198,7 @@ The \texttt{verify} command \textit{must} error in the following circumstances:
 \item The element types in the provided ONNX model files do not match the declared types in the \vnnlib{} query. The exception to this is if the query uses the \inlinevnn{real} type (see Section~\ref{sec:real-queries} for details).
 \item The solver is incapable of providing sound analysis over the declared types in \vnnlib{} query. If it is capable of unsound analysis, the user must explicitly provide consent for this by re-writing the query to use the \inlinevnn{real} type (see Section~\ref{sec:real-queries} for details).
 \end{enumerate}
-When \textit{any} error is thrown, including the above, the error message must be printed on \texttt{stderr}.
+When \textit{any} error is thrown, including the above, the error message must be printed on \texttt{stderr} and the solver must return a non-zero exit code.
 
 In order to allow support for queries that are unable to be described by the current \vnnlib{} specification, when a solver encounters other potential error scenarios (e.g. non-standard \vnnlib{} syntax, non-standard ONNX files), it, at its discretion, choose to error or not error as appropriate.
 
@@ -271,6 +271,7 @@ Flatten
 \end{lstlisting}
 
 \subsection{\vnnlib{} Query Capabilities}
+\label{sec:query-capabilities}
 
 \clOutputOption
 {-{}-vnnlib-versions}
@@ -296,7 +297,16 @@ NH
 {Which of the \multiIO{} theories described in Section~\ref{sec:multiple-inputs-outputs} does the solver support?}
 {A newline-separated list of theories}
 \begin{lstlisting}[style=bash]
-%*\exampleSolver* supports --multiple-inputs-output-theories
+%*\exampleSolver* supports --multiple-input-output-theories
+SIO
+\end{lstlisting}
+
+\clOutputOption
+{{-}-multiple-network-theories}
+{Which of the \multiNetwork{} theories described in Section~\ref{sec:multiple-networks} does the solver support?}
+{A newline-separated list of theories}
+\begin{lstlisting}[style=bash]
+%*\exampleSolver* supports --multiple-network-theories
 SNET
 MENET
 \end{lstlisting}

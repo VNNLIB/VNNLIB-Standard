@@ -1,7 +1,7 @@
 (vnnlib-version <2.0>)
 (declare-network drones
-	(declare-input X Real [12])
-	(declare-output Y Real [])
+	(declare-input X real [12])
+	(declare-output Y real [])
 )
 
 

@@ -4,8 +4,8 @@
 ; This file covers various edge cases to ensure correctness and robustness.
 
 (declare-network test
-    (declare-input X Real [3])
-    (declare-output Y Real [])
+    (declare-input X real [3])
+    (declare-output Y real [])
 )
 
 ; --- GROUP 1: Basic Operations & Constants ---
