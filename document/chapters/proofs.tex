@@ -248,7 +248,7 @@ follows:
 
 \begin{code}[style=lbnf]
 (assume-node some_node ceil
-    (assume y_int is_int y)
+    (assume y_int (is_int y))
     (assume y_sub (< y (+ x 1)))
     (assume y_wlb (>= y x))
 )
@@ -282,7 +282,7 @@ $y = \mathrm{floor}(x)$ is formulated as follows:
 
 \begin{code}[style=lbnf]
 (assume-node some_node floor
-    (assume y_int is_int y)
+    (assume y_int (is_int y))
     (assume y_slb (> y (- x 1)))
     (assume y_wub (<= y x))
 )
@@ -336,7 +336,7 @@ Thus, a complete representation of the operator is obtained by adding a constrai
 \paragraph{MatMul (Matrix Multiplication)}
 The ONNX \texttt{MatMul} operator performs matrix multiplication. As input, the function receives two tensors $A$ and $B$, and computes $Y = A \cdot B$.
 
-For tensors with at least two dimensions, the last two dimensions are treated as matrix dimensions, while the preceding dimensions are treated as batch dimensions, over which ONNX supports broadcasting. Let $q$ denote a batch index vector of the output tensor, and let $p$ and $o$ denote the corresponding batch indices of $A$ and $B$, respectively, accounting for broadcasting
+For tensors with at least two dimensions, the last two dimensions are treated as matrix dimensions, while the preceding dimensions are treated as batch dimensions, over which ONNX supports broadcasting. Let $q$ denote a batch index vector of the output tensor, and let $p$ and $o$ denote the corresponding batch indices of $A$ and $B$, respectively, accounting for broadcasting.
 Assuming that the last two dimensions of $A$ and $B$ are $m \times k$ and $k \times n$, respectively, each output variable is computed as:
 \[
 Y[q,i,j] = \sum_{r=1}^{k} A[p,i,r] \cdot B[o,r,j].
@@ -348,13 +348,13 @@ Using the above formulation, we can assume the following equations used to deriv
 \begin{code}[style=lbnf]
 (assume-node some_node matmul
     ...
-    (assume e_q_i_j (= Y_q_i_j (+ (* B_p_1_j A_o_i_1) ... 
-                                  (* B_p_k_j A_o_i_k))))
+    (assume e_q_i_j (= Y_q_i_j (+ (* A_p_i_1 B_o_1_j) ... 
+                                  (* A_p_i_k b_o_k_j))))
     ...
 )    
 \end{code} 
 
-where \texttt{B\_p\_1\_j,...,B\_p\_k\_j} are replaced with their numerical values.
+where \texttt{B\_o\_1\_j,...,B\_o\_k\_j} are replaced with their numerical values.
 
 If either $A$ or $B$ is a one-dimensional tensor (vector), the corresponding matrix index ($i$ or $j$, respectively) is omitted from the formulation. The same index is removed from the output tensor as well.
 
