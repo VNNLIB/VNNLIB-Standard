@@ -1,8 +1,8 @@
 (vnnlib-version <2.0>)
 (declare-network acc 
-	(declare-input X Real [3])
-	(declare-hidden N Real [1,2] "onnx")
-	(declare-output Y Real [3])
+	(declare-input X real [3])
+	(declare-hidden N real [1,2] "onnx")
+	(declare-output Y real [3])
 )
 
 (assert (<= (* -1.0 X[0]) 0.0))

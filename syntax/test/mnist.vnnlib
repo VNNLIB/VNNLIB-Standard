@@ -1,7 +1,7 @@
 (vnnlib-version <2.0>)
 (declare-network mnist
-	(declare-input X Real [28,28])
-	(declare-output Y Real [10])
+	(declare-input X real [28,28])
+	(declare-output Y real [10])
 )
 
 (assert (>= X[0,0] 0.0))
