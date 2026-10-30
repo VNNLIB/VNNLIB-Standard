@@ -254,7 +254,7 @@ follows:
 )
 \end{code} 
 
-where \texttt{is\_int} is the $LIA$ typecheck operator that returns true if and only if the type of its argument is \inlinevnn{int}. 
+Here, \texttt{is_int} is an SMT-LIB predicate that holds if and only if its real-valued argument has an integer value.
 This constraint encodes the operation over a single variable, whereas the ONNX operator \texttt{Ceil} is applied element-wise over a tensor. 
 Thus, a complete representation of the operator is obtained by adding a constraint per element within a single \texttt{assume-node} context.
 
@@ -288,7 +288,7 @@ $y = \mathrm{floor}(x)$ is formulated as follows:
 )
 \end{code} 
 
-where \texttt{is\_int} is the $LIA$ typecheck operator that returns true if and only if the type of its argument is \inlinevnn{int}. 
+where \texttt{is\_int} is the operator defined in the \texttt{Ceil} operator.
 This constraint encodes the operation over a single variable, whereas the ONNX operator \texttt{Floor} is applied element-wise over a tensor. 
 Thus, a complete representation of the operator is obtained by adding a constraint per element within a single \texttt{assume-node} context.
 
@@ -349,7 +349,7 @@ Using the above formulation, we can assume the following equations used to deriv
 (assume-node some_node matmul
     ...
     (assume e_q_i_j (= Y_q_i_j (+ (* A_p_i_1 B_o_1_j) ... 
-                                  (* A_p_i_k b_o_k_j))))
+                                  (* A_p_i_k B_o_k_j))))
     ...
 )    
 \end{code} 
