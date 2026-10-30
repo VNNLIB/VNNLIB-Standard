@@ -38,7 +38,7 @@ The syntax of the proofs is shown in Figure~\ref{fig:proof-syntax}. A \vnnlib{} 
 	\item \textbf{Query assumptions} introduce formulae imported directly from the original \vnnlib{} query. These assumptions  must reproduce the formulae exactly as stated (modulo the caveat on variable names below) and, again to make implementation of proof checkers easier, must occur in the same order as they appear in the query file. 
 
 	\item \textbf{Proof steps} derive new facts from assumptions and from previously derived steps, called \emph{premises}. Each proof step contains a unique identifier name, the derived clause, the name of the proof rule used to derive it, its premises, and, when needed, additional rule-specific arguments.
-Proof steps may include \textbf{subproofs}, which open a separate branch within a proof and add assumptions $A_1 \cdots A_n$. When concluding a subproof with a conclusion $C$, then clause $\lnot A_1, \dots, \lnot A_n, C$ is learned in the main proof branch.
+Proof steps may include \textbf{subproofs}, which open a separate branch within a proof and add assumptions $A_1 \cdots A_n$. Concluding a subproof with $C$ derives the clause $\lnot A_1, \dots, \lnot A_n, C$ in the main proof branch.
 \end{enumerate}
 
 For simplicity, all network and query assumptions must appear before all proof steps. Of course, purely local assumptions used within a subproof may be declared at the top of the subproof.
@@ -74,7 +74,7 @@ resulting in: $$H = \begin{bmatrix} X\_0\_0 - X\_0\_1
 The output of the hidden layer $H$ is multiplied by the matrix:
 $\begin{bmatrix} -1 & 1
 \end{bmatrix}$ meaning that $\texttt{Y\_0\_0} = \texttt{H\_0\_1} - \texttt{H\_0\_0}$.
-Finally, assume that the input node operator is named \texttt{il} in the ONNX model, the hidden ReLU node operator is named \texttt{hr}, and the output node operator name is \texttt{ol}
+Finally, assume that the input node operator is named \texttt{il} in the ONNX model, the hidden ReLU node operator is named \texttt{hr}, and the output node operator name is \texttt{ol}.
 
 \begin{figure}[h!]
 	\begin{minipage}[c]{0.76\textwidth}
@@ -167,10 +167,10 @@ Finally, lines 31--68 contain a sequence of derivation steps that lead to the em
               :premises(ax2 ax3))
 	
 ; Prove UNSAT for both phases of H_0_0
-(step lf1 (cl (not e3)(not lf1)(not u3)(not (<= H_0_0_f 0.0))):rule la_generic 
+(step lft1 (cl (not e3)(not lf1)(not u3)(not (<= H_0_0_f 0.0))):rule la_generic 
               :args(-1 1 1 1))
-(step lf2 (cl (not (<= H_0_0_f 0.0))):rule resolution :premises(lf1 e3 lf1 u3))
-(step lf3 (cl (>= H_0_0_b 0.0)):rule resolution :premises(ax1 lf2))
+(step lft2 (cl (not (<= H_0_0_f 0.0))):rule resolution :premises(lft1 e3 lf1 u3))
+(step lft3 (cl (>= H_0_0_b 0.0)):rule resolution :premises(ax1 lft2))
 	
 (step rt1 (cl (not e1)(not e2)(not e3)(not l1)(not l2)(not u0)(not u3)
               (not (<= H_0_0_a 0.0))(not (<= 0.0 H_0_1_a))):rule la_generic 
@@ -180,9 +180,9 @@ Finally, lines 31--68 contain a sequence of derivation steps that lead to the em
 (step rt3 (cl (not (>= H_0_0_b 0.0))):rule resolution :premises(rt2 ax4))
 	
 ; Finalize
-(step final (cl):rule resolution :premises(rt3 lf3))
+(step final (cl):rule resolution :premises(rt3 lft3))
 \end{lstlisting}
-\captionof{lstlisting}{An \vnnlib{} proof of unsat for Figure~\ref{fig:proof-query}. The red text is VNN-LIB specific syntax, and when removed the remaining file becomes a valid Alethe file.}
+\captionof{lstlisting}{An \vnnlib{} proof of UNSAT for Figure~\ref{fig:proof-query}. The red text is VNN-LIB specific syntax, and when removed the remaining file becomes a valid Alethe file.}
 \label{lst:proof}
 \end{figure}
 
@@ -243,14 +243,14 @@ Thus, a complete representation of the operator is obtained by adding a constrai
 
 \paragraph{Ceil}
 This constraint requires introducing reasoning on integers (e.g. using reasoning over LIA). To this end, a constraint of the form 
-$f = \mathrm{ceil}(x)$ is formulated as
+$y = \mathrm{ceil}(x)$ is formulated as
 follows: 
 
 \begin{code}[style=lbnf]
 (assume-node some_node ceil
-    (assume is_int y)
-    (assume (< y (+ x 1)))
-    (assume (>= y x))
+    (assume y_int is_int y)
+    (assume y_sub (< y (+ x 1)))
+    (assume y_wlb (>= y x))
 )
 \end{code} 
 
@@ -259,7 +259,7 @@ This constraint encodes the operation over a single variable, whereas the ONNX o
 Thus, a complete representation of the operator is obtained by adding a constraint per element within a single \texttt{assume-node} context.
 
 \paragraph{Clip}
-The constraint $y = \mathrm{clip}_{M,m}(x)$, with maximum parameter $M$ and minimum parameter $m$ is formulated as
+The constraint $y = \mathrm{clip}_{M,m}(x)$, with maximum parameter $M$, and minimum parameter $m$ is formulated as
 follows: 
 
 \begin{code}[style=lbnf]
@@ -282,9 +282,9 @@ $y = \mathrm{floor}(x)$ is formulated as follows:
 
 \begin{code}[style=lbnf]
 (assume-node some_node floor
-    (assume is_int y)
-    (assume (> y (- x 1)))
-    (assume (<= y x))
+    (assume y_int is_int y)
+    (assume y_slb (> y (- x 1)))
+    (assume y_wub (<= y x))
 )
 \end{code} 
 
@@ -303,7 +303,7 @@ has dimensions $k\times n$, the resulting tensor $Y$ has dimensions $m\times n$,
 
 To represent a fully connected node, $B$ and $C$ are constant tensors, resulting in linear equations over the network variables of $A$.
 
-Using the above formulation, we can assume the following equations used to derive the output variable $Y[i,j]$:
+Using the above formulation, we can assume the following equations for any output variable $Y[i,j]$:
  
 \begin{code}[style=lbnf,mathescape=true]
 (assume-node some_node gemm
@@ -315,7 +315,7 @@ Using the above formulation, we can assume the following equations used to deriv
 )                             
 \end{code}
 
-where \texttt{B\_1\_j,...,B\_k\_j, C\_i\_j } are replaced with their numerical value.
+where \texttt{B\_1\_j,...,B\_k\_j, C\_i\_j } are replaced with their numerical values.
 
 
 \paragraph{LeakyReLU}
@@ -336,9 +336,10 @@ Thus, a complete representation of the operator is obtained by adding a constrai
 \paragraph{MatMul (Matrix Multiplication)}
 The ONNX \texttt{MatMul} operator performs matrix multiplication. As input, the function receives two tensors $A$ and $B$, and computes $Y = A \cdot B$.
 
-For tensors with more than two dimensions, the last two dimensions are treated as the matrix dimensions, while the preceding dimensions are treated as batch dimensions. Thus, considering a batch index vector $q$, and assuming that the last two dimensions of $A$ and $B$ are $m \times k$ and $k \times n$, respectively, each output variable is computed as:
+For tensors with at least two dimensions, the last two dimensions are treated as matrix dimensions, while the preceding dimensions are treated as batch dimensions, over which ONNX supports broadcasting. Let $q$ denote a batch index vector of the output tensor, and let $p$ and $o$ denote the corresponding batch indices of $A$ and $B$, respectively, accounting for broadcasting
+Assuming that the last two dimensions of $A$ and $B$ are $m \times k$ and $k \times n$, respectively, each output variable is computed as:
 \[
-Y[q,i,j] = \sum_{r=1}^{k} A[q,i,r] \cdot B[q,r,j],
+Y[q,i,j] = \sum_{r=1}^{k} A[p,i,r] \cdot B[o,r,j].
 \]
 
 To represent a linear node, $B$ is a constant tensor, resulting in linear equations over the network variables of $A$.
@@ -347,14 +348,15 @@ Using the above formulation, we can assume the following equations used to deriv
 \begin{code}[style=lbnf]
 (assume-node some_node matmul
     ...
-    (assume e_q_i_j (= Y_q_i_j (+ (* B_q_1_j A_q_i_1) ... 
-                                  (* B_q_k_j A_q_i_k))))
+    (assume e_q_i_j (= Y_q_i_j (+ (* B_p_1_j A_o_i_1) ... 
+                                  (* B_p_k_j A_o_i_k))))
     ...
 )    
 \end{code} 
 
-where \texttt{B\_q\_1\_j,...,B\_q\_k\_j} are replaced with their numerical value.
+where \texttt{B\_p\_1\_j,...,B\_p\_k\_j} are replaced with their numerical values.
 
+If either $A$ or $B$ is a one-dimensional tensor (vector), the corresponding matrix index ($i$ or $j$, respectively) is omitted from the formulation. The same index is removed from the output tensor as well.
 
 \paragraph{Max and Min}
 The constraint $y = \mathrm{max}(x_1,x_2)$ is formulated as follows: 
@@ -448,7 +450,7 @@ Where $\triangleright$ serves as a separator, $s$ is the unique step identifier,
 This general step is written as:
 
 \begin{code}[style=lbnf,escapechar=@]
-	(step s cl (@$\varphi_1 \cdots\varphi_n$@) :rule <rule_name> :premises(@$\mathtt{s_1 \cdots s_k}$@)
+	(step s (cl @$\varphi_1 \cdots\varphi_n$@) :rule <rule_name> :premises(@$\mathtt{s_1 \cdots s_k}$@)
 	                                      :args(@$\mathtt{a_1 \cdots a_m}$@))
 \end{code}
 
@@ -464,7 +466,7 @@ in~\cite{ScFlBaFo21} and is summarized here for completeness.
 	${\mathtt{false}}$
 \end{tabularx}
 
-\paragraph{\texttt{not\_not}:} Enabling elimination of double negation.
+\paragraph{\texttt{not\_not}:} This rule eliminates double negation.
 
 \noindent\begin{tabularx}{\linewidth}{ l C r }
 	$s.\triangleright$ & 
