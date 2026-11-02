@@ -529,6 +529,14 @@ These two rules break an \texttt{ite} statement into clauses, alternating the tr
 	${\mathtt{(ite2 \: s)}}$
 \end{tabularx}
 
+\paragraph{\texttt{la\textunderscore disequality}:} This rule represents the order trichotomy over the Reals. It is applied for \textsc{LRA} proof terms $t_1,t_2$.
+
+\noindent\begin{tabularx}{\linewidth}{ l C r }
+	$s.\triangleright$ & 
+	$t_1 = t_2 \: \lor \: \lnot(t_1\leq t_2) \lor \: \lnot(t_2\leq t_1)$ & 
+	${\mathtt{(la\_disequality)}}$
+\end{tabularx}
+
 \paragraph{\texttt{la\textunderscore totality}:} This rule represents the order totality over the Reals. It is applied for \textsc{LRA} proof terms $t_1,t_2$.
 
 \noindent\begin{tabularx}{\linewidth}{ l C r }
