@@ -297,7 +297,7 @@ The ONNX \texttt{Gemm} operator performs a general matrix multiplication followe
 \[
 Y = \alpha \cdot A'\cdot B' + \beta \cdot C,
 \]
-where $A'=A^\top$ if the \texttt{transA} attribute is set, and $A'=A$ otherwise; $B'$ is defined analogously according to \texttt{transB}. For simplicity, we ignore batch dimensions in this rule, though they are applicable as defined below in the \hyperref[rule:matmul]{MatMul} rule.
+where $A'=A^\top$ if the \texttt{transA} attribute is set, and $A'=A$ otherwise; $B'$ is defined analogously according to \texttt{transB}. For simplicity, we ignore batch dimensions in this rule, though they are applicable as defined below in the \hyperref[rule:matmul]{MatMul} rule, where the rank of $B'$ is restricted to $2$.
 Assuming that $A'$ has dimensions $m\times k$ and $B'$
 has dimensions $k\times n$, the resulting tensor $Y$ has dimensions $m\times n$, while $C$ is broadcast to $m\times n$ when necessary.
 
