@@ -48,11 +48,11 @@ The proof checker \emph{must} certify that all network assumptions are correctly
 \paragraph{Naming.} Formulae and terms used in the proof can also be \emph{named} by a unique identifier, mainly for compactness and readability. Naming has the following syntax:
 
 \begin{code}[style=lbnf]
-	... !(term):named id ...
+	... (! term :named id) ...
 \end{code}
 
 
-\paragraph{Variable Naming.} Although \vnnlib{} supports square brackets (\texttt{[ ]}) and commas (\texttt{,}) as a part of variable naming, Alethe does not. Therefore, to maintain the required consistency of variable names, the proof format uses underscores (\texttt{\_}) for indexing into tensor variables instead. For example, the indexed variable \texttt{X[i,j]} in the VNN-LIB query format is written as \texttt{X\_i\_j} in the VNN-LIB proof format.
+\paragraph{Variable Naming.} Although \vnnlib{} supports square brackets (\texttt{[ ]}) and commas (\texttt{,}) as a part of variable naming, Alethe does not. Therefore, to maintain the required consistency of variable names, the proof format uses underscores (\texttt{\_}) for indexing into tensor variables instead. For example, the indexed variable \texttt{X[i,j]} in the VNN-LIB query format is written as \texttt{X\_i\_j} in the proof format.
 
 
 \paragraph{Comments and Whitespace}
@@ -107,13 +107,13 @@ Finally, assume that the input node operator is named \texttt{il} in the ONNX mo
 
 An example proof of unsatisfiability for this query is shown in Example~\ref{lst:proof}.
 The proof introduces two variables for each hidden neuron in the ReLU node \texttt{hr}: \texttt{H\_0\_i\_b} and \texttt{H\_0\_i\_f} corresponding to the variables described in Section~\ref{sec:proof-syntax}.
-The proof begins by declaring the network assumptions in lines 3--19, which includes the equations induced by the input and output nodes of the network (lines 4--7, 8--10, respectively), followed by assumptions encoding the ReLU activation node (lines 11--19). Then, in lines 22--28, the proof proceeds by importing bound assumptions directly from the \vnnlib{} query file.
+The proof begins by declaring the network assumptions in lines 3--19, which include the equations induced by the input and output nodes of the network (lines 4--7, 8--10, respectively), followed by assumptions encoding the ReLU activation node (lines 11--18). Then, in lines 22--28, the proof proceeds by importing bound assumptions directly from the \vnnlib{} query file.
 Finally, lines 31--68 contain a sequence of derivation steps that lead to the empty clause, thereby establishing unsatisfiability. 
 
 \begin{figure}[p]
 \thisfloatpagestyle{empty}
 \begin{lstlisting}[style=lbnf,basicstyle=\ttfamily\scriptsize\bfseries,linewidth=1.05\textwidth]
-(vnnlib-version <2.1>)
+<@(vnnlib-version <2.1>)@>
 ; Network assumptions
 <@(assume-network encoder
   (assume-node il matmul@>
@@ -168,7 +168,7 @@ Finally, lines 31--68 contain a sequence of derivation steps that lead to the em
 	
 ; Prove UNSAT for both phases of H_0_0
 (step lft1 (cl (not e3)(not lf1)(not u3)(not (<= H_0_0_f 0.0))):rule la_generic 
-              :args(-1 1 1 1))
+               :args(-1 1 1 1))
 (step lft2 (cl (not (<= H_0_0_f 0.0))):rule resolution :premises(lft1 e3 lf1 u3))
 (step lft3 (cl (>= H_0_0_b 0.0)):rule resolution :premises(ax1 lft2))
 	
@@ -274,7 +274,7 @@ follows:
 \end{code}
 
 \noindent This constraint encodes the operation over a single variable, whereas the ONNX operator \texttt{Clip} is applied element-wise over a tensor. 
-Thus, a complete representation of the operator is obtained by adding a constraint per element within a single \texttt{assume-node} context.
+Thus, a complete representation of the operator is obtained by adding a constraint per element within a single \texttt{assume-node} context. The second constraint \texttt{clp2} may appear only once per node.
 
 \paragraph{Floor}
 This constraint requires introducing reasoning on integers (e.g. using reasoning over LIA). To this end, a constraint of the form 
@@ -297,7 +297,7 @@ The ONNX \texttt{Gemm} operator performs a general matrix multiplication followe
 \[
 Y = \alpha \cdot A'\cdot B' + \beta \cdot C,
 \]
-where $A'=A^\top$ if the \texttt{transA} attribute is set, and $A'=A$ otherwise; $B'$ is defined analogously according to \texttt{transB}. 
+where $A'=A^\top$ if the \texttt{transA} attribute is set, and $A'=A$ otherwise; $B'$ is defined analogously according to \texttt{transB}. For simplicity, we ignore batch dimensions in this rule, though they are applicable as defined below in the \hyperref[rule:matmul]{MatMul} rule.
 Assuming that $A'$ has dimensions $m\times k$ and $B'$
 has dimensions $k\times n$, the resulting tensor $Y$ has dimensions $m\times n$, while $C$ is broadcast to $m\times n$ when necessary.
 
@@ -308,8 +308,8 @@ Using the above formulation, we can assume the following equations for any outpu
 \begin{code}[style=lbnf,mathescape=true]
 (assume-node some_node gemm
     ...
-    (assume e_i_j (= Y_i_j (+ (* $\alpha$ B_1_j A_i_1) ... 
-                              (* $\alpha$ B_k_j A_i_k)
+    (assume e_i_j (= Y_i_j (+ (* $\alpha$ A_i_1 B_1_j) ... 
+                              (* $\alpha$ A_i_k B_k_j)
                               (* $\beta$ C_i_j))))
     ...
 )                             
@@ -334,6 +334,7 @@ follows:
 Thus, a complete representation of the operator is obtained by adding a constraint per element within a single \texttt{assume-node} context.
 
 \paragraph{MatMul (Matrix Multiplication)}
+\label{rule:matmul}
 The ONNX \texttt{MatMul} operator performs matrix multiplication. As input, the function receives two tensors $A$ and $B$, and computes $Y = A \cdot B$.
 
 For tensors with at least two dimensions, the last two dimensions are treated as matrix dimensions, while the preceding dimensions are treated as batch dimensions, over which ONNX supports broadcasting. Let $q$ denote a batch index vector of the output tensor, and let $p$ and $o$ denote the corresponding batch indices of $A$ and $B$, respectively, accounting for broadcasting.
@@ -594,8 +595,8 @@ therefore be reduced to an equivalent \texttt{la\textunderscore generic} step.
 The rule derives the unsatisfiability of a sequence of linear equations
 $\Theta_1,\ldots,\Theta_n$, followed by a sequence of simple linear inequalities
 $\psi_1,\ldots,\psi_m$, where each inequality is of the form
-$\psi_i := (x_i \bowtie c_i)$, with
-$\bowtie \in \{<,>,\leq,\geq\}$, $c_i \in \mathbb{R}$, and $x_i$ a unique variable per inequality.
+$\psi_i := (x_i \bowtie d_i)$, with
+$\bowtie \in \{<,>,\leq,\geq\}$, $d_i \in \mathbb{R}$, and $x_i$ a unique variable per inequality.
 Using the above, the \texttt{bounded\textunderscore farkas} rule has the structure:
 
 \noindent\begin{tabularx}{\linewidth}{ l C r }

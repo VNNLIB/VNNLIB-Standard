@@ -67,7 +67,7 @@ The checker must be able to respond to all of the following capabilities, althou
 
 \clOutputOption
 {-{}-onnx-operators}
-{Reports the ONNX operators (e.g., \texttt{Conv}, \texttt{Relu}, \texttt{Gemm}) that are supported by the checker. See Section~\ref{sec:models} for more details on the ONNX standard and its operators.
+{Reports the ONNX operators (e.g., \texttt{Conv}, \texttt{Relu}, \texttt{Gemm}) that are supported by the checker. See Section~\ref{sec:models} for more details on the ONNX standard and its operators, and Section~\ref{sec:proof-node-encoding} for more details on encoding these nodes in the proof syntax.
 }
 {A newline-separated list of lines, where each line contains the name of an ONNX operator followed by a possibly empty space-separated list of ONNX element types.  If the list is empty, then the checker is assumed to support the operator for all element types it reports via the \texttt{supports -{}-onnx-element-types} command.
 }
