@@ -483,7 +483,19 @@ in~\cite{ScFlBaFo21} and is summarized here for completeness.
 	${\mathtt{(resolution \: s_1\cdots s_k)}}$
 \end{tabularx}
 
-\paragraph{\texttt{or}:} The rule transforms a disjunction of the form $\varphi_1\lor\cdots\lor\varphi_n$ to the clause $\mathtt{cl(\varphi_1 \: \cdots \: \varphi_n)}$.
+\paragraph{\texttt{reordering}:} This rule permutes a clause. For any clause with $n$ literals and any $\pi\in S_n$:
+
+\noindent\begin{tabularx}{\linewidth}{ l C r }
+	$s.\triangleright$ & 
+	$\varphi_1,\dots,\varphi_n$ & 
+	${\mathtt{(\cdots)}}$ \\
+	
+	$t.\triangleright$ & 
+	$\varphi_{\pi(1)},\dots,\varphi_{\pi(n)}$ & 
+	${\mathtt{(reordering \: s)}}$
+\end{tabularx}
+
+\paragraph{\texttt{or}:} This rule transforms a disjunction of the form $\varphi_1\lor\cdots\lor\varphi_n$ to the clause $\mathtt{cl(\varphi_1 \: \cdots \: \varphi_n)}$.
 
 \noindent\begin{tabularx}{\linewidth}{ l C r }
 	$s.\triangleright$ & 
