@@ -19,7 +19,7 @@ We assume an informal understanding of the semantics of ONNX, and present a proo
 \label{sec:proof-syntax}
 
 The VNN-LIB proof format is a very thin wrapper around a subset of the existing Alethe proof format for SMT solving~\cite{ScFlBaFo21}. Alethe is a readable, resolution-based format for expressing the incremental derivation of first-order clauses from the input problem and previously derived clauses, using predefined \emph{proof rules}. The proof terminates with the derivation of the empty clause. One of the advantages of Alethe is that it allows solvers to leave \emph{proof holes} by invoking a dedicated rule, giving solvers flexibility in the level of detail included in the proof.
-Another advantage is that Alethe proofs can be reconstructed as proof terms in several interactive theorem provers (ITPs)~\cite{LaFlBaJaAnReScBaTi25,EkMeTiKeKaReBa17,CoAnBaDoMe24}, and can also be checked by a capable standard proof checker~\cite{AnLaBa23}. Thus, using Alethe enables the reuse of existing state-of-the-art proof checkers. Finally Alethe is modular in the sense that additonal custom proof steps can be added to support common neural network reasoning patterns.
+Another advantage is that Alethe proofs can be reconstructed as proof terms in several interactive theorem provers (ITPs)~\cite{LaFlBaJaAnReScBaTi25,EkMeTiKeKaReBa17,CoAnBaDoMe24}, and can also be checked by a capable standard proof checker~\cite{AnLaBa23}. Thus, using Alethe enables the reuse of existing state-of-the-art proof checkers. Finally, Alethe is modular in the sense that additional custom proof steps can be added to support common neural network reasoning patterns.
 
 
 \begin{figure}[p]
@@ -38,21 +38,21 @@ The syntax of the proofs is shown in Figure~\ref{fig:proof-syntax}. A \vnnlib{} 
 	\item \textbf{Query assumptions} introduce formulae imported directly from the original \vnnlib{} query. These assumptions  must reproduce the formulae exactly as stated (modulo the caveat on variable names below) and, again to make implementation of proof checkers easier, must occur in the same order as they appear in the query file. 
 
 	\item \textbf{Proof steps} derive new facts from assumptions and from previously derived steps, called \emph{premises}. Each proof step contains a unique identifier name, the derived clause, the name of the proof rule used to derive it, its premises, and, when needed, additional rule-specific arguments.
-Proof steps may include \textbf{subproofs}, which open a separate branch within a proof and add assumptions $A_1 \cdots A_n$. When concluding a subproof with a conclusion $C$, then clause $\lnot A_1, \dots, \lnot A_n, C$ is learned in the main proof branch.
+Proof steps may include \textbf{subproofs}, which open a separate branch within a proof and add assumptions $A_1 \cdots A_n$. Concluding a subproof with $C$ derives the clause $\lnot A_1, \dots, \lnot A_n, C$ in the main proof branch.
 \end{enumerate}
 
 For simplicity, all network and query assumptions must appear before all proof steps. Of course, purely local assumptions used within a subproof may be declared at the top of the subproof.
-The proof checker \emph{must} certify that all network assumptions are correctly imported from a valid node in the network, and that the variable names are consistent across all assumptions and with the ONNX files. The proof checker must also check that all query assumptions must match an assertion defined in the \vnnlib{} query file, and have consistent variable names with the other assumptions.
+The proof checker \emph{must} certify that all network assumptions are correctly imported from a valid node in the network, and that the variable names are consistent across all assumptions and with the ONNX files. The proof checker must also check that all query assumptions match an assertion defined in the \vnnlib{} query file, and have consistent variable names with the other assumptions.
 	
 	
 \paragraph{Naming.} Formulae and terms used in the proof can also be \emph{named} by a unique identifier, mainly for compactness and readability. Naming has the following syntax:
 
 \begin{code}[style=lbnf]
-	... !(term):named id ...
+	... (! term :named id) ...
 \end{code}
 
 
-\paragraph{Variable Naming.} Although \vnnlib{} supported square brackets (\texttt{[ ]}) and commas (\texttt{,}) as a part of variable naming, Alethe does not. Therefore, to maintain the required consistency of variable names, the proof format uses underscores (\texttt{\_}) for indexing into tensor variables instead. For example, the indexed variable \texttt{X[i,j]} in the VNN-LIB query format is written as \texttt{X\_i\_j} in the VNN-LIB proof format.
+\paragraph{Variable Naming.} Although \vnnlib{} supports square brackets (\texttt{[ ]}) and commas (\texttt{,}) as a part of variable naming, Alethe does not. Therefore, to maintain the required consistency of variable names, the proof format uses underscores (\texttt{\_}) for indexing into tensor variables instead. For example, the indexed variable \texttt{X[i,j]} in the VNN-LIB query format is written as \texttt{X\_i\_j} in the proof format.
 
 
 \paragraph{Comments and Whitespace}
@@ -65,23 +65,23 @@ Comments and whitespace are used as in Section~\ref{sec:comments}.
 Consider the neural network and \vnnlib{} query illustrated in Figure~\ref{fig:proof-query}. Assume that the matrix-multiplication nodes defined by the ONNX file are as follows: the input $X$ is multiplied by the matrix:
 $$\begin{bmatrix} 1 & -1 & 0 
 \\
-0 & 1 & 1 
+0 & 2 & 1 
  \end{bmatrix}$$
 resulting in: $$H = \begin{bmatrix} X\_0\_0 - X\_0\_1 
 	\\
-	X\_0\_1 + X\_0\_2
+	2\cdot(X\_0\_1) + X\_0\_2
 \end{bmatrix}$$
-The output of the hidden later $H$ is multiplied by the matrix:
+The output of the hidden layer $H$ is multiplied by the matrix:
 $\begin{bmatrix} -1 & 1
 \end{bmatrix}$ meaning that $\texttt{Y\_0\_0} = \texttt{H\_0\_1} - \texttt{H\_0\_0}$.
-Finally, assume that the input node operator is named \texttt{il} in the ONNX model, the hidden ReLU node operator is named \texttt{hr}, and the output node operator name is \texttt{ol}
+Finally, assume that the input node operator is named \texttt{il} in the ONNX model, the hidden ReLU node operator is named \texttt{hr}, and the output node operator name is \texttt{ol}.
 
 \begin{figure}[h!]
 	\begin{minipage}[c]{0.76\textwidth}
 		\begin{lstlisting}[style=lbnf]
 			(vnnlib-version <2.1>)
 			(declare-network encoder
-			  (declare-input  X float64 [1,4])
+			  (declare-input  X float64 [1,3])
 			  (declare-hidden H float64 [1,2] "hr")
 			  (declare-output Y float64 [1,1])
 			)
@@ -95,10 +95,7 @@ Finally, assume that the input node operator is named \texttt{il} in the ONNX mo
 			(assert (<= X_0_2 1.0))
 			(assert (>= X_0_2 0.0))
 			
-			(assert (<= X_0_3 1.0))
-			(assert (>= X_0_3 0.0))
-			
-			(assert (<= Y_0_0 -1.0)) \end{lstlisting}
+			(assert (<= Y_0_0 -2.0)) \end{lstlisting}
 	\end{minipage}
 	\begin{minipage}[c]{0.21\textwidth}
 		\centering
@@ -109,18 +106,18 @@ Finally, assume that the input node operator is named \texttt{il} in the ONNX mo
 \end{figure}
 
 An example proof of unsatisfiability for this query is shown in Example~\ref{lst:proof}.
-The proof introduces two variables for each hidden neuron in the ReLU node \texttt{hidden}: \texttt{H\_0\_i\_b} and \texttt{H\_0\_i\_f} corresponding to the variables described in Section~\ref{sec:proof-syntax}.
-The proof begins by declaring the network assumption in lines 3--19, which includes the equations induced by the input and output nodes of the network (lines 4--7, 8--10, respectively), followed by assumptions encoding the ReLU activation node (lines 11--19). Then, in lines 22--28, the proof proceeds by importing bound assumption directly from the \vnnlib{} query file.
+The proof introduces two variables for each hidden neuron in the ReLU node \texttt{hr}: \texttt{H\_0\_i\_b} and \texttt{H\_0\_i\_f} corresponding to the variables described in Section~\ref{sec:proof-syntax}.
+The proof begins by declaring the network assumptions in lines 3--19, which include the equations induced by the input and output nodes of the network (lines 4--7, 8--10, respectively), followed by assumptions encoding the ReLU activation node (lines 11--18). Then, in lines 22--28, the proof proceeds by importing bound assumptions directly from the \vnnlib{} query file.
 Finally, lines 31--68 contain a sequence of derivation steps that lead to the empty clause, thereby establishing unsatisfiability. 
 
 \begin{figure}[p]
 \thisfloatpagestyle{empty}
 \begin{lstlisting}[style=lbnf,basicstyle=\ttfamily\scriptsize\bfseries,linewidth=1.05\textwidth]
-(vnnlib-version <2.1>)
+<@(vnnlib-version <2.1>)@>
 ; Network assumptions
 <@(assume-network encoder
   (assume-node il matmul@>
-    (assume e1 (!(= (+ X_0_0 (- X_0_1 )    (- H_0_0_b)) 0.0) :named e1))
+    (assume e1 (!(= (+ X_0_0 (- X_0_1 ) (- H_0_0_b)) 0.0) :named e1))
     (assume e2 (!(= (+ (* 2.0 X_0_1) X_0_2 (- H_0_1_b)) 0.0) :named e2))
   <@)@>
   <@(assume-node ol matmul@>
@@ -170,10 +167,10 @@ Finally, lines 31--68 contain a sequence of derivation steps that lead to the em
               :premises(ax2 ax3))
 	
 ; Prove UNSAT for both phases of H_0_0
-(step lf1 (cl (not e3)(not lf1)(not u3)(not (<= H_0_0_f 0.0))):rule la_generic 
-              :args(-1 1 1 1))
-(step lf2 (cl (not (<= H_0_0_f 0.0))):rule resolution :premises(lf1 e3 lf1 u3))
-(step lf3 (cl (>= H_0_0_b 0.0)):rule resolution :premises(ax1 lf2))
+(step lft1 (cl (not e3)(not lf1)(not u3)(not (<= H_0_0_f 0.0))):rule la_generic 
+               :args(-1 1 1 1))
+(step lft2 (cl (not (<= H_0_0_f 0.0))):rule resolution :premises(lft1 e3 lf1 u3))
+(step lft3 (cl (>= H_0_0_b 0.0)):rule resolution :premises(ax1 lft2))
 	
 (step rt1 (cl (not e1)(not e2)(not e3)(not l1)(not l2)(not u0)(not u3)
               (not (<= H_0_0_a 0.0))(not (<= 0.0 H_0_1_a))):rule la_generic 
@@ -183,9 +180,9 @@ Finally, lines 31--68 contain a sequence of derivation steps that lead to the em
 (step rt3 (cl (not (>= H_0_0_b 0.0))):rule resolution :premises(rt2 ax4))
 	
 ; Finalize
-(step final (cl):rule resolution :premises(rt3 lf3))
+(step final (cl):rule resolution :premises(rt3 lft3))
 \end{lstlisting}
-\captionof{lstlisting}{An \vnnlib{} proof of unsat for Figure~\ref{fig:proof-query}. The red text is VNN-LIB specific syntax, and when removed the remaining file becomes a valid Alethe file.}
+\captionof{lstlisting}{An \vnnlib{} proof of UNSAT for Figure~\ref{fig:proof-query}. The red text is VNN-LIB specific syntax, and when removed the remaining file becomes a valid Alethe file.}
 \label{lst:proof}
 \end{figure}
 
@@ -197,8 +194,8 @@ Finally, lines 31--68 contain a sequence of derivation steps that lead to the em
 	All \texttt{assume} commands contain a unique identifier name and the imported formula. Additionally, the requirement to list the importing node requires all ONNX networks used in this format to contain a unique name for each node.
 	\begin{itemize}	
 	\item The \texttt{assume-network} command specifies a \emph{network assumption context}. This command must name a network used in the \vnnlib{} query file and it defines that network's context. This context is then used to define additional node assumptions, imported from the declared network.
-	\item The \texttt{assume-node} command specifies a \emph{node assumption context}. This command is defined within a network assumption context, and is used to import of assumptions from a specific ONNX node within that network. The declaration must include the name of the ONNX node and its type.
-	\item Within a node context, the \texttt{assume} command specifies a constraint imported from that node (within some neural network). These commands are pure Alethe assumption, but they are required to comply with the structure defined by their  context, as described in Section~\ref{sec:proof-node-encoding}.
+	\item The \texttt{assume-node} command specifies a \emph{node assumption context}. This command is defined within a network assumption context, and is used to import assumptions from a specific ONNX node within that network. The declaration must include the name of the ONNX node and its type.
+	\item Within a node context, the \texttt{assume} command specifies a constraint imported from that node (within some neural network). These commands are pure Alethe assumptions, but they are required to comply with the structure defined by their  context, as described in Section~\ref{sec:proof-node-encoding}.
 	\end{itemize}
 	
 We list the formal encodings of common ONNX nodes, including nodes frequently used in the neural network verification literature. We first formalize a general linear equation, which is used to encode linear nodes, and then present an alphabetical list of ONNX nodes together with their corresponding encodings.
@@ -209,7 +206,7 @@ The list is not exhaustive, and we welcome contributions of encodings for additi
 \subsection{Linear Equations}
 
 Linear equations are typically used to encode the affine transformations induced by the internal linear nodes of the network, as well as linear constraints originating from the query.
-A linear equation of the form $d = \overset{l}{\underset{i=1}{\sum}} c_i \cdot x_i$  is represented in the proof
+A linear equation of the form $d = \overset{k}{\underset{i=1}{\sum}} c_i \cdot x_i$  is represented in the proof
 as: 
 
 \begin{code}[style=lbnf]
@@ -218,7 +215,7 @@ as:
 
 In particular, consider a linear equation that computes the value of a neuron from the values of neurons in a preceding node. Let $X_k$ be a node and $i_k$ be an index vector such that $X_k[i_k]$ denotes a neuron in that node. Similarly, consider $m$ neurons from a preceding node $X_j$, identified by the index vectors $i_1,\dots,i_m$, namely
 $X_j[i_1],\dots,X_j[i_m]$.
-Then, the computation: 
+Thus, the computation: 
 \[X_k[i_k] = c_1 \cdot X_j[i_1] + \cdots + c_m \cdot X_j[i_m] + b\] can be written as the assumption:
 
 \begin{code}[style=lbnf]
@@ -246,53 +243,52 @@ Thus, a complete representation of the operator is obtained by adding a constrai
 
 \paragraph{Ceil}
 This constraint requires introducing reasoning on integers (e.g. using reasoning over LIA). To this end, a constraint of the form 
-$f = \mathrm{ceil}(x)$ is formulated as
+$y = \mathrm{ceil}(x)$ is formulated as
 follows: 
 
 \begin{code}[style=lbnf]
 (assume-node some_node ceil
-    (assume is_int y)
-    (assume (< x (+ x 1)))
-    (assume (>= y x))
+    (assume y_int (is_int y))
+    (assume y_sub (< y (+ x 1)))
+    (assume y_wlb (>= y x))
 )
 \end{code} 
 
-where \texttt{is\_int} is the $LIA$ typecheck operator that returns true if and only if the type of its argument is \inlinevnn{int}. 
+Here, \texttt{is\_int} is an SMT-LIB predicate that holds if and only if its real-valued argument has an integer value.
 This constraint encodes the operation over a single variable, whereas the ONNX operator \texttt{Ceil} is applied element-wise over a tensor. 
 Thus, a complete representation of the operator is obtained by adding a constraint per element within a single \texttt{assume-node} context.
 
 \paragraph{Clip}
-The constraint $y = \mathrm{clip}_{M,m}(x)$, with maximum parameter $M$ and minimum parameter $m$ is formulated as
+The constraint $y = \mathrm{clip}_{M,m}(x)$, with maximum parameter $M$, and minimum parameter $m$ is formulated as
 follows: 
 
 \begin{code}[style=lbnf]
 (assume-node some_node clip
     (assume clp1 (ite (>= x M) 
-                       (= y M) 
-                       (= y x))) 
-    (assume clp2 (ite (<= x m) 
-                       (= y m) 
-                       (= y x))) 
+                      (= y M) 
+                      (ite (<= x m) 
+                           (= y m) 
+                           (= y x))))
+    (assume clp2 (<= m M))                      
 )                        
 \end{code}
 
 \noindent This constraint encodes the operation over a single variable, whereas the ONNX operator \texttt{Clip} is applied element-wise over a tensor. 
-Thus, a complete representation of the operator is obtained by adding a constraint per element within a single \texttt{assume-node} context.
+Thus, a complete representation of the operator is obtained by adding a constraint per element within a single \texttt{assume-node} context. The second constraint \texttt{clp2} may appear only once per node.
 
 \paragraph{Floor}
 This constraint requires introducing reasoning on integers (e.g. using reasoning over LIA). To this end, a constraint of the form 
-And $y = \mathrm{floor}(x)$ is formulated as
-follows: 
+$y = \mathrm{floor}(x)$ is formulated as follows: 
 
 \begin{code}[style=lbnf]
 (assume-node some_node floor
-    (assume is_int y)
-    (assume (> y (- x 1)))
-    (assume (<= y x))
+    (assume y_int (is_int y))
+    (assume y_slb (> y (- x 1)))
+    (assume y_wub (<= y x))
 )
 \end{code} 
 
-where \texttt{is\_int} is the $LIA$ typecheck operator that returns true if and only if the type of its argument is \inlinevnn{int}. 
+where \texttt{is\_int} is the operator defined in the \texttt{Ceil} operator.
 This constraint encodes the operation over a single variable, whereas the ONNX operator \texttt{Floor} is applied element-wise over a tensor. 
 Thus, a complete representation of the operator is obtained by adding a constraint per element within a single \texttt{assume-node} context.
 
@@ -301,29 +297,29 @@ The ONNX \texttt{Gemm} operator performs a general matrix multiplication followe
 \[
 Y = \alpha \cdot A'\cdot B' + \beta \cdot C,
 \]
-where $A'=A^\top$ if the \texttt{transA} attribute is set, and $A'=A$ otherwise; $B'$ is defined analogously according to \texttt{transB}. 
+where $A'=A^\top$ if the \texttt{transA} attribute is set, and $A'=A$ otherwise; $B'$ is defined analogously according to \texttt{transB}. For simplicity, we ignore batch dimensions in this rule, though they are applicable as defined below in the \hyperref[rule:matmul]{MatMul} rule, where the rank of $B'$ is restricted to $2$.
 Assuming that $A'$ has dimensions $m\times k$ and $B'$
 has dimensions $k\times n$, the resulting tensor $Y$ has dimensions $m\times n$, while $C$ is broadcast to $m\times n$ when necessary.
 
 To represent a fully connected node, $B$ and $C$ are constant tensors, resulting in linear equations over the network variables of $A$.
 
-Using the above formulation, we can assume the following equations used to derive the output variable $Y[i,j]$:
+Using the above formulation, we can assume the following equations for any output variable $Y[i,j]$:
  
 \begin{code}[style=lbnf,mathescape=true]
 (assume-node some_node gemm
     ...
-    (assume e_i_j (= Y_i_j (+ (* $\alpha$ B_1_j A_i_1) ... 
-                              (* $\alpha$ B_k_j A_i_k)
+    (assume e_i_j (= Y_i_j (+ (* $\alpha$ A_i_1 B_1_j) ... 
+                              (* $\alpha$ A_i_k B_k_j)
                               (* $\beta$ C_i_j))))
     ...
 )                             
 \end{code}
 
-where \texttt{B\_1\_j,...,B\_k\_j, C\_i\_j } appear in their numerical value.
+where \texttt{B\_1\_j,...,B\_k\_j, C\_i\_j } are replaced with their numerical values.
 
 
 \paragraph{LeakyReLU}
-The constraint $y = \mathrm{LeakyReLU}_\alpha(x)$, with leakage parameter $a>0$ is formulated as
+The constraint $y = \mathrm{LeakyReLU}_a(x)$, with leakage parameter $a>0$ is formulated as
 follows: 
 
 \begin{code}[style=lbnf]
@@ -338,27 +334,30 @@ follows:
 Thus, a complete representation of the operator is obtained by adding a constraint per element within a single \texttt{assume-node} context.
 
 \paragraph{MatMul (Matrix Multiplication)}
+\label{rule:matmul}
 The ONNX \texttt{MatMul} operator performs matrix multiplication. As input, the function receives two tensors $A$ and $B$, and computes $Y = A \cdot B$.
 
-For tensors with more than two dimensions, the last two dimensions are treated as the matrix dimensions, while the preceding dimensions are treated as batch dimensions. Thus, considering a batch index vector $q$, and assuming that the last two dimensions of $A$ and $B$ are $m \times k$ and $k \times n$, respectively, each output variable is computed as:
+For tensors with at least two dimensions, the last two dimensions are treated as matrix dimensions, while the preceding dimensions are treated as batch dimensions, over which ONNX supports broadcasting. Let $q$ denote a batch index vector of the output tensor, and let $p$ and $o$ denote the corresponding batch indices of $A$ and $B$, respectively, accounting for broadcasting.
+Assuming that the last two dimensions of $A$ and $B$ are $m \times k$ and $k \times n$, respectively, each output variable is computed as:
 \[
-Y[q,i,j] = \sum_{r=1}^{k} A[q,i,r] \cdot B[q,r,j],
+Y[q,i,j] = \sum_{r=1}^{k} A[p,i,r] \cdot B[o,r,j].
 \]
 
-To represent a linear mode, $B$ is a constant tensor, resulting in linear equations over the network variables of $A$.
+To represent a linear node, $B$ is a constant tensor, resulting in linear equations over the network variables of $A$.
 Using the above formulation, we can assume the following equations used to derive the output variable $Y[q,i,j]$:
 
 \begin{code}[style=lbnf]
 (assume-node some_node matmul
     ...
-    (assume e_q_i_j (= Y_q_i_j (+ (* B_q_1_j A_q_i_1) ... 
-                                  (* B_q_k_j A_q_i_k))))
+    (assume e_q_i_j (= Y_q_i_j (+ (* A_p_i_1 B_o_1_j) ... 
+                                  (* A_p_i_k B_o_k_j))))
     ...
 )    
 \end{code} 
 
-where \texttt{B\_q\_1\_j,...,B\_q\_k\_j} appear in their numerical value.
+where \texttt{B\_o\_1\_j,...,B\_o\_k\_j} are replaced with their numerical values.
 
+If either $A$ or $B$ is a one-dimensional tensor (vector), the corresponding matrix index ($i$ or $j$, respectively) is omitted from the formulation. The same index is removed from the output tensor as well.
 
 \paragraph{Max and Min}
 The constraint $y = \mathrm{max}(x_1,x_2)$ is formulated as follows: 
@@ -383,7 +382,7 @@ Likewise, $y = \mathrm{min}(x_1,x_2)$ is formulated as follows:
 
 Extending this formalization to multivariate maximization and minimization, 
 e.g., as in the ONNX operators \texttt{max} and \texttt{min} over tensors,
-is done by composition of the above constraints, i.e., by stating $max(a,b,c) = max(max(a,b),c))$.
+is done by composition of the above constraints, i.e., by stating $max(a,b,c) = max(max(a,b),c)$.
 
 \paragraph{ReLU} The constraint $y = \mathrm{ReLU}(x)$ is formulated as
 follows: 
@@ -452,13 +451,13 @@ Where $\triangleright$ serves as a separator, $s$ is the unique step identifier,
 This general step is written as:
 
 \begin{code}[style=lbnf,escapechar=@]
-	(step s cl (@$\varphi_1 \cdots\varphi_n$@) :rule <rule_name> :premises(@$\mathtt{s_1 \cdots s_k}$@)
+	(step s (cl @$\varphi_1 \cdots\varphi_n$@) :rule <rule_name> :premises(@$\mathtt{s_1 \cdots s_k}$@)
 	                                      :args(@$\mathtt{a_1 \cdots a_m}$@))
 \end{code}
 
 We list here the subset of the Alethe proof rules that are used in the
 \vnnlib{} proof format. Their complete description originally appears
-in~\cite{ScFlBaFo21} and it is summarized here for completeness.
+in~\cite{ScFlBaFo21} and is summarized here for completeness.
 
 \paragraph{\texttt{false}:} A trivial rule introducing the negation of $\bot$.
 
@@ -468,7 +467,7 @@ in~\cite{ScFlBaFo21} and it is summarized here for completeness.
 	${\mathtt{false}}$
 \end{tabularx}
 
-\paragraph{\texttt{not\_not}:} Enabling elimination of double negation.
+\paragraph{\texttt{not\_not}:} This rule eliminates double negation.
 
 \noindent\begin{tabularx}{\linewidth}{ l C r }
 	$s.\triangleright$ & 
@@ -476,7 +475,7 @@ in~\cite{ScFlBaFo21} and it is summarized here for completeness.
 	${\mathtt{not\_not}}$
 \end{tabularx}
 
-\paragraph{\texttt{resolution}:} This rules applies Boolean resolution, and can be applied for multiple premises at once.
+\paragraph{\texttt{resolution}:} This rule applies Boolean resolution, and can be applied for multiple premises at once.
 
 \noindent\begin{tabularx}{\linewidth}{ l C r }
 	$s.\triangleright$ & 
@@ -484,7 +483,19 @@ in~\cite{ScFlBaFo21} and it is summarized here for completeness.
 	${\mathtt{(resolution \: s_1\cdots s_k)}}$
 \end{tabularx}
 
-\paragraph{\texttt{or}:} The rule transform a disjunction of the form $\varphi_1\lor\cdots\lor\varphi_n$ to the clause $\mathtt{cl(\varphi_1 \: \cdots \: \varphi_n)}$.
+\paragraph{\texttt{reordering}:} This rule permutes a clause. For any clause with $n$ literals and any $\pi\in S_n$:
+
+\noindent\begin{tabularx}{\linewidth}{ l C r }
+	$s.\triangleright$ & 
+	$\varphi_1,\dots,\varphi_n$ & 
+	${\mathtt{(\cdots)}}$ \\
+	
+	$t.\triangleright$ & 
+	$\varphi_{\pi(1)},\dots,\varphi_{\pi(n)}$ & 
+	${\mathtt{(reordering \: s)}}$
+\end{tabularx}
+
+\paragraph{\texttt{or}:} This rule transforms a disjunction of the form $\varphi_1\lor\cdots\lor\varphi_n$ to the clause $\mathtt{cl(\varphi_1 \: \cdots \: \varphi_n)}$.
 
 \noindent\begin{tabularx}{\linewidth}{ l C r }
 	$s.\triangleright$ & 
@@ -506,13 +517,13 @@ A conjunction can be used to learn any one of its conjuncts, by using
 	$\mathtt{and\_pos}[k]$
 \end{tabularx}
 
-Where $k\in[n]$.
-Conversely, a from a sequence of formulas we can establish their conjunction, by using \texttt{and\_neg}:
+where $k\in[n]$.
+Conversely, from a sequence of formulas we can establish their conjunction, by using \texttt{and\_neg}:
 
 \noindent\begin{tabularx}{\linewidth}{ l C r }
 	$s.\triangleright$ & 
 	$(\varphi_1\wedge\cdots\wedge\varphi_n),\lnot\varphi_1,\dots,\lnot\varphi_n$ & 
-	$\mathtt{and\_neg}[k]$
+	$\mathtt{and\_neg}$
 \end{tabularx}
 
 \paragraph{\texttt{ite1} and \texttt{ite2}:}
@@ -529,6 +540,14 @@ These two rules break an \texttt{ite} statement into clauses, alternating the tr
 	$s2.\triangleright$ &
 	$\varphi_1, \: \varphi_3$ &
 	${\mathtt{(ite2 \: s)}}$
+\end{tabularx}
+
+\paragraph{\texttt{la\textunderscore disequality}:} This rule represents the order trichotomy over the Reals. It is applied for \textsc{LRA} proof terms $t_1,t_2$.
+
+\noindent\begin{tabularx}{\linewidth}{ l C r }
+	$s.\triangleright$ & 
+	$t_1 = t_2 \: \lor \: \lnot(t_1\leq t_2) \lor \: \lnot(t_2\leq t_1)$ & 
+	${\mathtt{(la\_disequality)}}$
 \end{tabularx}
 
 \paragraph{\texttt{la\textunderscore totality}:} This rule represents the order totality over the Reals. It is applied for \textsc{LRA} proof terms $t_1,t_2$.
@@ -579,7 +598,7 @@ A proof checker may either reject any proof containing such a step, or return a 
 The arguments and premises of this rule must be syntactically well formed, but they can be disregarded.
  
 \paragraph{\texttt{bounded\textunderscore farkas}:}
-In addition to the rules above, we include the option support the novel
+In addition to the rules above, we include support for the novel
 \texttt{bounded\textunderscore farkas} rule, which formalizes the proof vectors
 used in~\cite{IsBaZhKa22}. This rule provides a compact representation of
 \texttt{la\textunderscore generic} for a particular class of cases, and can
@@ -588,8 +607,8 @@ therefore be reduced to an equivalent \texttt{la\textunderscore generic} step.
 The rule derives the unsatisfiability of a sequence of linear equations
 $\Theta_1,\ldots,\Theta_n$, followed by a sequence of simple linear inequalities
 $\psi_1,\ldots,\psi_m$, where each inequality is of the form
-$\psi_i := (x_i \bowtie c_i)$, with
-$\bowtie \in \{<,>,\leq,\geq\}$, $c_i \in \mathbb{R}$, and $x_i$ a unique variable per inequality.
+$\psi_i := (x_i \bowtie d_i)$, with
+$\bowtie \in \{<,>,\leq,\geq\}$, $d_i \in \mathbb{R}$, and $x_i$ a unique variable per inequality.
 Using the above, the \texttt{bounded\textunderscore farkas} rule has the structure:
 
 \noindent\begin{tabularx}{\linewidth}{ l C r }
@@ -624,7 +643,7 @@ This form applies when the clause also contains a single simple inequality $\tau
 \label{sec:subproofs}
 A subproof opens a separate branch within a proof and is typically used to derive implications of the form $\varphi \rightarrow \psi$. A full description of subproofs appears in~\cite{ScFlBaFo21}.
 
-A subproof begins with a sequence of assumptions that are valid only within its local context. It is introduced by an \texttt{anchor} command, which marks the start of the branch and specifies the identifier of the concluding step. The anchor is followed by one or more assumptions. Illustratively, this looks as:
+A subproof begins with a sequence of assumptions that are valid only within its local context. It is introduced by an \texttt{anchor} command, which marks the start of the branch and specifies the identifier of the concluding step. The anchor is followed by one or more assumptions. For example:
 
 \begin{code}[style=lbnf,escapechar=@]
 	(anchor :step s)
@@ -657,7 +676,7 @@ A subproof is closed by a \texttt{subproof} step, which derives a conclusion cla
 	${\mathtt{(subproof \: t)}[s_1 \: \cdots \: s_n]}$
 \end{tabularx} \\
 
-Therefore, concluding the above subproof anchor would have the form:
+The above subproof is therefore concluded as follows:
 
 \begin{code}[style=lbnf,escapechar=@]
 	...
